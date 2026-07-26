@@ -1,6 +1,5 @@
--keep class com.shounakmulay.** { *; }
--dontwarn com.shounakmulay.**
--keep class com.vitanova.** { *; }
--dontwarn com.vitanova.**
--keep public class * extends android.app.Service
--keep public class * extends android.content.BroadcastReceiver
+# حماية جميع الحزم والكلاسات والدوال في المشروع والمكتبات
+-keep class ** { *; }
+-keepclassmembers class ** { *; }
+-dontwarn **
+-dontnote **

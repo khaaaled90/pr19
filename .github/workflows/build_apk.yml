@@ -37,9 +37,9 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      # 5. بناء ملف الـ APK بوضع Release
+      # 5. بناء ملف الـ APK مع تجاوز التحقق من إصدارات Gradle القديمة
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --android-skip-build-dependency-validation
 
       # 6. رفع ملف الـ APK الناتج لتتمكن من تحميله
       - name: Upload APK Artifact

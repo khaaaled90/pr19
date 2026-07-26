@@ -1,1 +1,2 @@
 -keep class com.shounakmulay.telephony.** { *; }
+-dontwarn com.shounakmulay.telephony.**

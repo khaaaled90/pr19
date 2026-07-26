@@ -20,7 +20,9 @@ dependencies:
     sdk: flutter
   sqflite: ^2.3.0
   path: ^1.8.3
-  telephony: ^0.2.0
+  telephony:
+    git:
+      url: https://github.com/khaaaled90/Telephony.git
   flutter_notification_listener: ^1.4.0
   flutter_local_notifications: ^17.0.0
 

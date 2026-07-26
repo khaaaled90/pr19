@@ -1,4 +1,6 @@
--keep class com.shounakmulay.telephony.** { *; }
--dontwarn com.shounakmulay.telephony.**
--keep class com.vitanova.flutter_notification_listener.** { *; }
--dontwarn com.vitanova.flutter_notification_listener.**
+-keep class com.shounakmulay.** { *; }
+-dontwarn com.shounakmulay.**
+-keep class com.vitanova.** { *; }
+-dontwarn com.vitanova.**
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver

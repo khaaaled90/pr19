@@ -40,37 +40,48 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
-  void initState() {
-    super.initState();
+void initState() {
+  super.initState();
+  // التأكد من جاهزية الشاشة قبل بدء تحميل الإحصائيات
+  WidgetsBinding.instance.addPostFrameCallback((_) {
     _loadStats();
-  }
+  });
+}
 
-  Future<void> _loadStats() async {
-    setState(() => isLoading = true);
+Future<void> _loadStats() async {
+  if (!mounted) return;
+  setState(() => isLoading = true);
 
-    try {
-      final db = DatabaseHelper.instance;
-      final keywords =
-          await db.getAllKeywords().timeout(const Duration(seconds: 2));
-      final numbers =
-          await db.getAllNumbers().timeout(const Duration(seconds: 2));
+  try {
+    final db = DatabaseHelper.instance;
+    
+    // تأكيد فتح قاعدة البيانات بدون إجباره على مهلة ثانيتين قد تفشل عند فتح التطبيق لأول مرة
+    final dbInstance = await db.database;
 
-      final dbInstance = await db.database;
-      final repliesCount = Sqflite.firstIntValue(
-              await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log')) ??
-          0;
+    final keywords = await db.getAllKeywords();
+    final numbers = await db.getAllNumbers();
 
-      _processChartData(keywords, numbers);
+    final repliesCount = Sqflite.firstIntValue(
+          await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log')) ??
+        0;
 
+    _processChartData(keywords, numbers);
+
+    if (mounted) {
       setState(() {
         statReplies = repliesCount;
         isLoading = false;
       });
-    } catch (e) {
+    }
+  } catch (e) {
+    print("خطأ أثناء جلب البيانات: $e");
+    if (mounted) {
       _loadDummyData();
     }
   }
+}
 
+  
   void _loadDummyData() {
     setState(() {
       statReplies = 42;

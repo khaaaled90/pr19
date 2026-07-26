@@ -7,22 +7,32 @@ import 'NotificationListener.dart';
 import 'SmsReceiver.dart'; // تأكد من مطابقة اسم الملف لديك
 
 void main() async {
+  // 1. ضمان تهيئة Flutter المحرك
   WidgetsFlutterBinding.ensureInitialized();
-  // 1. تهيئة قاعدة البيانات والتأكد من تجهيز الجداول والتحديثات
-  await DatabaseHelper.instance.database;
 
-  // 2. تهيئة مستمع الـ SMS
-  await SmsReceiver.initializeSmsListener();
-
-  // 3.🔔 تهيئة خدمة الإشعارات المحلية هنا
-  await NotificationHelper.init();
-
-  // 4. تفعيل الاستماع للإشعارات
-  await NotificationListenerManager.startListening();
-
+  // 2. تشغيل الواجهة فوراً للتخلص من الشاشة السوداء
   runApp(const MyApp());
+
+  // 3. تهيئة الخدمات وقاعدة البيانات في الخلفية بدون تعطيل رسم الواجهة
+  _initializeServices();
 }
 
+/// دالة منفصلة لتهيئة خدمات الخلفية بشكل متوازٍ
+Future<void> _initializeServices() async {
+  try {
+    // أ. تهيئة قاعدة البيانات أولاً
+    await DatabaseHelper.instance.database;
+
+    // ب. تهيئة خدمة الإشعارات المحلية
+    await NotificationHelper.init();
+
+    // ج. تهيئة مستمع الـ SMS والاستماع للإشعارات في الخلفية
+    SmsReceiver.initializeSmsListener();
+    NotificationListenerManager.startListening();
+  } catch (e) {
+    print("خطأ أثناء تهيئة خدمات الخلفية: $e");
+  }
+}
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 

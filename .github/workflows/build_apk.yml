@@ -14,38 +14,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. جلب كود المشروع من المستودع
+      # Checkout
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. إعداد بيئة Java 17
-      - name: Set up Java JDK
+      # Java 17
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: 17
 
-      # 3. إعداد بيئة Flutter (تعطيل الكاش لمنع استرجاع الملفات القديمة)
+      # Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          cache: false # 👈 تم تغييره إلى false لضمان عدم استخدام كاش قديم
+          channel: stable
+          cache: false
 
-      # 4. تنظيف كافة ملفات البناء والكاش القديمة
+      # تثبيت Android SDK 36
+      - name: Install Android SDK 36
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
+
+      # Clean
       - name: Clean Project
-        run: flutter clean # 👈 خطوة التنظيف الصريحة
+        run: flutter clean
 
-      # 5. تنزيل مكتبات المشروع من جديد
+      # Packages
       - name: Install Dependencies
         run: flutter pub get
 
-      # 6. بناء ملف الـ APK
+      # Build Release APK
       - name: Build APK
-        run: flutter build apk --release --android-skip-build-dependency-validation
+        run: flutter build apk --release
 
-      # 7. رفع ملف الـ APK الناتج
-      - name: Upload APK Artifact
+      # Upload APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk

@@ -1,16 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- SMS -->
+    <!-- ===================== -->
+    <!-- SMS Permissions -->
+    <!-- ===================== -->
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <uses-permission android:name="android.permission.READ_SMS"/>
     <uses-permission android:name="android.permission.SEND_SMS"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
 
-    <!-- Notification Listener -->
-    <!-- لا يحتاج هذا إلى uses-permission، لأن الصلاحية تُستخدم داخل service -->
-
-    <!-- Foreground Service -->
+    <!-- ===================== -->
+    <!-- Notifications -->
+    <!-- ===================== -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- ===================== -->
+    <!-- Background Services -->
+    <!-- ===================== -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
@@ -43,7 +48,9 @@
 
         </activity>
 
+        <!-- ===================== -->
         <!-- Notification Listener -->
+        <!-- ===================== -->
 
         <receiver
             android:name="im.zoe.labs.flutter_notification_listener.RebootBroadcastReceiver"
@@ -76,18 +83,22 @@
 
         </service>
 
-        <!-- Telephony SMS Receiver -->
+        <!-- ===================== -->
+        <!-- SMS Receiver -->
+        <!-- ===================== -->
 
         <receiver
-            android:name="com.shounakmulay.telephony.sms.incoming.SmsReceiver"
+            android:name="com.shounakmulay.telephony.sms.IncomingSmsReceiver"
             android:permission="android.permission.BROADCAST_SMS"
             android:exported="true">
 
-            <intent-filter>
+            <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
             </intent-filter>
 
         </receiver>
+
+        <!-- Flutter -->
 
         <meta-data
             android:name="flutterEmbedding"

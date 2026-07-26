@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - main
-  # يتيح لك تشغيل البناء يدوياً بنقرة زر من موقع GitHub
   workflow_dispatch:
 
 jobs:
@@ -26,22 +25,26 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. إعداد بيئة Flutter
+      # 3. إعداد بيئة Flutter (تعطيل الكاش لمنع استرجاع الملفات القديمة)
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true
+          cache: false # 👈 تم تغييره إلى false لضمان عدم استخدام كاش قديم
 
-      # 4. تنزيل مكتبات المشروع
+      # 4. تنظيف كافة ملفات البناء والكاش القديمة
+      - name: Clean Project
+        run: flutter clean # 👈 خطوة التنظيف الصريحة
+
+      # 5. تنزيل مكتبات المشروع من جديد
       - name: Install Dependencies
         run: flutter pub get
 
-      # 5. بناء ملف الـ APK مع تجاوز التحقق من إصدارات Gradle القديمة
+      # 6. بناء ملف الـ APK
       - name: Build APK
         run: flutter build apk --release --android-skip-build-dependency-validation
 
-      # 6. رفع ملف الـ APK الناتج لتتمكن من تحميله
+      # 7. رفع ملف الـ APK الناتج
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:

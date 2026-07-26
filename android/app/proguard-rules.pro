@@ -1,2 +1,4 @@
 -keep class com.shounakmulay.telephony.** { *; }
 -dontwarn com.shounakmulay.telephony.**
+-keep class com.vitanova.flutter_notification_listener.** { *; }
+-dontwarn com.vitanova.flutter_notification_listener.**

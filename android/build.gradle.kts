@@ -17,9 +17,8 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// ⬇️ الجزء الخاص بحل مشكلة مكتبة telephony والـ namespace ⬇️
 subprojects {
-    afterEvaluate {
+    val fixNamespace = Action<Project> {
         if (plugins.hasPlugin("com.android.library")) {
             val android = extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
             if (android != null && android.namespace == null) {
@@ -27,8 +26,13 @@ subprojects {
             }
         }
     }
-}
 
+    if (state.executed) {
+        fixNamespace.execute(this)
+    } else {
+        afterEvaluate(fixNamespace)
+    }
+}
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

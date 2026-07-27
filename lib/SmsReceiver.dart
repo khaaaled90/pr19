@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:telephony/telephony.dart';
+import 'package:another_telephony/telephony.dart';
 import 'SmsWorker.dart';
 
 const String _smsTag = 'BG_MONITOR';

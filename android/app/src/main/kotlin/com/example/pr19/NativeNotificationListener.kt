@@ -46,14 +46,14 @@ class NativeNotificationListener : NotificationListenerService() {
         Log.d("NOTIFICATION", "Text = $text")
         Log.d("NOTIFICATION", "Content = $fullContent")
         // فحص قاعدة البيانات
-        /*val dbHelper = AppSqliteHelper.getInstance(applicationContext)
+        val dbHelper = AppSqliteHelper.getInstance(applicationContext)
         val allowed = dbHelper.isSenderAllowed(packageName)
         Log.d("NOTIFICATION", "Allowed = $allowed")
         // إذا لم يكن التطبيق ضمن التطبيقات المسموح بها
         if (!allowed) {
             Log.d("NOTIFICATION", "Notification ignored")
             return
-        }*/
+        }
         // ===== تم تعطيل فلترة التطبيقات مؤقتاً =====
         Log.d("NOTIFICATION", "Filtering disabled - accepting all notifications")
 

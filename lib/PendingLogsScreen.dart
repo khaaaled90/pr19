@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'DatabaseHelper.dart';
-import 'SmsWorker.dart';
+
+// قناة الاتصال المباشرة مع Kotlin
+const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
 
 class PendingLogsScreen extends StatefulWidget {
   const PendingLogsScreen({super.key});
@@ -17,6 +20,23 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
   void initState() {
     super.initState();
     _loadPendingLogs();
+  }
+
+  /// دالة إرسال الـ SMS المباشرة عبر Kotlin
+  Future<bool> _sendSmsNative(String phone, String message) async {
+    try {
+      final bool? result = await _smsChannel.invokeMethod('sendSms', {
+        'phone': phone,
+        'message': message,
+      });
+      return result ?? true;
+    } on PlatformException catch (e) {
+      debugPrint("فشل إرسال SMS عبر القناة: ${e.message}");
+      return false;
+    } catch (e) {
+      debugPrint("خطأ أثناء إرسال SMS: $e");
+      return false;
+    }
   }
 
   /// تحميل العمليات المعلقة من قاعدة البيانات
@@ -131,22 +151,22 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                     voucherCode: voucherCode,
                   );
 
-                  // 2. إرسال القسيمة عبر SMS
+                  // 2. إعداد نص الرسالة
                   String defaultReply = await DatabaseHelper.instance
                       .getSetting('default_reply', 'شكراً لتواصلك. رقمك هو: ');
+                  String fullMsg = "$defaultReply $voucherCode";
 
-                  await SmsWorker.telephony.sendSms(
-                    to: phone,
-                    message: "$defaultReply $voucherCode",
-                    isMultipart: true,
-                  );
+                  // 3. إرسال القسيمة عبر SMS مباشرة عبر Kotlin MethodChannel
+                  bool isSent = await _sendSmsNative(phone, fullMsg);
 
                   if (mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("تم ربط العميل وإرسال القسيمة بنجاح"),
-                        backgroundColor: Colors.green,
+                      SnackBar(
+                        content: Text(isSent
+                            ? "تم ربط العميل وإرسال القسيمة بنجاح"
+                            : "تم ربط العميل لكن تعذر إرسال الرسالة عبر النظام"),
+                        backgroundColor: isSent ? Colors.green : Colors.orange,
                       ),
                     );
                     // إعادة تحميل القائمة لإخفاء العملية المكتملة

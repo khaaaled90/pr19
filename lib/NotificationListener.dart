@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'package:flutter/services.dart';
 import 'package:flutter_notification_listener/flutter_notification_listener.dart';
-import 'SmsWorker.dart';
 
 const String _bgTag = 'BG_MONITOR';
+
+// قناة الاتصال المباشرة مع Kotlin Native
+const MethodChannel _notiChannel = MethodChannel('com.example.pr19/sms');
 
 /// دالة المعالجة الخلفية للإشعارات
 @pragma('vm:entry-point')
@@ -33,19 +36,20 @@ void _notificationCallback(NotificationEvent evt) async {
   developer.log('   👤 اسم المرسل: "$senderName"', name: _bgTag);
 
   try {
-    developer.log('🔄 [NOTI STEP 3] جاري تمرير البيانات إلى SmsWorker.processIncomingMessage...', name: _bgTag);
+    developer.log('🔄 [NOTI STEP 3] جاري تمرير البيانات إلى Kotlin عبر MethodChannel...', name: _bgTag);
 
-    await SmsWorker.processIncomingMessage(
-      sender: senderApp,
-      messageText: fullContent,
-      source: 'Noti',
-      senderName: senderName,
-    );
+    // تمرير بيانات الإشعار للـ Native MethodChannel
+    await _notiChannel.invokeMethod('processIncomingMessage', {
+      'sender': senderApp,
+      'messageText': fullContent,
+      'source': 'Noti',
+      'senderName': senderName,
+    });
 
-    developer.log('🎉 [NOTI STEP 4] اكتملت معالجة SmsWorker بنجاح!', name: _bgTag);
+    developer.log('🎉 [NOTI STEP 4] اكتملت معالجة الإشعار عبر Native بنجاح!', name: _bgTag);
   } catch (e, stackTrace) {
     developer.log(
-      '❌ [NOTI ERROR] حدث خطأ أثناء المعالجة داخل SmsWorker: $e',
+      '❌ [NOTI ERROR] حدث خطأ أثناء إرسال الإشعار للـ Native: $e',
       name: _bgTag,
       error: e,
       stackTrace: stackTrace,

@@ -29,12 +29,18 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
             return ListenableWorker.Result.success()
         }
 
-        // 3. المطابقة مع الكلمات المفتاحية
+        // 🛑 3. المطابقة مع الكلمات المفتاحية والمبلغ/الفئة
         val matchedKwMap = dbHelper.matchKeyword(body)
+        if (matchedKwMap == null) {
+            Log.d("WORKER", "No keyword or amount condition matched. Skipping message entirely.")
+            return ListenableWorker.Result.success() // 👈 هذا السطر يضمن تجاهل الرسالة تماماً وعدم أرشفاتها كمعلقة
+        }
+        // 3. المطابقة مع الكلمات المفتاحية
+        /*val matchedKwMap = dbHelper.matchKeyword(body)
         if (matchedKwMap == null) {
             Log.d("WORKER", "No keyword matched. Skipping archive save.")
             return ListenableWorker.Result.success()
-        }
+        }*/
 
         val keywordId = matchedKwMap["id"] as Int
         val keywordText = matchedKwMap["keyword"] as String
@@ -74,13 +80,15 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         // =========================================================
         // 🛑 حالة: تعذر العثور على رقم هاتف (تحويل للمعالجة اليدوية)
         // =========================================================
+        // 🛑 5. حالة المعلقات (تنفذ فقط إذا طابقت الرسالة شرط المبلغ ولكن لم نجد رقم العميل)
         if (targetCustomerPhone.isNull_Or_Empty_Or_Invalid()) {
-            Log.w("WORKER", "No valid target customer phone found. Moving to manual approval pool.")
             
-            // أرشفة الإشعار بحالة تحتاج موافقة يدوية بدون حجز قسيمة
+            // استخراج الاسم الحقيقي من الرسالة لإظهاره في المعلقات
+            val displayName = extractNameFromBody(body) ?: "معلق (بحاجة لربط)"
+        
             dbHelper.addToArchive(
                 sender = rawSender,
-                senderName = "معلق (بحاجة لربط)",
+                senderName = displayName, // 👈 تمرير الاسم المستخرج هنا
                 receivedMessage = body,
                 matchedKeyword = keywordText,
                 sentNumber = "",
@@ -180,12 +188,36 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         return ListenableWorker.Result.success()
     }
 
-    /// دالة استخراج رقم الهاتف اليمني من نص الإشعار أو الرسالة
+    /// دالة استخراج رقم الهاتف اليمني من نص الإشعار
     private fun extractPhoneFromBody(body: String): String? {
+        // \b تضمن أن الرقم مستقل وليس جزءاً من رقم مرجعي أطول
+        val phoneRegex = Regex("""\b(?:\+?967|0)?(7[01378]\d{8})\b""")
+        return phoneRegex.find(body)?.groupValues?.get(1)
+    }
+    
+    /// دالة استخراج اسم المودع/العميل من نص الإشعار
+    private fun extractNameFromBody(body: String): String? {
+        val nameRegex = Regex("""(?:من|المودع|العميل|المحول|حساب|من الحساب|From)[\s:]+([^\d\n,.:]{3,30})""", RegexOption.IGNORE_CASE)
+        val match = nameRegex.find(body)
+        var extracted = match?.groupValues?.get(1)?.trim() ?: return null
+    
+        // تصفية الزوائد والكلمات العامة من نهاية الاسم إن وجدت
+        val ignoredWords = listOf("نجاح", "عملية", "إيداع", "تحويل", "رصيد", "مبلغ", "إلى", "حساب")
+        for (word in ignoredWords) {
+            if (extracted.contains(word)) {
+                extracted = extracted.substringBefore(word).trim()
+            }
+        }
+
+    return if (extracted.length >= 3) extracted else null
+}
+    
+    /// دالة استخراج رقم الهاتف اليمني من نص الإشعار أو الرسالة
+    /*private fun extractPhoneFromBody(body: String): String? {
         val phoneRegex = Regex("""(?:\+?967|0)?(7[01378]\d{8})""")
         val match = phoneRegex.find(body)
         return match?.groupValues?.get(1)
-    }
+    }*/
 
     /// دالة استخراج الرصيد المالي المتبقي من نص الإشعار
     private fun extractBalanceFromBody(body: String): String? {
@@ -195,11 +227,11 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
     }
 
     /// دالة استخراج اسم المودع/العميل من نص الإشعار
-    private fun extractNameFromBody(body: String): String? {
+    /*private fun extractNameFromBody(body: String): String? {
         val nameRegex = Regex("""(?:من|المودع|العميل|From)[\s:]+([^\d\n,]{3,30})""", RegexOption.IGNORE_CASE)
         val match = nameRegex.find(body)
         return match?.groupValues?.get(1)?.trim()
-    }
+    }*/
 
     /// دالة استخراج رقم المحفظة/الحساب من نص الإشعار
     private fun extractWalletFromBody(body: String): String? {

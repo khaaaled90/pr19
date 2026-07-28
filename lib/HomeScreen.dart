@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // يتضمن MethodChannel
 import 'package:fl_chart/fl_chart.dart';
 import 'package:sqflite/sqflite.dart';
+
 import 'DatabaseHelper.dart';
 import 'KeywordsScreen.dart';
 import 'PendingLogsScreen.dart';
@@ -11,7 +12,9 @@ import 'allowed_senders_screen.dart';
 import 'sales_screen.dart';
 import 'backup_screen.dart';
 import 'archive_screen.dart';
-import 'SmsSender.dart'; // استدعاء مشغل الإرسال النيتيف
+
+// تعريف القناة للاتصال بكود Kotlin Native مباشرة (تأكد من مطابقة الاسم مع كود Kotlin لديك)
+const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -122,10 +125,12 @@ class _HomeScreenState extends State<HomeScreen> {
           .where((n) => n['keyword_id'] == kwId && n['status'] == 'used')
           .length;
 
-      if (availCount > 0)
+      if (availCount > 0) {
         availTemp.add(_CategoryStatData(kwName, availCount, color));
-      if (usedCount > 0)
+      }
+      if (usedCount > 0) {
         usedTemp.add(_CategoryStatData(kwName, usedCount, color));
+      }
 
       availSum += availCount;
       usedSum += usedCount;
@@ -203,15 +208,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    // 1. المخططات الدائرية للإحصائيات
                     _buildPieChartSection('القسائم المتاحة حسب الفئة', '📥',
                         availableCategoriesData, totalAvailable, Colors.teal),
                     const SizedBox(height: 16),
                     _buildPieChartSection('القسائم المستخدمة حسب الفئة', '📤',
                         usedCategoriesData, totalUsed, Colors.deepOrange),
                     const SizedBox(height: 20),
-
-                    // 2. شبكة الخيارات والخدمات (Menu Grid)
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
@@ -296,8 +298,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-
-                    // 3. شريط الحالة
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
@@ -325,8 +325,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // 4. التذييل
                     const Text(
                       '© 2026 كرت شبكة - جميع الحقوق محفوظة',
                       style: TextStyle(color: Colors.grey, fontSize: 11),
@@ -517,7 +515,7 @@ class _CategoryStatData {
 }
 
 // =========================================================
-// نافذة الإرسال اليدوي BottomSheet (محدثة مع إرسال SMS نيتيف)
+// نافذة الإرسال اليدوي BottomSheet (تستخدم MethodChannel مباشرة)
 // =========================================================
 class ManualSendBottomSheet extends StatefulWidget {
   final VoidCallback onSentSuccess;
@@ -541,6 +539,12 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
   void initState() {
     super.initState();
     _loadKeywords();
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadKeywords() async {
@@ -588,6 +592,23 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     }
   }
 
+  // دالة الإرسال النيتيف المباشرة بدون أي ملف خارجي
+  Future<bool> _sendSmsNativeDirect(String phone, String message) async {
+    try {
+      final bool? result = await _smsChannel.invokeMethod('sendSms', {
+        'phone': phone,
+        'message': message,
+      });
+      return result ?? true; // تفترض النجاح أو ترجع القيمة من Kotlin
+    } on PlatformException catch (e) {
+      debugPrint("فشل إرسال SMS عبر القناة: ${e.message}");
+      return false;
+    } catch (e) {
+      debugPrint("خطأ غير متوقع: $e");
+      return false;
+    }
+  }
+
   Future<void> _sendCard() async {
     String phone = _phoneController.text.trim();
     if (phone.isEmpty) {
@@ -618,13 +639,10 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
             keywords.firstWhere((k) => k['id'] == selectedKeywordId);
         String kwName = matchedKw['keyword'] ?? 'يدوي';
 
-        // 1. الإرسال الفعلي للرسالة عبر Kotlin Native Channel
-        bool sentStatus = await SmsSender.sendSms(
-          phoneNumber: phone,
-          message: fullMessage,
-        );
+        // 1. الإرسال عبر الـ MethodChannel المباشر
+        bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);
 
-        // 2. توثيق العملية في الأرشيف
+        // 2. التوثيق في الأرشيف
         await dbHelper.addToArchive(
           sender: 'إرسال يدوي',
           senderName: phone,
@@ -639,7 +657,8 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
           widget.onSentSuccess();
           if (mounted) Navigator.pop(context);
         } else {
-          _showMessage('⚠️ تم استهلاك الكرت ولكن فشل إرسال الـ SMS', isError: true);
+          _showMessage('⚠️ تم استهلاك الكرت ولكن فشل إرسال الـ SMS',
+              isError: true);
         }
       } else {
         _showMessage('❌ فشل تعيين الكرت', isError: true);
@@ -725,6 +744,23 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
                 ],
               ),
             ),
+            if (noCardsAvailable) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: const Text(
+                  '⚠️ لا توجد كروت متاحة لهذه الباقة حالياً.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
             if (availableVoucher != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -771,39 +807,37 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
                             borderRadius: BorderRadius.circular(30)),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: isSending ? null : _sendCard,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30)),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: isSending ? null : _sendCard,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        icon: isSending
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Icon(Icons.send, color: Colors.white),
+                        label: Text(
+                          isSending ? 'جاري الإرسال...' : 'إرسال الكرت الآن',
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
                       ),
-                      child: isSending
-                          ? const Center(
-                              child: CircularProgressIndicator(color: Colors.white))
-                          : const Text('📤 إرسال الكرت',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white)),
                     ),
                   ],
                 ),
-              ),
-            ],
-            if (noCardsAvailable) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12)),
-                child: const Text('⚠️ لا توجد كروت متاحة لهذه الباقة',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: Colors.red, fontWeight: FontWeight.bold)),
               ),
             ],
           ],

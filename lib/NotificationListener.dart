@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_notification_listener/flutter_notification_listener.dart';
-import 'sms_worker.dart';
+import 'SmsWorker.dart';
 
 const String _bgTag = 'BG_MONITOR';
 

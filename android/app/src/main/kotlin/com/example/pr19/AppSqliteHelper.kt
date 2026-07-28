@@ -129,26 +129,36 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 
     /// ✅ تحديث رصيد العميل بعد الإرسال الناجح (أو إنشائه إن لم يوجد)
-    fun updateCustomerBalance(phone: String, newBalance: String, name: String? = null, walletNumber: String? = null) {
+    fun updateCustomerBalance(
+        phone: String, 
+        newBalance: String, 
+        name: String? = null, 
+        walletNumber: String? = null
+    ) {
         val db = writableDatabase
         val now = System.currentTimeMillis()
-
+    
         val sql = """
             INSERT INTO customers (phone, name, wallet_number, last_balance, created_at)
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(phone) DO UPDATE SET
-              name = COALESCE(EXCLUDED.name, name),
-              wallet_number = COALESCE(EXCLUDED.wallet_number, wallet_number),
-              last_balance = EXCLUDED.last_balance
+              name = COALESCE(EXCLUDED.name, customers.name),
+              wallet_number = COALESCE(EXCLUDED.wallet_number, customers.wallet_number),
+              last_balance = CASE 
+                WHEN EXCLUDED.last_balance IS NOT NULL AND EXCLUDED.last_balance != '' 
+                THEN EXCLUDED.last_balance 
+                ELSE customers.last_balance 
+              END
         """.trimIndent()
-
+    
         val stmt = db.compileStatement(sql)
         stmt.bindString(1, phone)
-        stmt.bindString(2, name ?: "عميل جديد")
-        if (walletNumber != null) stmt.bindString(3, walletNumber) else stmt.bindNull(3)
+        
+        if (!name.isNullOrBlank()) stmt.bindString(2, name) else stmt.bindNull(2)
+        if (!walletNumber.isNullOrBlank()) stmt.bindString(3, walletNumber) else stmt.bindNull(3)
         stmt.bindString(4, newBalance)
         stmt.bindLong(5, now)
-
+    
         stmt.execute()
         stmt.close()
     }

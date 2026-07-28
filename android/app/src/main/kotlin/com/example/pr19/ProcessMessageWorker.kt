@@ -16,16 +16,18 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
             return ListenableWorker.Result.success()
         }
 
-        val allowAllSenders = dbHelper.getSetting("allow_all_senders", "false") == "true"
+        // ===== تم تعطيل فلترة المرسل مؤقتاً =====
+        /*val allowAllSenders = dbHelper.getSetting("allow_all_senders", "false") == "true"
         if (!allowAllSenders && !dbHelper.isSenderAllowed(sender)) {
             return ListenableWorker.Result.success()
-        }
+        }*/
 
-        val matchedKwMap = dbHelper.matchKeyword(body)
+        // ===== تم تعطيل فلترة المرسل مؤقتاً =====
+        /*val matchedKwMap = dbHelper.matchKeyword(body)
         if (matchedKwMap == null) {
             dbHelper.addToArchive(sender, null, body, null, null, "no_keyword_matched")
             return ListenableWorker.Result.success()
-        }
+        }*/
 
         val keywordId = matchedKwMap["id"] as Int
         val keywordText = matchedKwMap["keyword"] as String

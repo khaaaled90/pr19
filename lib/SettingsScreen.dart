@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'DatabaseHelper.dart';
-import 'service/native_service_controller.dart'; // ✅ استيراد ملف الكنترولر
+import 'service/native_service_controller.dart'; // ✅ الكنترولر المسؤول عن طلب أذونات كوتلن
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -198,7 +198,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onChanged: (v) => setState(() => _serviceEnabled = v),
                         ),
                         const Divider(height: 1),
-                        // ✅ ربط أذونات الإشعارات بالنظام الـ Native
                         SwitchListTile(
                           title: const Text('🔔 قراءة الإشعارات (إذن النظام)',
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
@@ -208,13 +207,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onChanged: (v) async {
                             setState(() => _notificationEnabled = v);
                             if (v) {
-                              // طلب الإذن من نظام الأندرويد مباشرة
                               await NativeServiceController.requestNotificationListenerPermission();
                             }
                           },
                         ),
                         const Divider(height: 1),
-                        // ✅ ربط تحسينات البطارية لتجنب إغلاق التطبيق في الخلفية
                         ListTile(
                           title: const Text('🔋 استثناء التطبيق من قيود البطارية',
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),

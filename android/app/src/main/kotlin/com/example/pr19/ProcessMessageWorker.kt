@@ -3,27 +3,28 @@ package com.example.pr19
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import androidx.work.ListenableWorker
 
 class ProcessMessageWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
-    override suspend fun doWork(): Result {
-        val sender = inputData.getString("sender") ?: return Result.failure()
-        val body = inputData.getString("body") ?: return Result.failure()
+    override suspend fun doWork(): ListenableWorker.Result {
+        val sender = inputData.getString("sender") ?: return ListenableWorker.Result.failure()
+        val body = inputData.getString("body") ?: return ListenableWorker.Result.failure()
         val dbHelper = AppSqliteHelper.getInstance(applicationContext)
 
         if (dbHelper.getSetting("service_enabled", "true") != "true") {
-            return Result.success()
+            return ListenableWorker.Result.success()
         }
 
         val allowAllSenders = dbHelper.getSetting("allow_all_senders", "false") == "true"
         if (!allowAllSenders && !dbHelper.isSenderAllowed(sender)) {
-            return Result.success()
+            return ListenableWorker.Result.success()
         }
 
         val matchedKwMap = dbHelper.matchKeyword(body)
         if (matchedKwMap == null) {
             dbHelper.addToArchive(sender, null, body, null, null, "no_keyword_matched")
-            return Result.success()
+            return ListenableWorker.Result.success()
         }
 
         val keywordId = matchedKwMap["id"] as Int
@@ -63,6 +64,6 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
             )
         }
 
-        return Result.success()
+        return ListenableWorker.Result.success()
     }
 }

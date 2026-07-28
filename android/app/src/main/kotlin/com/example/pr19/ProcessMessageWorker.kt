@@ -45,7 +45,17 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         // =========================================================
         // 🎯 4. تحديد رقم هاتف العميل المستهدف (بالترتيب المباشر)
         // =========================================================
-        var targetCustomerPhone: String? = null
+        // =========================================================
+        // 🎯 4. تحديد رقم هاتف العميل المستهدف (البحث في النص أولاً)
+        // =========================================================
+        
+        // 1. نبحث أولاً وأساساً عن رقم هاتف العميل المذكور داخل نص الرسالة/الإشعار (body)
+        var targetCustomerPhone: String? = extractPhoneFromBody(body)
+        // 2. إذا لم يوجد رقم في النص، يتم البحث بالاسم أو رقم المحفظة المذكور في النص من قاعدة البيانات
+        if (targetCustomerPhone == null) {
+            targetCustomerPhone = dbHelper.findCustomerPhoneByIdentifier(body)
+        }
+        /*var targetCustomerPhone: String? = null
 
         if (rawSender.startsWith("+967") || rawSender.startsWith("7")) {
             // أ) إذا كان مرسل الرسالة هاتف عميل مباشر (SMS)
@@ -59,7 +69,7 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
             if (targetCustomerPhone == null) {
                 targetCustomerPhone = dbHelper.findCustomerPhoneByIdentifier(body)
             }
-        }
+        }*/
 
         // =========================================================
         // 🛑 حالة: تعذر العثور على رقم هاتف (تحويل للمعالجة اليدوية)

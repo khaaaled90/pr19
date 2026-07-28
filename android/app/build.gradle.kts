@@ -39,7 +39,6 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
     
-            // 👈 التأكد من كتابة الدالة والأقواس بالشكل الصحيح لكوتلن
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -47,9 +46,14 @@ android {
         }
     }
 }
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    
+    // ✅ إضافة مكتبة WorkManager المفقودة (صيغة Kotlin DSL)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }
+
 flutter {
     source = "../.."
 }

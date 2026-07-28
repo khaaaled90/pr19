@@ -5,7 +5,7 @@ class NativeServiceController {
   static const MethodChannel _channel = MethodChannel('com.example.pr19/native_control');
 
   /// 1. فتح صفحة إعدادات أندرويد لطلب إذن قراءة إشعارات المحافظ (Notification Listener)
-  static Future<bool> requestNotificationPermission() async {
+  static Future<bool> requestNotificationListenerPermission() async {
     try {
       final bool isGranted = await _channel.invokeMethod('requestNotificationListenerPermission');
       return isGranted;
@@ -14,6 +14,9 @@ class NativeServiceController {
       return false;
     }
   }
+
+  // دعم الاسم القديم لمنع أي كسر في أماكن أخرى
+  static Future<bool> requestNotificationPermission() => requestNotificationListenerPermission();
 
   /// 2. التحقق مما إذا كان إذن قراءة الإشعارات مفعلاً بالفعل أم لا
   static Future<bool> isNotificationPermissionGranted() async {
@@ -27,11 +30,14 @@ class NativeServiceController {
   }
 
   /// 3. فتح نافذة استثناء التطبيق من قيود توفير البطارية (Doze Mode Bypass)
-  static Future<void> requestBatteryExemption() async {
+  static Future<void> requestIgnoreBatteryOptimizations() async {
     try {
       await _channel.invokeMethod('requestIgnoreBatteryOptimizations');
     } on PlatformException catch (e) {
       print("خطأ في طلب استثناء البطارية: ${e.message}");
     }
   }
+
+  // دعم الاسم القديم لمنع أي كسر في أماكن أخرى
+  static Future<void> requestBatteryExemption() => requestIgnoreBatteryOptimizations();
 }

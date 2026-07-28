@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import android.telephony.SmsManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -13,14 +14,17 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterActivity() {
 
     companion object {
-        private const val CHANNEL = "com.example.pr19/native_control"
+        private const val CONTROL_CHANNEL = "com.example.pr19/native_control"
+        private const val SMS_CHANNEL = "com.example.app/sms" // قناة إرسال القسائم عبر SMS
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // ✅ تم استخدام dartExecutor.binaryMessenger بدلاً من dartEntrypoint
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+
+        // 1. قناة التحكم بالأذونات واستثناء البطارية
+        MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 // 1. طلب إذن استماع الإشعارات للمحافظ
                 "requestNotificationListenerPermission" -> {
@@ -49,6 +53,45 @@ class MainActivity: FlutterActivity() {
                     result.notImplemented()
                 }
             }
+        }
+
+        // 2. قناة إرسال الرسائل النصية القادمة من Flutter
+        MethodChannel(messenger, SMS_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "sendSms") {
+                val phone = call.argument<String>("phone") ?: call.argument<String>("address")
+                val message = call.argument<String>("message") ?: call.argument<String>("body")
+
+                if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
+                    try {
+                        sendNativeSms(phone, message)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("SMS_FAILED", "فشل إرسال الرسالة: ${e.localizedMessage}", null)
+                    }
+                } else {
+                    result.error("INVALID_ARGS", "رقم الهاتف أو نص الرسالة فارغ", null)
+                }
+            } else {
+                result.notImplemented()
+            }
+        }
+    }
+
+    // دالة إرسال الـ SMS عبر نظام أندرويد
+    private fun sendNativeSms(phone: String, message: String) {
+        val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            getSystemService(SmsManager::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            SmsManager.getDefault()
+        }
+
+        // تقسيم الرسالة تلقائياً في حال كانت طويلة لضمان وصول نص القسيمة كاملاً
+        val parts = smsManager.divideMessage(message)
+        if (parts.size > 1) {
+            smsManager.sendMultipartTextMessage(phone, null, parts, null, null)
+        } else {
+            smsManager.sendTextMessage(phone, null, message, null, null)
         }
     }
 

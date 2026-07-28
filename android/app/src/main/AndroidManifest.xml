@@ -1,22 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- ===================== -->
-    <!-- SMS Permissions -->
-    <!-- ===================== -->
+    <!-- ================================================================= -->
+    <!-- 1. أذونات الـ SMS والاتصال (SMS & Phone Permissions) -->
+    <!-- ================================================================= -->
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <uses-permission android:name="android.permission.READ_SMS"/>
     <uses-permission android:name="android.permission.SEND_SMS"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
 
-    <!-- ===================== -->
-    <!-- Notifications & Network Permissions -->
-    <!-- ===================== -->
+    <!-- ================================================================= -->
+    <!-- 2. أذونات الإشعارات والشبكة (Notifications & Network) -->
+    <!-- ================================================================= -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.INTERNET"/>
 
-    <!-- ===================== -->
-    <!-- Background Services Permissions -->
-    <!-- ===================== -->
+    <!-- ================================================================= -->
+    <!-- 3. أذونات العمل بالخلفية ورفع قيود النظام (Background & Power) -->
+    <!-- ================================================================= -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
@@ -30,6 +30,7 @@
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
 
+        <!-- Activity الرئيسي لـ Flutter -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -51,58 +52,46 @@
 
         </activity>
 
-        <!-- ===================== -->
-        <!-- Notification Listener Services -->
-        <!-- ===================== -->
-
+        <!-- ================================================================= -->
+        <!-- 4. مستقبل الـ SMS المباشر (Native Incoming SMS Receiver) -->
+        <!-- ================================================================= -->
         <receiver
-            android:name="im.zoe.labs.flutter_notification_listener.RebootBroadcastReceiver"
-            android:enabled="true"
+            android:name=".SmsReceiver"
             android:exported="true">
-
-            <intent-filter android:directBootAware="true">
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
-                <action android:name="android.intent.action.REBOOT"/>
-            </intent-filter>
-
-        </receiver>
-
-        <service
-            android:name="im.zoe.labs.flutter_notification_listener.NotificationsHandlerService"
-            android:label="Flutter Notifications Handler"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-            android:exported="true"
-            android:foregroundServiceType="specialUse">
-
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="notification_listener"/>
-
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService"/>
-            </intent-filter>
-
-        </service>
-
-        <!-- ===================== -->
-        <!-- SMS Receiver (Telephony) -->
-        <!-- ===================== -->
-
-        <receiver
-            android:name="com.shounakmulay.telephony.sms.IncomingSmsReceiver"
-            android:permission="android.permission.BROADCAST_SMS"
-            android:exported="true">
-
-            <!-- تم رفع الأولوية لأقصى درجة ممكنة لضمان القراءة الفورية -->
+            <!-- أولوية أقصى درجة لقراءة واستجابة فورية قبل باقي التطبيقات -->
             <intent-filter android:priority="2147483647">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
             </intent-filter>
-
         </receiver>
 
-        <!-- Flutter Meta-data -->
+        <!-- ================================================================= -->
+        <!-- 5. خدمة الاستماع لإشعارات تطبيقات المحافظ والبنك (Native Listener) -->
+        <!-- ================================================================= -->
+        <service
+            android:name=".NativeNotificationListener"
+            android:label="Wallet Notification Listener"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService"/>
+            </intent-filter>
+        </service>
+
+        <!-- ================================================================= -->
+        <!-- 6. مستقبل إعادة تشغيل الجهاز (Boot Completed Receiver) -->
+        <!-- ================================================================= -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- Flutter Engine Meta-data -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>

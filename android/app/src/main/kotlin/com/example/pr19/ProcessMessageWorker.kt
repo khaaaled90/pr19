@@ -9,6 +9,174 @@ import androidx.work.ListenableWorker
 class ProcessMessageWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): ListenableWorker.Result {
+        val rawSender = inputData.getString("sender") ?: ""
+        val originPackage = inputData.getString("origin_package") ?: rawSender
+        val body = inputData.getString("body") ?: return ListenableWorker.Result.failure()
+        
+        val dbHelper = AppSqliteHelper.getInstance(applicationContext)
+
+        // 1. التحقق من تفعيل الخدمة
+        if (dbHelper.getSetting("service_enabled", "true") != "true") {
+            return ListenableWorker.Result.success()
+        }
+
+        // 2. التحقق من قائمة المرسلين المسموحين (Whitelist)
+        val allowAllSendersValue = dbHelper.getSetting("allow_all_senders", "false")
+        val allowAllSenders = allowAllSendersValue == "true"
+        
+        if (!allowAllSenders && !dbHelper.isSenderAllowed(originPackage) && !dbHelper.isSenderAllowed(rawSender)) {
+            Log.d("WORKER", "Message rejected because sender package is not allowed")
+            return ListenableWorker.Result.success()
+        }
+
+        // 3. المطابقة مع الكلمات المفتاحية
+        val matchedKwMap = dbHelper.matchKeyword(body)
+        if (matchedKwMap == null) {
+            Log.d("WORKER", "No keyword matched. Skipping archive save.")
+            return ListenableWorker.Result.success()
+        }
+
+        val keywordId = matchedKwMap["id"] as Int
+        val keywordText = matchedKwMap["keyword"] as String
+        val targetCount = matchedKwMap["target_count"] as? Int ?: 0
+        val rewardKeywordId = matchedKwMap["reward_keyword_id"] as? Int
+        val rewardQty = matchedKwMap["reward_qty"] as? Int ?: 1
+
+        // 4. استخراج رقم الهاتف مباشرة أو عبر الاسم/رقم المحفظة المخزنة
+        val extractedPhone = if (rawSender.startsWith("+967") || rawSender.startsWith("7")) {
+            rawSender
+        } else {
+            dbHelper.findCustomerPhoneByIdentifier(body)
+        }
+
+        // =========================================================
+        // 🛑 حالة: الإشعار يخص عميل غير مسجل (معالجة يدوية)
+        // =========================================================
+        if (extractedPhone.isNull_Or_Empty_Or_Invalid()) {
+            Log.w("WORKER", "No valid customer phone found. Moving to manual approval pool.")
+            
+            // إضافة الإشعار للأرشيف بحالة تحتاج موافقة يدوية لربطه برقم الهاتف لاحقاً
+            dbHelper.addToArchive(
+                sender = rawSender,
+                senderName = "معلق (بحاجة لربط)",
+                receivedMessage = body,
+                matchedKeyword = keywordText,
+                sentNumber = "",
+                status = "manual_approval_required"
+            )
+            return ListenableWorker.Result.success()
+        }
+
+        val safePhone: String = extractedPhone!!
+
+        // =========================================================
+        // ✅ 5. آلية فحص الرصيد المالي لمنع التكرار لكل رقم
+        // =========================================================
+        val extractedBalance = extractBalanceFromBody(body)
+        if (extractedBalance != null) {
+            val isDuplicate = dbHelper.isDuplicateBalance(safePhone, extractedBalance)
+            if (isDuplicate) {
+                Log.w("WORKER", "Duplicate transaction detected for $safePhone with balance $extractedBalance. Skipping execution.")
+                return ListenableWorker.Result.success()
+            }
+        }
+
+        // =========================================================
+        // 🎁 6. معالجة القسائم ونظام العروض والمكافآت
+        // =========================================================
+        var finalKeywordIdToUse = keywordId
+        var isRewardGranted = false
+
+        // إذا كان للكلمة نظام مكافآت (هدف عداد)
+        if (targetCount > 0 && rewardKeywordId != null) {
+            val currentCount = dbHelper.incrementCustomerCounter(safePhone, keywordId)
+            
+            if (currentCount >= targetCount) {
+                // العميل وصل للهدف -> يتم تغيير القسيمة المسحوبة إلى قسيمة المكافأة
+                finalKeywordIdToUse = rewardKeywordId
+                isRewardGranted = true
+                dbHelper.resetCustomerCounter(safePhone, keywordId)
+                Log.d("WORKER", "Reward triggered for $safePhone! Reward Keyword ID: $rewardKeywordId")
+            }
+        }
+
+        // سحب القسيمة المطلوبة (سواء كانت العادية أو المكافأة)
+        val voucherCode = dbHelper.getAndUseVoucher(finalKeywordIdToUse, safePhone)
+
+        if (voucherCode != null) {
+            val defaultReply = dbHelper.getSetting("default_reply", "شكراً لتواصلك. رقمك الخاص هو: ")
+            
+            val messagePrefix = if (isRewardGranted) {
+                "تهانينا! لقد حصلت على هدية العرض: "
+            } else {
+                defaultReply
+            }
+
+            val fullMessage = "$messagePrefix $voucherCode"
+            
+            // 7. إرسال الرسالة النصية
+            val isSent = DualSimSmsSender.sendSms(
+                context = applicationContext,
+                phoneNumber = safePhone,
+                message = fullMessage
+            )
+
+            if (isSent) {
+                // أرشفة العملية
+                dbHelper.addToArchive(
+                    sender = safePhone,
+                    senderName = null,
+                    receivedMessage = body,
+                    matchedKeyword = keywordText,
+                    sentNumber = voucherCode,
+                    status = if (isRewardGranted) "sent_reward" else "sent"
+                )
+
+                // تحديث رصيد العميل بعد الإرسال الناجح فقط
+                if (extractedBalance != null) {
+                    dbHelper.updateCustomerBalance(
+                        phone = safePhone,
+                        newBalance = extractedBalance
+                    )
+                    Log.d("WORKER", "Successfully updated last balance for $safePhone to $extractedBalance")
+                }
+
+                Log.d("WORKER", "Successfully processed and archived transaction.")
+            } else {
+                Log.e("WORKER", "Failed to send SMS. Transaction NOT archived.")
+            }
+        } else {
+            Log.w("WORKER", "Out of stock for keyword ID $finalKeywordIdToUse. Transaction NOT archived.")
+        }
+
+        return ListenableWorker.Result.success()
+    }
+
+    /// دالة استخراج الرصيد المالي المتبقي من نص الإشعار
+    private fun extractBalanceFromBody(body: String): String? {
+        val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        val match = balanceRegex.find(body)
+        return match?.groupValues?.get(1)?.replace(",", "")
+    }
+
+    private fun String?.isNull_Or_Empty_Or_Invalid(): Boolean {
+        if (this.isNullOrBlank()) return true
+        return !this.contains(Regex("""\d{9}"""))
+    }
+}
+
+
+/*package com.example.pr19
+
+import android.util.Log
+import android.content.Context
+import androidx.work.CoroutineWorker
+import androidx.work.WorkerParameters
+import androidx.work.ListenableWorker
+
+class ProcessMessageWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+
+    override suspend fun doWork(): ListenableWorker.Result {
         // 1. استقبال البيانات
         val rawSender = inputData.getString("sender") ?: ""
         val originPackage = inputData.getString("origin_package") ?: rawSender
@@ -108,7 +276,7 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         if (this.isNullOrBlank()) return true
         return !this.contains(Regex("""\d{9}"""))
     }
-}
+}*/
 
 
 

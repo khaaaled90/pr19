@@ -22,6 +22,11 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
             return ListenableWorker.Result.success()
         }*/
 
+        // تعطيل مطابقة الكلمات المفتاحية مؤقتاً
+        val matchedKwMap = mapOf<String, Any>(
+            "id" to 1,
+            "keyword" to "ALL"
+        )
         // ===== تم تعطيل فلترة المرسل مؤقتاً =====
         /*val matchedKwMap = dbHelper.matchKeyword(body)
         if (matchedKwMap == null) {

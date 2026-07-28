@@ -4,8 +4,9 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
-  static const int _databaseVersion =
-      10; // رفع الإصدار إلى 10 لإضافة حقل رقم المحفظة لجدول العملاء
+  
+  // رفع الإصدار إلى 11 لإضافة حقل last_balance الخاص بمنع التكرار لكل عميل
+  static const int _databaseVersion = 11;
 
   // أسماء الجداول
   static const String tableKeywords = "keywords";
@@ -43,7 +44,7 @@ class DatabaseHelper {
   // 1. إنشاء الجداول (onCreate)
   // ==========================================
   Future<void> _onCreate(Database db, int version) async {
-    // 1. جدول الكلمات المفتاحية (متضمناً حقول القواعد والمكافآت)
+    // 1. جدول الكلمات المفتاحية
     await db.execute('''
       CREATE TABLE $tableKeywords (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,13 +137,14 @@ class DatabaseHelper {
       )
     ''');
 
-    // 8. جدول العملاء (الأسماء، الأرقام، ورقم المحفظة)
+    // 8. جدول العملاء (يتضمن حقل last_balance لمنع التكرار)
     await db.execute('''
       CREATE TABLE $tableCustomers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         phone TEXT NOT NULL UNIQUE,
         name TEXT,
         wallet_number TEXT,
+        last_balance TEXT,
         created_at INTEGER
       )
     ''');
@@ -246,29 +248,67 @@ class DatabaseHelper {
     }
 
     if (oldVersion < 10) {
-      // الترقية للإصدار 10: إضافة حقل رقم المحفظة لجدول العملاء
       await db.execute(
           "ALTER TABLE $tableCustomers ADD COLUMN wallet_number TEXT;");
+    }
+
+    if (oldVersion < 11) {
+      // إضافة حقل last_balance لجدول العملاء لمنع تكرار الإشعار لكل رقم
+      await db.execute(
+          "ALTER TABLE $tableCustomers ADD COLUMN last_balance TEXT;");
     }
   }
 
   // ==========================================
-  // 3. دوال إدارة العملاء (Customers)
+  // 3. دوال إدارة العملاء وآلية منع التكرار (Anti-Duplication)
   // ==========================================
 
-  /// إضافة عميل جديد أو تحديث بياناته (يتضمن الاسم ورقم المحفظة)
+  /// إضافة عميل جديد أو تحديث بياناته مع حفظ آخر رصيد (UPSERT)
   Future<void> saveOrUpdateCustomer(String phone,
-      {String? name, String? walletNumber}) async {
+      {String? name, String? walletNumber, String? lastBalance}) async {
     final db = await database;
     int now = DateTime.now().millisecondsSinceEpoch;
 
     await db.rawInsert('''
-      INSERT INTO $tableCustomers (phone, name, wallet_number, created_at)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO $tableCustomers (phone, name, wallet_number, last_balance, created_at)
+      VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(phone) DO UPDATE SET
         name = COALESCE(EXCLUDED.name, name),
-        wallet_number = COALESCE(EXCLUDED.wallet_number, wallet_number)
-    ''', [phone, name ?? 'عميل جديد', walletNumber, now]);
+        wallet_number = COALESCE(EXCLUDED.wallet_number, wallet_number),
+        last_balance = COALESCE(EXCLUDED.last_balance, last_balance)
+    ''', [phone, name ?? 'عميل جديد', walletNumber, lastBalance, now]);
+  }
+
+  /// فحص ما إذا كان الرصيد مكرراً لنفس العميل (عبر رقم الهاتف أو المحفظة)
+  Future<bool> isDuplicateBalance(String identifier, String currentBalance) async {
+    final db = await database;
+    
+    List<Map<String, dynamic>> result = await db.query(
+      tableCustomers,
+      columns: ['last_balance'],
+      where: 'phone = ? OR wallet_number = ?',
+      whereArgs: [identifier, identifier],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      String? lastBalance = result.first['last_balance'] as String?;
+      if (lastBalance != null && lastBalance.trim() == currentBalance.trim()) {
+        return true; // العملية مكررة لنفس العميل
+      }
+    }
+    return false; // رصيد جديد أو عميل غير مسجل سابقاً
+  }
+
+  /// تحديث رصيد العميل بعد معالجة العملية بنجاح (إنشاء العميل تلقائياً إن لم يوجد)
+  Future<void> updateCustomerBalance(String phone, String newBalance,
+      {String? name, String? walletNumber}) async {
+    await saveOrUpdateCustomer(
+      phone,
+      name: name,
+      walletNumber: walletNumber,
+      lastBalance: newBalance,
+    );
   }
 
   /// جلب قائمة جميع العملاء لعرضهم في الواجهات

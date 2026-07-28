@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart'; // تأكد من وجود الحزمة في pubspec.yaml
-import 'DatabaseHelper.dart'; // استيراد كلاس قاعدة البيانات
+import 'package:url_launcher/url_launcher.dart';
+import 'DatabaseHelper.dart';
+import 'service/native_service_controller.dart'; // ✅ استيراد ملف الكنترولر
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -20,10 +21,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _stockAlertEnabled = true;
 
   final TextEditingController _ownerPhoneController = TextEditingController();
-  final TextEditingController _warningThresholdController =
-      TextEditingController();
-  final TextEditingController _footerMessageController =
-      TextEditingController();
+  final TextEditingController _warningThresholdController = TextEditingController();
+  final TextEditingController _footerMessageController = TextEditingController();
 
   List<Map<String, dynamic>> _stockStatusList = [];
   bool _isLoading = true;
@@ -50,8 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       String notiVal = await _db.getSetting('enable_notification', 'true');
       String archiveVal = await _db.getSetting('enable_archive', 'true');
       String offersVal = await _db.getSetting('offers_enabled', 'true');
-      String stockAlertVal =
-          await _db.getSetting('stock_alert_enabled', 'true');
+      String stockAlertVal = await _db.getSetting('stock_alert_enabled', 'true');
       String ownerPhone = await _db.getSetting('owner_phone', '777777777');
       String threshold = await _db.getSetting('warning_threshold', '5');
       String footerMsg = await _db.getSetting('footer_message', '');
@@ -83,12 +81,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     for (var k in keywords) {
       int kId = k['id'];
-      int avail = numbers
-          .where((n) => n['keyword_id'] == kId && n['status'] == 'available')
-          .length;
-      int used = numbers
-          .where((n) => n['keyword_id'] == kId && n['status'] == 'used')
-          .length;
+      int avail = numbers.where((n) => n['keyword_id'] == kId && n['status'] == 'available').length;
+      int used = numbers.where((n) => n['keyword_id'] == kId && n['status'] == 'used').length;
 
       stockList.add({
         'keyword': k['keyword'].toString(),
@@ -107,21 +101,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveAllSettings() async {
     setState(() => _isSaving = true);
     try {
-      await _db.updateSetting(
-          'service_enabled', _serviceEnabled ? 'true' : 'false');
-      await _db.updateSetting(
-          'enable_notification', _notificationEnabled ? 'true' : 'false');
-      await _db.updateSetting(
-          'enable_archive', _archiveEnabled ? 'true' : 'false');
-      await _db.updateSetting(
-          'offers_enabled', _offersEnabled ? 'true' : 'false');
-      await _db.updateSetting(
-          'stock_alert_enabled', _stockAlertEnabled ? 'true' : 'false');
+      await _db.updateSetting('service_enabled', _serviceEnabled ? 'true' : 'false');
+      await _db.updateSetting('enable_notification', _notificationEnabled ? 'true' : 'false');
+      await _db.updateSetting('enable_archive', _archiveEnabled ? 'true' : 'false');
+      await _db.updateSetting('offers_enabled', _offersEnabled ? 'true' : 'false');
+      await _db.updateSetting('stock_alert_enabled', _stockAlertEnabled ? 'true' : 'false');
       await _db.updateSetting('owner_phone', _ownerPhoneController.text.trim());
-      await _db.updateSetting(
-          'warning_threshold', _warningThresholdController.text.trim());
-      await _db.updateSetting(
-          'footer_message', _footerMessageController.text.trim());
+      await _db.updateSetting('warning_threshold', _warningThresholdController.text.trim());
+      await _db.updateSetting('footer_message', _footerMessageController.text.trim());
 
       if (!mounted) return;
       _showSnackBar('✅ تم حفظ الإعدادات بنجاح');
@@ -143,8 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           textAlign: TextAlign.center,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor:
-            isError ? const Color(0xFFE74C3C) : const Color(0xFF27AE60),
+        backgroundColor: isError ? const Color(0xFFE74C3C) : const Color(0xFF27AE60),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -194,40 +180,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF27AE60)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF27AE60)))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSectionCard(
-                    title: '🔘 الإعدادات العامة',
+                    title: '🔘 الإعدادات العامة وخيارات النظام',
                     child: Column(
                       children: [
                         SwitchListTile(
                           title: const Text('🤖 الرد الآلي',
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.bold)),
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                           value: _serviceEnabled,
                           activeColor: const Color(0xFF27AE60),
                           onChanged: (v) => setState(() => _serviceEnabled = v),
                         ),
                         const Divider(height: 1),
+                        // ✅ ربط أذونات الإشعارات بالنظام الـ Native
                         SwitchListTile(
-                          title: const Text('🔔 الإشعارات',
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.bold)),
+                          title: const Text('🔔 قراءة الإشعارات (إذن النظام)',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          subtitle: const Text('مطلوب لاستلام رسائل المحافظ والبنوك تلقائياً'),
                           value: _notificationEnabled,
                           activeColor: const Color(0xFF27AE60),
-                          onChanged: (v) =>
-                              setState(() => _notificationEnabled = v),
+                          onChanged: (v) async {
+                            setState(() => _notificationEnabled = v);
+                            if (v) {
+                              // طلب الإذن من نظام الأندرويد مباشرة
+                              await NativeServiceController.requestNotificationListenerPermission();
+                            }
+                          },
+                        ),
+                        const Divider(height: 1),
+                        // ✅ ربط تحسينات البطارية لتجنب إغلاق التطبيق في الخلفية
+                        ListTile(
+                          title: const Text('🔋 استثناء التطبيق من قيود البطارية',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          subtitle: const Text('يمنع الأندرويد من إيقاف الخدمة عند قفل الشاشة'),
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                          onTap: () async {
+                            await NativeServiceController.requestIgnoreBatteryOptimizations();
+                          },
                         ),
                         const Divider(height: 1),
                         SwitchListTile(
                           title: const Text('📋 الأرشفة',
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.bold)),
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                           value: _archiveEnabled,
                           activeColor: const Color(0xFF27AE60),
                           onChanged: (v) => setState(() => _archiveEnabled = v),
@@ -235,8 +235,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Divider(height: 1),
                         SwitchListTile(
                           title: const Text('🎁 العروض والمكافآت',
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.bold)),
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                           value: _offersEnabled,
                           activeColor: const Color(0xFF27AE60),
                           onChanged: (v) => setState(() => _offersEnabled = v),
@@ -254,8 +253,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         maxLines: 2,
                         decoration: InputDecoration(
                           hintText: 'مثال: شكراً لثقتكم بنا...',
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.all(10),
                         ),
                       ),
@@ -278,8 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   decoration: InputDecoration(
                                     labelText: '📞 رقم المدير',
                                     border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
+                                        borderRadius: BorderRadius.circular(12)),
                                   ),
                                 ),
                               ),
@@ -289,14 +286,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 child: TextField(
                                   controller: _warningThresholdController,
                                   keyboardType: TextInputType.number,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly
-                                  ],
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                   decoration: InputDecoration(
                                     labelText: '⚠️ الحد الأدنى',
                                     border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
+                                        borderRadius: BorderRadius.circular(12)),
                                   ),
                                   onChanged: (_) => setState(() {}),
                                 ),
@@ -306,26 +300,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         SwitchListTile(
                           title: const Text('🔔 تفعيل تنبيه النفاذ',
-                              style: TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.bold)),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                           value: _stockAlertEnabled,
                           activeColor: const Color(0xFF27AE60),
-                          onChanged: (v) =>
-                              setState(() => _stockAlertEnabled = v),
+                          onChanged: (v) => setState(() => _stockAlertEnabled = v),
                         ),
                         const Divider(),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 4),
                           child: Text('جدول حالة المخزون الحالية',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13)),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         ),
-                        _buildStockTable(
-                            threshold), // طريقة وبناء سليمة بـ TableRow
+                        _buildStockTable(threshold),
                         TextButton.icon(
                           onPressed: _fetchStockStatus,
-                          icon: const Icon(Icons.refresh,
-                              color: Color(0xFF3498DB)),
+                          icon: const Icon(Icons.refresh, color: Color(0xFF3498DB)),
                           label: const Text('تحديث بيانات الجدول',
                               style: TextStyle(color: Color(0xFF3498DB))),
                         ),
@@ -339,8 +328,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF27AE60),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: _isSaving ? null : _saveAllSettings,
                       icon: _isSaving
@@ -353,9 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       label: Text(
                         _isSaving ? 'جاري الحفظ...' : '💾 حفظ الإعدادات',
                         style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
+                            fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),
                   ),
@@ -365,12 +351,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.contact_support_rounded,
                     children: [
                       ListTile(
-                        leading:
-                            const Icon(Icons.person, color: Color(0xFF3498DB)),
+                        leading: const Icon(Icons.person, color: Color(0xFF3498DB)),
                         title: const Text('الدعم الفني'),
                         subtitle: const Text('773779585 (اضغط للنسخ)'),
-                        onTap: () =>
-                            _copyToClipboard('773779585', 'رقم الدعم الفني'),
+                        onTap: () => _copyToClipboard('773779585', 'رقم الدعم الفني'),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8.0),
@@ -381,8 +365,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF25D366)),
                                 onPressed: () => _openWhatsApp('773779585'),
-                                icon: const Icon(Icons.chat,
-                                    color: Colors.white, size: 18),
+                                icon: const Icon(Icons.chat, color: Colors.white, size: 18),
                                 label: const Text('واتساب',
                                     style: TextStyle(color: Colors.white)),
                               ),
@@ -393,8 +376,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF3498DB)),
                                 onPressed: () => _makePhoneCall('773779585'),
-                                icon: const Icon(Icons.phone,
-                                    color: Colors.white, size: 18),
+                                icon: const Icon(Icons.phone, color: Colors.white, size: 18),
                                 label: const Text('اتصال',
                                     style: TextStyle(color: Colors.white)),
                               ),
@@ -421,9 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Text(title,
                 style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C3E50))),
+                    fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
             const Divider(),
             child,
           ],
@@ -432,7 +412,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// بناء الجدول الخالي من خطأ التنميط والـ TableRow
   Widget _buildStockTable(int warningThreshold) {
     if (_stockStatusList.isEmpty) {
       return const Padding(
@@ -442,8 +421,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Table(
-      border: TableBorder.all(
-          color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
+      border: TableBorder.all(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
       columnWidths: const {
         0: FlexColumnWidth(2),
         1: FlexColumnWidth(1.2),
@@ -459,33 +437,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Text('🔑 الكلمة',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 11))),
+                        fontWeight: FontWeight.bold, color: Colors.white, fontSize: 11))),
             Padding(
                 padding: EdgeInsets.all(6.0),
                 child: Text('📥 متاح',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 11))),
+                        fontWeight: FontWeight.bold, color: Colors.white, fontSize: 11))),
             Padding(
                 padding: EdgeInsets.all(6.0),
                 child: Text('📤 مستخدم',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 11))),
+                        fontWeight: FontWeight.bold, color: Colors.white, fontSize: 11))),
             Padding(
                 padding: EdgeInsets.all(6.0),
                 child: Text('⚠️ الحالة',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 11))),
+                        fontWeight: FontWeight.bold, color: Colors.white, fontSize: 11))),
           ],
         ),
         ..._stockStatusList.map((item) {
@@ -515,8 +485,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Text('$avail',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          color: Color(0xFF27AE60),
-                          fontWeight: FontWeight.bold))),
+                          color: Color(0xFF27AE60), fontWeight: FontWeight.bold))),
               Padding(
                   padding: const EdgeInsets.all(6.0),
                   child: Text('$used',
@@ -525,18 +494,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
                   decoration: BoxDecoration(
-                      color: badgeColor,
-                      borderRadius: BorderRadius.circular(10)),
+                      color: badgeColor, borderRadius: BorderRadius.circular(10)),
                   child: Text(
                     statusText,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold),
+                        color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -548,9 +513,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildHelpAccordion(
-      {required String title,
-      required IconData icon,
-      required List<Widget> children}) {
+      {required String title, required IconData icon, required List<Widget> children}) {
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -558,9 +521,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         leading: Icon(icon, color: const Color(0xFF2C3E50)),
         title: Text(title,
             style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2C3E50))),
+                fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
         children: children,
       ),
     );

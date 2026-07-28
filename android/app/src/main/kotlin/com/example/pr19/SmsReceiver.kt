@@ -1,6 +1,7 @@
 package com.example.pr19
 
 import android.content.BroadcastReceiver
+import android.util.Log
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony

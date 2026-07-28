@@ -14,7 +14,9 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         val body = inputData.getString("body") ?: return ListenableWorker.Result.failure()
         
         val dbHelper = AppSqliteHelper.getInstance(applicationContext)
-
+        Log.d("WORKER", "==============================")
+        Log.d("WORKER", "Sender = $sender")
+        Log.d("WORKER", "Body = $body")
         // 1. التحقق من تفعيل الخدمة
         if (dbHelper.getSetting("service_enabled", "true") != "true") {
             return ListenableWorker.Result.success()
@@ -23,14 +25,19 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         // 2. التحقق من قائمة المرسلين المسموحين (Whitelist)
         val allowAllSendersValue = dbHelper.getSetting("allow_all_senders", "false")
         val allowAllSenders = allowAllSendersValue == "true"
+
+        Log.d("WORKER", "allowAllSenders = $allowAllSenders")
+        Log.d("WORKER", "isSenderAllowed = ${dbHelper.isSenderAllowed(sender)}")
         
         if (!allowAllSenders && !dbHelper.isSenderAllowed(originPackage) && !dbHelper.isSenderAllowed(rawSender)) {
             Log.d("WORKER", "Message rejected because sender package is not allowed")
             return ListenableWorker.Result.success()
         }
 
+        Log.d("WORKER", "Searching keyword in body...")
         // 🛑 3. المطابقة مع الكلمات المفتاحية والمبلغ/الفئة
         val matchedKwMap = dbHelper.matchKeyword(body)
+        Log.d("WORKER", "matchedKwMap = $matchedKwMap")
         if (matchedKwMap == null) {
             Log.d("WORKER", "No keyword or amount condition matched. Skipping message entirely.")
             return ListenableWorker.Result.success() // 👈 هذا السطر يضمن تجاهل الرسالة تماماً وعدم أرشفاتها كمعلقة
@@ -57,6 +64,7 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         
         // 1. نبحث أولاً وأساساً عن رقم هاتف العميل المذكور داخل نص الرسالة/الإشعار (body)
         var targetCustomerPhone: String? = extractPhoneFromBody(body)
+        Log.d("WORKER", "Customer Phone = $targetCustomerPhone")
         // 2. إذا لم يوجد رقم في النص، يتم البحث بالاسم أو رقم المحفظة المذكور في النص من قاعدة البيانات
         if (targetCustomerPhone == null) {
             targetCustomerPhone = dbHelper.findCustomerPhoneByIdentifier(body)

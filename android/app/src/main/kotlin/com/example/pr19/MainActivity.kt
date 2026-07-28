@@ -12,19 +12,23 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
 
-    private const val CHANNEL = "com.example.pr19/native_control"
+    companion object {
+        private const val CHANNEL = "com.example.pr19/native_control"
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartEntrypoint.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        // ✅ تم استخدام dartExecutor.binaryMessenger بدلاً من dartEntrypoint
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 // 1. طلب إذن استماع الإشعارات للمحافظ
                 "requestNotificationListenerPermission" -> {
                     val isGranted = isNotificationServiceEnabled()
                     if (!isGranted) {
-                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
                         startActivity(intent)
                     }
                     result.success(isGranted)
@@ -66,11 +70,12 @@ class MainActivity: FlutterActivity() {
     // فتح نافذة طلب تعطيل قيود توفير البطارية
     private fun requestBatteryOptimizationExemption() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val intent = Intent()
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                intent.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-                intent.data = Uri.parse("package:$packageName")
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
                 startActivity(intent)
             }
         }

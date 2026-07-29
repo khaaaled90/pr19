@@ -58,7 +58,8 @@ class MainActivity: FlutterActivity() {
                 // تفريغ الذاكرة المؤقتة (Clear AppCache) عند التعديل في Flutter
                 "clearCache" -> {
                     try {
-                        AppCache.clear()
+                        // ✅ تم التعديل هنا واستدعاء clearCache() بدلاً من clear()
+                        AppCache.clearCache()
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("CACHE_CLEAR_FAILED", e.localizedMessage, null)

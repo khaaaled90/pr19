@@ -22,7 +22,20 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
   static Database? _database;
-
+  
+  /// ✅ إغلاق قاعدة البيانات بأمان لإجراء عمليات النسخ الاحتياطي أو الاستعادة
+  Future<void> closeDatabase() async {
+    try {
+      final db = _database;
+      if (db != null && db.isOpen) {
+        await db.close();
+        _database = null; // إعادة تعيين المتغير ليعاد فتحها عند طلب `database` من جديد
+      }
+    } catch (e) {
+      // تسجيل الخطأ إن وجد
+      _database = null;
+    }
+  }
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();

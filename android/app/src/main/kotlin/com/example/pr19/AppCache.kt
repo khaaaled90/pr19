@@ -1,6 +1,7 @@
 package com.example.pr19
 
 import android.content.Context
+import android.util.Log
 
 object AppCache {
     @Volatile private var cachedKeywords: List<Map<String, Any>>? = null

@@ -22,7 +22,7 @@ class SmsReceiver : BroadcastReceiver() {
                 Log.d("SMS_RECEIVER", "OriginSender=$originSender Body=$body")
 
                 // ✅ 1. استخراج رقم العميل الحقيقي الموجود داخل نص الرسالة (مثلاً: 734555333)
-                val targetPhone = extractPhoneNumberFromBody(body) ?: originSender
+                val targetPhone = extractPhoneNumberFromBody(body) ?: ""
 
                 // ✅ 2. تهيئة الرقم بالصيغة الدولية لتجنب رفض Mms/SmsManager له صامتاً
                 val formattedTargetPhone = formatToInternational(targetPhone)

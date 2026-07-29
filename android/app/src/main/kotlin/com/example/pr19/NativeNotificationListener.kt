@@ -73,6 +73,7 @@ class NativeNotificationListener : NotificationListenerService() {
             .putString("sender", packageName) 
             .putString("origin_package", packageName)  // الاحتفاظ باقتفاء مصدر الإشعار
             .putString("body", fullContent)
+            .putString("customer_phone", formattedTargetPhone)
             .build()
 
         val workRequest = OneTimeWorkRequestBuilder<ProcessMessageWorker>()

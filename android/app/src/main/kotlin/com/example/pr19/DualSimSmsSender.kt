@@ -2,7 +2,6 @@ package com.example.pr19
 
 import android.content.Context
 import android.telephony.SmsManager
-import android.telephony.SubscriptionManager
 import android.os.Build
 
 object DualSimSmsSender {

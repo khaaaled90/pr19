@@ -1,14 +1,13 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
-  
-  // رفع الإصدار إلى 11 لإضافة حقل last_balance الخاص بمنع التكرار لكل عميل
   static const int _databaseVersion = 11;
+  static const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/cache');
 
-  // أسماء الجداول
   static const String tableKeywords = "keywords";
   static const String tableNumbersPool = "numbers_pool";
   static const String tableAllowedSenders = "allowed_senders";
@@ -18,7 +17,6 @@ class DatabaseHelper {
   static const String tableCustomerVouchersCount = "customer_vouchers_count";
   static const String tableCustomers = "customers";
 
-  // نمط Singleton
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
@@ -40,11 +38,14 @@ class DatabaseHelper {
     );
   }
 
-  // ==========================================
-  // 1. إنشاء الجداول (onCreate)
-  // ==========================================
+  /// ⭐ إخطار كود Kotlin لتصفير AppCache فور تحديث أي إعداد أو كلمة مفتاحية من Flutter
+  Future<void> clearNativeCache() async {
+    try {
+      await _nativeChannel.invokeMethod('clearCache');
+    } catch (_) {}
+  }
+
   Future<void> _onCreate(Database db, int version) async {
-    // 1. جدول الكلمات المفتاحية
     await db.execute('''
       CREATE TABLE $tableKeywords (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +61,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // 2. جدول مخزون القسائم والأكواد
     await db.execute('''
       CREATE TABLE $tableNumbersPool (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +73,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // 3. جدول المرسلين المخولين (Whitelist)
     await db.execute('''
       CREATE TABLE $tableAllowedSenders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,7 +84,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // 4. جدول أرشيف الردود
     await db.execute('''
       CREATE TABLE $tableReplyLog (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,7 +100,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // 5. جدول الإعدادات
     await db.execute('''
       CREATE TABLE $tableSettings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +109,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // 6. جدول العروض
     await db.execute('''
       CREATE TABLE $tableOffers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,7 +120,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // 7. جدول عدادات المكافآت للعملاء
     await db.execute('''
       CREATE TABLE $tableCustomerVouchersCount (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,7 +132,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // 8. جدول العملاء (يتضمن حقل last_balance لمنع التكرار)
     await db.execute('''
       CREATE TABLE $tableCustomers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -149,79 +143,34 @@ class DatabaseHelper {
       )
     ''');
 
-    // إدخال الإعدادات والمرسلين الافتراضيين
+    await _createIndexes(db);
     await _insertDefaultSettings(db);
+  }
+
+  Future<void> _createIndexes(Database db) async {
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_customers_phone_wallet ON $tableCustomers(phone, wallet_number)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_numbers_pool_kw_status ON $tableNumbersPool(keyword_id, status)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_keywords_active ON $tableKeywords(is_active)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_allowed_senders ON $tableAllowedSenders(is_active, sender)");
   }
 
   Future<void> _insertDefaultSettings(Database db) async {
     final batch = db.batch();
-    batch.insert(
-        tableSettings,
-        {
-          'setting_key': 'offers_enabled',
-          'setting_value': 'true',
-          'category': 'general'
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    batch.insert(
-        tableSettings,
-        {
-          'setting_key': 'service_enabled',
-          'setting_value': 'true',
-          'category': 'general'
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    batch.insert(
-        tableSettings,
-        {
-          'setting_key': 'default_reply',
-          'setting_value': 'شكراً لتواصلك. رقمك الخاص هو: ',
-          'category': 'general'
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    batch.insert(
-        tableSettings,
-        {
-          'setting_key': 'allow_all_senders',
-          'setting_value': 'false',
-          'category': 'security'
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-
-    // المرسلين الافتراضيين
-    batch.insert(
-        tableAllowedSenders,
-        {
-          'sender': 'Jaib',
-          'name': 'Jaib',
-          'sender_type': 'name',
-          'is_active': 1
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    batch.insert(
-        tableAllowedSenders,
-        {
-          'sender': 'com.ahd.jaib',
-          'name': 'Jaib إشعارات',
-          'sender_type': 'name',
-          'is_active': 1
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableSettings, {'setting_key': 'offers_enabled', 'setting_value': 'true', 'category': 'general'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableSettings, {'setting_key': 'service_enabled', 'setting_value': 'true', 'category': 'general'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableSettings, {'setting_key': 'default_reply', 'setting_value': 'شكراً لتواصلك. رقمك الخاص هو: ', 'category': 'general'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableSettings, {'setting_key': 'allow_all_senders', 'setting_value': 'false', 'category': 'security'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableAllowedSenders, {'sender': 'Jaib', 'name': 'Jaib', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableAllowedSenders, {'sender': 'com.ahd.jaib', 'name': 'Jaib إشعارات', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
 
     await batch.commit(noResult: true);
   }
 
-  // ==========================================
-  // 2. ترقية قاعدة البيانات (onUpgrade)
-  // ==========================================
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 8) {
-      await db.execute(
-          "ALTER TABLE $tableKeywords ADD COLUMN target_count INTEGER DEFAULT 0");
-      await db.execute(
-          "ALTER TABLE $tableKeywords ADD COLUMN reward_keyword_id INTEGER");
-      await db.execute(
-          "ALTER TABLE $tableKeywords ADD COLUMN reward_qty INTEGER DEFAULT 1");
+      await db.execute("ALTER TABLE $tableKeywords ADD COLUMN target_count INTEGER DEFAULT 0");
+      await db.execute("ALTER TABLE $tableKeywords ADD COLUMN reward_keyword_id INTEGER");
+      await db.execute("ALTER TABLE $tableKeywords ADD COLUMN reward_qty INTEGER DEFAULT 1");
 
       await db.execute('''
         CREATE TABLE IF NOT EXISTS $tableCustomerVouchersCount (
@@ -248,24 +197,17 @@ class DatabaseHelper {
     }
 
     if (oldVersion < 10) {
-      await db.execute(
-          "ALTER TABLE $tableCustomers ADD COLUMN wallet_number TEXT;");
+      await db.execute("ALTER TABLE $tableCustomers ADD COLUMN wallet_number TEXT;");
     }
 
     if (oldVersion < 11) {
-      // إضافة حقل last_balance لجدول العملاء لمنع تكرار الإشعار لكل رقم
-      await db.execute(
-          "ALTER TABLE $tableCustomers ADD COLUMN last_balance TEXT;");
+      await db.execute("ALTER TABLE $tableCustomers ADD COLUMN last_balance TEXT;");
     }
+
+    await _createIndexes(db);
   }
 
-  // ==========================================
-  // 3. دوال إدارة العملاء وآلية منع التكرار (Anti-Duplication)
-  // ==========================================
-
-  /// إضافة عميل جديد أو تحديث بياناته مع حفظ آخر رصيد (UPSERT)
-  Future<void> saveOrUpdateCustomer(String phone,
-      {String? name, String? walletNumber, String? lastBalance}) async {
+  Future<void> saveOrUpdateCustomer(String phone, {String? name, String? walletNumber, String? lastBalance}) async {
     final db = await database;
     int now = DateTime.now().millisecondsSinceEpoch;
 
@@ -279,7 +221,6 @@ class DatabaseHelper {
     ''', [phone, name ?? 'عميل جديد', walletNumber, lastBalance, now]);
   }
 
-  /// فحص ما إذا كان الرصيد مكرراً لنفس العميل (عبر رقم الهاتف أو المحفظة)
   Future<bool> isDuplicateBalance(String identifier, String currentBalance) async {
     final db = await database;
     
@@ -294,15 +235,13 @@ class DatabaseHelper {
     if (result.isNotEmpty) {
       String? lastBalance = result.first['last_balance'] as String?;
       if (lastBalance != null && lastBalance.trim() == currentBalance.trim()) {
-        return true; // العملية مكررة لنفس العميل
+        return true;
       }
     }
-    return false; // رصيد جديد أو عميل غير مسجل سابقاً
+    return false;
   }
 
-  /// تحديث رصيد العميل بعد معالجة العملية بنجاح (إنشاء العميل تلقائياً إن لم يوجد)
-  Future<void> updateCustomerBalance(String phone, String newBalance,
-      {String? name, String? walletNumber}) async {
+  Future<void> updateCustomerBalance(String phone, String newBalance, {String? name, String? walletNumber}) async {
     await saveOrUpdateCustomer(
       phone,
       name: name,
@@ -311,13 +250,11 @@ class DatabaseHelper {
     );
   }
 
-  /// جلب قائمة جميع العملاء لعرضهم في الواجهات
   Future<List<Map<String, dynamic>>> getAllCustomers() async {
     final db = await database;
     return await db.query(tableCustomers, orderBy: 'id DESC');
   }
 
-  /// البحث عن رقم هاتف العميل عبر اسمه أو رقم محفظته داخل نص الرسالة/الإشعار
   Future<String?> findCustomerPhoneByIdentifier(String textContent) async {
     final db = await database;
     List<Map<String, dynamic>> customers = await db.query(tableCustomers);
@@ -326,30 +263,22 @@ class DatabaseHelper {
       String? customerName = customer['name'];
       String? walletNumber = customer['wallet_number'];
 
-      // 1. الفحص باسم العميل
       if (customerName != null && customerName.trim().isNotEmpty) {
         if (textContent.toLowerCase().contains(customerName.toLowerCase())) {
           return customer['phone'] as String;
         }
       }
 
-      // 2. الفحص برقم المحفظة
       if (walletNumber != null && walletNumber.trim().isNotEmpty) {
         if (textContent.contains(walletNumber.trim())) {
           return customer['phone'] as String;
         }
       }
     }
-    return null; // لم يتم العثور على مطابقة
+    return null;
   }
 
-  // ==========================================
-  // 4. دوال نظام المكافآت والعدادات (Rewards)
-  // ==========================================
-
-  /// زيادة العداد وإرجاع القيمة الحالية
-  Future<int> incrementCustomerCounter(
-      String customerPhone, int keywordId) async {
+  Future<int> incrementCustomerCounter(String customerPhone, int keywordId) async {
     final db = await database;
     int now = DateTime.now().millisecondsSinceEpoch;
 
@@ -371,7 +300,6 @@ class DatabaseHelper {
     return result.first['received_count'] as int;
   }
 
-  /// تصفير العداد بعد منح المكافأة
   Future<void> resetCustomerCounter(String customerPhone, int keywordId) async {
     final db = await database;
     await db.update(
@@ -385,9 +313,6 @@ class DatabaseHelper {
     );
   }
 
-  // ==========================================
-  // 5. دوال الكلمات المفتاحية والقواعد (Keywords)
-  // ==========================================
   Future<List<Map<String, dynamic>>> getAllKeywords() async {
     final db = await database;
     return await db.query(tableKeywords, orderBy: 'id DESC');
@@ -411,6 +336,7 @@ class DatabaseHelper {
       'reward_qty': rewardQty,
       'created_at': DateTime.now().millisecondsSinceEpoch,
     });
+    await clearNativeCache();
     return result != -1;
   }
 
@@ -437,20 +363,18 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+    await clearNativeCache();
     return result > 0;
   }
 
   Future<bool> deleteKeyword(int id) async {
     final db = await database;
     await db.delete(tableNumbersPool, where: 'keyword_id = ?', whereArgs: [id]);
-    int result =
-        await db.delete(tableKeywords, where: 'id = ?', whereArgs: [id]);
+    int result = await db.delete(tableKeywords, where: 'id = ?', whereArgs: [id]);
+    await clearNativeCache();
     return result > 0;
   }
 
-  // ==========================================
-  // 6. دوال إدارة الأرقام والقسائم (Numbers Pool)
-  // ==========================================
   Future<List<Map<String, dynamic>>> getAllNumbers() async {
     final db = await database;
     return await db.query(tableNumbersPool, orderBy: 'id DESC');
@@ -470,9 +394,7 @@ class DatabaseHelper {
     return result != -1;
   }
 
-  /// سحب قسيمة متاحة وتحديث حالتها فوراً لمستخدمة
-  Future<Map<String, dynamic>?> getAndUseVoucher(
-      int keywordId, String assignedToPhone) async {
+  Future<Map<String, dynamic>?> getAndUseVoucher(int keywordId, String assignedToPhone) async {
     final db = await database;
 
     List<Map<String, dynamic>> results = await db.query(
@@ -501,13 +423,9 @@ class DatabaseHelper {
     return voucher;
   }
 
-  //==========================================================
-  /// سحب أول قسيمة متاحة بناءً على النص (Keyword) وتحديث حالتها فوراً لمستخدمة
-  //===========================================================
   Future<String?> getAndUseVoucherByKeyword(String keyword, String customerPhone) async {
     final db = await database;
 
-    // 1. البحث عن ID الكلمة المفتاحية من جدول keywords
     List<Map<String, dynamic>> kwResult = await db.query(
       tableKeywords,
       columns: ['id'],
@@ -516,23 +434,18 @@ class DatabaseHelper {
       limit: 1,
     );
 
-    if (kwResult.isEmpty) return null; // الكلمة المفتاحية غير موجودة أو غير مفعلة
+    if (kwResult.isEmpty) return null;
 
     int keywordId = kwResult.first['id'] as int;
-
-    // 2. استخدام داللتك الجاهزة (getAndUseVoucher) لسحب الكرت وتعديل حالته إلى used
     Map<String, dynamic>? voucher = await getAndUseVoucher(keywordId, customerPhone);
 
     if (voucher != null) {
-      return voucher['number_code'] as String; // إرجاع كود القسيمة
+      return voucher['number_code'] as String;
     }
 
-    return null; // لا توجد قسائم متاحة لهذه الفئة
+    return null;
   }
   
-  // ==========================================
-  // 7. دوال المرسلين المسموحين والأرشيف
-  // ==========================================
   Future<bool> isSenderAllowed(String sender) async {
     final db = await database;
     String cleanSender = sender.replaceAll(RegExp(r'[^0-9]'), '');
@@ -553,6 +466,7 @@ class DatabaseHelper {
       'sender_type': senderType,
       'created_at': DateTime.now().millisecondsSinceEpoch,
     });
+    await clearNativeCache();
     return result != -1;
   }
 
@@ -602,10 +516,10 @@ class DatabaseHelper {
       {'setting_key': key, 'setting_value': value},
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    await clearNativeCache();
     return result != -1;
   }
 
-  /// جلب كافة العمليات المعلقة التي تنتظر ربط رقم الهاتف
   Future<List<Map<String, dynamic>>> getPendingLogs() async {
     final db = await database;
     return await db.query(
@@ -615,7 +529,6 @@ class DatabaseHelper {
     );
   }
 
-  /// إكمال العملية المعلقة: ربط الاسم أو رقم المحفظة بالرقم وإرسال القسيمة وتحديث السجل
   Future<bool> resolvePendingLog({
     required int logId,
     required String customerPhone,
@@ -625,14 +538,12 @@ class DatabaseHelper {
   }) async {
     final db = await database;
 
-    // 1. حفظ العميل الجديد أو تحديث بياناته ورقم محفظته
     await saveOrUpdateCustomer(
       customerPhone,
       name: customerName,
       walletNumber: walletNumber,
     );
 
-    // 2. تحديث حالة القسيمة المسحوبة وتحديد من أخذها
     await db.update(
       tableNumbersPool,
       {
@@ -644,7 +555,6 @@ class DatabaseHelper {
       whereArgs: [voucherCode],
     );
 
-    // 3. تحديث حالة الأرشيف إلى إرسال بنجاح
     await db.update(
       tableReplyLog,
       {

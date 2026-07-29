@@ -224,6 +224,84 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 
     fun updateCustomerBalance(
+        phone: String,
+        newBalance: String,
+        name: String? = null,
+        walletNumber: String? = null
+    ) {
+        val db = writableDatabase
+        val now = System.currentTimeMillis()
+
+        db.beginTransaction()
+        try {
+            var clientId: Long? = null
+            var currentName: String? = null
+
+            // 1. البحث عن العميل الحالي
+            db.rawQuery(
+                "SELECT id, name FROM customers WHERE phone = ?",
+                arrayOf(phone)
+            ).use { c ->
+                if (c.moveToFirst()) {
+                    clientId = c.getLong(c.getColumnIndexOrThrow("id"))
+                    currentName = c.getString(c.getColumnIndexOrThrow("name"))
+                }
+            }
+
+            val cleanName = name?.takeIf { it.isNotBlank() }
+            val cleanWallet = walletNumber?.takeIf { it.isNotBlank() }
+            val cleanBalance = newBalance.takeIf { it.isNotBlank() }
+
+            if (clientId == null) {
+                // 2. حالة العميل الجديد
+                val values = ContentValues().apply {
+                    put("phone", phone)
+                    put("name", cleanName)
+                    put("wallet_number", cleanWallet)
+                    put("last_balance", cleanBalance)
+                    put("created_at", now)
+                }
+                clientId = db.insert("customers", null, values)
+
+            } else {
+                // 3. حالة العميل الموجود (تحديث البيانات)
+                val values = ContentValues().apply {
+                    if (cleanName != null && currentName.isNullOrBlank()) {
+                        put("name", cleanName)
+                    }
+                    if (cleanWallet != null) {
+                        put("wallet_number", cleanWallet)
+                    }
+                    if (cleanBalance != null) {
+                        put("last_balance", cleanBalance)
+                    }
+                }
+
+                if (values.size() > 0) {
+                    db.update("customers", values, "phone = ?", arrayOf(phone))
+                }
+            }
+
+            // 4. ربط الاسم بجدول المعرفات وتحديث الكاش (للجميع: سواء عميل جديد أو قديم)
+            if (clientId != null && !cleanName.isNullOrEmpty()) {
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO client_identifiers (client_id, identifier)
+                    VALUES (?, ?)
+                    """.trimIndent(),
+                    arrayOf(clientId, cleanName)
+                )
+
+                // تحديث الكاش
+                AppCache.updateIdentifierCache(cleanName, phone)
+            }
+
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+    /*fun updateCustomerBalance(
         phone: String, 
         newBalance: String, 
         name: String? = null, 
@@ -301,7 +379,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             "customer_phone = ? AND keyword_id = ?",
             arrayOf(customerPhone, keywordId.toString())
         )
-    }
+    }*/
 
     fun isSenderAllowed(sender: String): Boolean {
         val db = readableDatabase

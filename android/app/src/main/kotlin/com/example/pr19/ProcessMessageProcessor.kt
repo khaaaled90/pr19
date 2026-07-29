@@ -52,10 +52,25 @@ object ProcessMessageProcessor {
         val rewardKeywordId = (matchedKwMap["reward_keyword_id"] as? Number)?.toInt()
 
         // ⭐ 5. البحث عن رقم هاتف العميل من الكاش الموحد فوراً إذا لم يأتِ مع الإشعار
+        // ⭐ استخراج الاسم ورقم المحفظة من النص
+        val extractedName = extractNameFromBody(body)
+        val extractedWallet = extractWalletFromBody(body)
+
         var targetCustomerPhone = customerPhoneInput
+
+        // ⭐ البحث في الكاش باستخدام المحفظة أولاً أو الاسم المسحوب ثانياً
+        if (targetCustomerPhone.isBlank()) {
+            if (!extractedWallet.isNullOrBlank()) {
+                targetCustomerPhone = AppCache.findPhoneByIdentifier(dbHelper, extractedWallet) ?: ""
+            }
+            if (targetCustomerPhone.isBlank() && !extractedName.isNullOrBlank()) {
+                targetCustomerPhone = AppCache.findPhoneByIdentifier(dbHelper, extractedName) ?: ""
+            }
+        }
+        /*var targetCustomerPhone = customerPhoneInput
         if (targetCustomerPhone.isBlank()) {
             targetCustomerPhone = AppCache.findPhoneByIdentifier(dbHelper, body) ?: ""
-        }
+        }*/
 
         // ⭐ 6. فحص العميل المعلق (إذا لم يتعرف النظام على هاتف أو اسم)
         if (targetCustomerPhone.isNull_Or_Empty_Or_Invalid()) {

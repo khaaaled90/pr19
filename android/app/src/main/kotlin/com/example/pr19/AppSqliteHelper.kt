@@ -46,14 +46,15 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         """)
 
         // ✅ جدول اختياري للمعرفات الإضافية (مثل أسماء متعددة لنفس العميل)
+        // في onCreate و onUpgrade:
         db?.execSQL("""
             CREATE TABLE IF NOT EXISTS client_identifiers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client_phone TEXT NOT NULL,
-                identifier TEXT NOT NULL UNIQUE
+                client_id INTEGER NOT NULL,
+                identifier TEXT NOT NULL UNIQUE,
+                FOREIGN KEY(client_id) REFERENCES customers(id) ON DELETE CASCADE
             )
         """)
-
         createIndexes(db)
     }
 
@@ -147,7 +148,6 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 while (c.moveToNext()) {
                     val phone = c.getString(phoneIdx) ?: continue
                     
-                    // إضافة رقم الهاتف نفسه كمعرف
                     map[normalizeText(phone)] = phone
 
                     if (nameIdx != -1) {
@@ -167,17 +167,17 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             }
         }
 
-        // 2. جلب كافة المعرفات الإضافية المربوطة بـ client_id عبر INNER JOIN
-        val joinQuery = """
+        // 2. ✅ المعدّل: استعلام المعرفات الإضافية عبر INNER JOIN للربط مع client_id
+        val extraQuery = """
             SELECT ci.identifier, c.phone 
             FROM client_identifiers ci
             INNER JOIN customers c ON ci.client_id = c.id
         """.trimIndent()
 
-        val extraCursor = db.rawQuery(joinQuery, null)
+        val extraCursor = db.rawQuery(extraQuery, null)
         extraCursor.use { c ->
             val idIdx = c.getColumnIndex("identifier")
-            val phoneIdx = c.getColumnIndex("phone")
+            val phoneIdx = c.getColumnIndex("phone") // 👈 أصبحت تقرأ رقم الهاتف الناتج عن الربط
 
             if (idIdx != -1 && phoneIdx != -1) {
                 while (c.moveToNext()) {

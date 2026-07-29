@@ -10,31 +10,31 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
+
+  # Localization & Formatting
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
   # UI & Charts
   fl_chart: ^0.68.0
-  
+
   # File & Path Utilities
   file_picker: ^8.0.0
   url_launcher: ^6.2.5
   path_provider: ^2.1.2
   path: ^1.8.3
-  
+
   # Permissions & System
   permission_handler: ^11.3.0
-  
-  # Localization & Formatting
-  intl: ^0.20.2 # ✅ تم التحديث ليتوافق مع Flutter 3.44+
-  flutter_localizations:
-    sdk: flutter
-    
+
   # Database
   sqflite: ^2.3.0
-  
-  # Telephony & Notifications
-  another_telephony: ^0.4.0
-  flutter_notification_listener: ^1.4.0
+
+  # Notifications & Telephony
   flutter_local_notifications: ^17.0.0
+  flutter_notification_listener: ^1.4.0
+  another_telephony: ^0.4.0 # يمكن الاستغناء عنها إن كنت تعتمد كلياً على Native MethodChannel للإرسال
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +43,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # إذا كان لديك مجلد للأصول أو أرقام الباقات المرفقة (Excel/CSV)، يمكنك إلغاء التعليق هنا:
+
+  # أزل التعليق عن هذا الجزء إذا أردت تضمين ملفات داخل التطبيق (مثل كروت/ملفات إكسل)
   # assets:
   #   - assets/

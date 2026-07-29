@@ -15,11 +15,8 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <!-- ================================================================= -->
-    <!-- 3. أذونات العمل بالخلفية ورفع قيود النظام (Background & Power) -->
+    <!-- 3. أذونات إدارة الطاقة وتجاوز قيود الخلفية (Power & Background) -->
     <!-- ================================================================= -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
@@ -49,23 +46,23 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
         </activity>
 
         <!-- ================================================================= -->
         <!-- 4. مستقبل الـ SMS المباشر (Native Incoming SMS Receiver) -->
+        <!-- محمي بإذن BROADCAST_SMS لمنع إرسال رسائل وهمية من تطبيقات أخرى -->
         <!-- ================================================================= -->
         <receiver
             android:name=".SmsReceiver"
-            android:exported="true">
-            <!-- أولوية أقصى درجة لقراءة واستجابة فورية قبل باقي التطبيقات -->
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
             <intent-filter android:priority="2147483647">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
             </intent-filter>
         </receiver>
 
         <!-- ================================================================= -->
-        <!-- 5. خدمة الاستماع لإشعارات تطبيقات المحافظ والبنك (Native Listener) -->
+        <!-- 5. خدمة الاستماع لإشعارات تطبيقات المحافظ والبنك (Notification Listener) -->
         <!-- ================================================================= -->
         <service
             android:name=".NativeNotificationListener"
@@ -79,6 +76,7 @@
 
         <!-- ================================================================= -->
         <!-- 6. مستقبل إعادة تشغيل الجهاز (Boot Completed Receiver) -->
+        <!-- تم ترك android:permission فارغاً لضمان عدم حجب البث من قبل النظام -->
         <!-- ================================================================= -->
         <receiver
             android:name=".BootReceiver"
@@ -88,6 +86,7 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
 

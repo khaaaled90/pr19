@@ -1,5 +1,6 @@
 package com.example.pr19
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -23,10 +24,10 @@ class MainActivity: FlutterActivity() {
 
         val messenger = flutterEngine.dartExecutor.binaryMessenger
 
-        // 1. قناة التحكم بالأذونات واستثناء البطارية
+        // 1. قناة التحكم بالأذونات واستثناء البطارية وتفريغ الـ Cache
         MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                // 1. طلب إذن استماع الإشعارات للمحافظ
+                // طلب إذن استماع الإشعارات للمحافظ
                 "requestNotificationListenerPermission" -> {
                     val isGranted = isNotificationServiceEnabled()
                     if (!isGranted) {
@@ -38,15 +39,30 @@ class MainActivity: FlutterActivity() {
                     result.success(isGranted)
                 }
 
-                // 2. التحقق من حالة إذن الإشعارات
+                // التحقق من حالة إذن الإشعارات
                 "isNotificationListenerGranted" -> {
                     result.success(isNotificationServiceEnabled())
                 }
 
-                // 3. طلب استثناء البطارية (Doze Mode Bypass)
+                // طلب استثناء البطارية (Doze Mode Bypass)
                 "requestIgnoreBatteryOptimizations" -> {
                     requestBatteryOptimizationExemption()
                     result.success(true)
+                }
+
+                // التحقق من حالة استثناء البطارية
+                "isIgnoringBatteryOptimizations" -> {
+                    result.success(isIgnoringBatteryOptimizations())
+                }
+
+                // تفريغ الذاكرة المؤقتة (Clear AppCache) عند التعديل في Flutter
+                "clearCache" -> {
+                    try {
+                        AppCache.clear()
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("CACHE_CLEAR_FAILED", e.localizedMessage, null)
+                    }
                 }
 
                 else -> {
@@ -77,10 +93,10 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    // دالة إرسال الـ SMS عبر نظام أندرويد
+    // دالة إرسال الـ SMS عبر نظام أندرويد (مُعدّلة ومُستقرّة لجميع الإصدارات بما فيها Android 12+)
     private fun sendNativeSms(phone: String, message: String) {
-        val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            getSystemService(SmsManager::class.java)
+        val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            this.getSystemService(SmsManager::class.java)
         } else {
             @Suppress("DEPRECATION")
             SmsManager.getDefault()
@@ -95,19 +111,30 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    // التحقق مما إذا كانت خدمة قراءة الإشعارات مفعلة للتطبيق
+    // التحقق الدقيق مما إذا كانت خدمة قراءة الإشعارات مفعلة للتطبيق
     private fun isNotificationServiceEnabled(): Boolean {
         val pkgName = packageName
         val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
         if (!flat.isNullOrEmpty()) {
             val names = flat.split(":")
             for (name in names) {
-                if (name.contains(pkgName)) {
+                val componentName = ComponentName.unflattenFromString(name)
+                if (componentName != null && componentName.packageName == pkgName) {
                     return true
                 }
             }
         }
         return false
+    }
+
+    // التحقق من أن التطبيق مستثنى من توفير البطارية
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            pm.isIgnoringBatteryOptimizations(packageName)
+        } else {
+            true
+        }
     }
 
     // فتح نافذة طلب تعطيل قيود توفير البطارية

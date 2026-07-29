@@ -134,14 +134,14 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 
     fun getAllClientIdentifiers(): Map<String, String> {
-    
-        private const val TAG = "CLIENT_CACHE"
-        Log.d(TAG, "========== getAllClientIdentifiers START ==========")
+
+        //private const val TAG = "CLIENT_CACHE"
+        Log.d("CLIENT_CACHE", "========== getAllClientIdentifiers START ==========")
 
         val map = mutableMapOf<String, String>()
         val db = readableDatabase
 
-        Log.d(TAG, "Loading customers table...")
+        Log.d("CLIENT_CACHE", "Loading customers table...")
 
         val cursor = db.rawQuery("SELECT phone, name, wallet_number FROM customers", null)
         cursor.use { c ->
@@ -150,7 +150,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             val walletIdx = c.getColumnIndex("wallet_number")
 
             Log.d(
-                TAG,
+                "CLIENT_CACHE",
                 "Columns -> phone=$phoneIdx name=$nameIdx wallet=$walletIdx"
             )
 
@@ -163,7 +163,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
                     val phone = c.getString(phoneIdx) ?: continue
 
-                    Log.d(TAG, "Customer[$customerCount] phone=$phone")
+                    Log.d("CLIENT_CACHE", "Customer[$customerCount] phone=$phone")
 
                     map[normalizeText(phone)] = phone
 
@@ -171,10 +171,10 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                         val name = c.getString(nameIdx)
 
                         if (!name.isNullOrBlank()) {
-                            Log.d(TAG, "  Name -> $name")
+                            Log.d("CLIENT_CACHE", "  Name -> $name")
                             map[normalizeText(name)] = phone
                         } else {
-                            Log.d(TAG, "  Name -> EMPTY")
+                            Log.d("CLIENT_CACHE", "  Name -> EMPTY")
                         }
                     }
 
@@ -182,19 +182,19 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                         val wallet = c.getString(walletIdx)
 
                         if (!wallet.isNullOrBlank()) {
-                            Log.d(TAG, "  Wallet -> $wallet")
+                            Log.d("CLIENT_CACHE", "  Wallet -> $wallet")
                             map[normalizeText(wallet)] = phone
                         } else {
-                            Log.d(TAG, "  Wallet -> EMPTY")
+                            Log.d("CLIENT_CACHE", "  Wallet -> EMPTY")
                         }
                     }
                 }
             }
 
-            Log.d(TAG, "Customers Loaded = $customerCount")
+            Log.d("CLIENT_CACHE", "Customers Loaded = $customerCount")
         }
 
-        Log.d(TAG, "Loading client_identifiers...")
+        Log.d("CLIENT_CACHE", "Loading client_identifiers...")
 
         val extraQuery = """
             SELECT ci.identifier, c.phone
@@ -210,7 +210,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             val phoneIdx = c.getColumnIndex("phone")
 
             Log.d(
-                TAG,
+                "CLIENT_CACHE",
                 "Alias Columns -> identifier=$idIdx phone=$phoneIdx"
             )
 
@@ -228,7 +228,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     if (!identifier.isNullOrBlank() && !phone.isNullOrBlank()) {
 
                         Log.d(
-                            TAG,
+                            "CLIENT_CACHE",
                             "Alias[$aliasCount] identifier='$identifier' -> phone=$phone"
                         )
 
@@ -237,19 +237,19 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     } else {
 
                         Log.w(
-                            TAG,
+                            "CLIENT_CACHE",
                             "Alias[$aliasCount] skipped (identifier=$identifier phone=$phone)"
                         )
                     }
                 }
             }
 
-            Log.d(TAG, "Aliases Loaded = $aliasCount")
+            Log.d("CLIENT_CACHE", "Aliases Loaded = $aliasCount")
         }
 
-        Log.d(TAG, "Total cache entries = ${map.size}")
+        Log.d("CLIENT_CACHE", "Total cache entries = ${map.size}")
 
-        Log.d(TAG, "========== getAllClientIdentifiers END ==========")
+        Log.d("CLIENT_CACHE", "========== getAllClientIdentifiers END ==========")
 
         return map
     }
@@ -290,20 +290,20 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         name: String? = null,
         walletNumber: String? = null
     ) {
-        Log.d(TAG, "========== updateCustomerBalance START ==========")
-        Log.d(TAG, "Input -> phone=$phone, balance=$newBalance, name=$name, wallet=$walletNumber")
+        Log.d("CLIENT_CACHE", "========== updateCustomerBalance START ==========")
+        Log.d("CLIENT_CACHE", "Input -> phone=$phone, balance=$newBalance, name=$name, wallet=$walletNumber")
 
         val db = writableDatabase
         val now = System.currentTimeMillis()
 
-        Log.d(TAG, "Begin Transaction")
+        Log.d("CLIENT_CACHE", "Begin Transaction")
         db.beginTransaction()
 
         try {
             var clientId: Long? = null
             var currentName: String? = null
 
-            Log.d(TAG, "Searching customer by phone: $phone")
+            Log.d("CLIENT_CACHE", "Searching customer by phone: $phone")
 
             db.rawQuery(
                 "SELECT id, name FROM customers WHERE phone = ?",
@@ -313,9 +313,9 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     clientId = c.getLong(c.getColumnIndexOrThrow("id"))
                     currentName = c.getString(c.getColumnIndexOrThrow("name"))
 
-                    Log.d(TAG, "Customer Found -> id=$clientId, currentName=$currentName")
+                    Log.d("CLIENT_CACHE", "Customer Found -> id=$clientId, currentName=$currentName")
                 } else {
-                    Log.d(TAG, "Customer NOT FOUND")
+                    Log.d("CLIENT_CACHE", "Customer NOT FOUND")
                 }
             }
 
@@ -323,11 +323,11 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             val cleanWallet = walletNumber?.takeIf { it.isNotBlank() }
             val cleanBalance = newBalance.takeIf { it.isNotBlank() }
 
-            Log.d(TAG, "Clean Values -> name=$cleanName wallet=$cleanWallet balance=$cleanBalance")
+            Log.d("CLIENT_CACHE", "Clean Values -> name=$cleanName wallet=$cleanWallet balance=$cleanBalance")
 
             if (clientId == null) {
 
-                Log.d(TAG, "Creating NEW customer")
+                Log.d("CLIENT_CACHE", "Creating NEW customer")
 
                 val values = ContentValues().apply {
                     put("phone", phone)
@@ -339,28 +339,28 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
                 clientId = db.insert("customers", null, values)
 
-                Log.d(TAG, "Customer Inserted -> clientId=$clientId")
+                Log.d("CLIENT_CACHE", "Customer Inserted -> clientId=$clientId")
 
             } else {
 
-                Log.d(TAG, "Updating Existing Customer")
+                Log.d("CLIENT_CACHE", "Updating Existing Customer")
 
                 val values = ContentValues().apply {
 
                     if (cleanName != null && currentName.isNullOrBlank()) {
-                        Log.d(TAG, "Updating empty customer name -> $cleanName")
+                        Log.d("CLIENT_CACHE", "Updating empty customer name -> $cleanName")
                         put("name", cleanName)
                     } else {
-                        Log.d(TAG, "Customer name NOT updated")
+                        Log.d("CLIENT_CACHE", "Customer name NOT updated")
                     }
 
                     if (cleanWallet != null) {
-                        Log.d(TAG, "Updating wallet -> $cleanWallet")
+                        Log.d("CLIENT_CACHE", "Updating wallet -> $cleanWallet")
                         put("wallet_number", cleanWallet)
                     }
 
                     if (cleanBalance != null) {
-                        Log.d(TAG, "Updating balance -> $cleanBalance")
+                        Log.d("CLIENT_CACHE", "Updating balance -> $cleanBalance")
                         put("last_balance", cleanBalance)
                     }
                 }
@@ -374,20 +374,20 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                         arrayOf(phone)
                     )
 
-                    Log.d(TAG, "Customer Updated -> affectedRows=$rows")
+                    Log.d("CLIENT_CACHE", "Customer Updated -> affectedRows=$rows")
 
                 } else {
 
-                    Log.d(TAG, "Nothing to update")
+                    Log.d("CLIENT_CACHE", "Nothing to update")
 
                 }
             }
 
-            Log.d(TAG, "Processing client_identifiers")
+            Log.d("CLIENT_CACHE", "Processing client_identifiers")
 
             if (clientId != null && !cleanName.isNullOrEmpty()) {
 
-                Log.d(TAG, "Adding Identifier -> clientId=$clientId identifier=$cleanName")
+                Log.d("CLIENT_CACHE", "Adding Identifier -> clientId=$clientId identifier=$cleanName")
 
                 db.execSQL(
                     """
@@ -397,34 +397,34 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     arrayOf(clientId, cleanName)
                 )
 
-                Log.d(TAG, "Identifier INSERT OR IGNORE executed")
+                Log.d("CLIENT_CACHE", "Identifier INSERT OR IGNORE executed")
 
                 AppCache.updateIdentifierCache(cleanName, phone)
 
-                Log.d(TAG, "Cache Updated")
+                Log.d("CLIENT_CACHE", "Cache Updated")
 
             } else {
 
-                Log.d(TAG, "Identifier skipped")
+                Log.d("CLIENT_CACHE", "Identifier skipped")
 
             }
 
             db.setTransactionSuccessful()
 
-            Log.d(TAG, "Transaction Successful")
+            Log.d("CLIENT_CACHE", "Transaction Successful")
 
         } catch (e: Exception) {
 
-            Log.e(TAG, "ERROR -> ${e.message}", e)
+            Log.e("CLIENT_CACHE", "ERROR -> ${e.message}", e)
             throw e
 
         } finally {
 
-            Log.d(TAG, "End Transaction")
+            Log.d("CLIENT_CACHE", "End Transaction")
 
             db.endTransaction()
 
-            Log.d(TAG, "========== updateCustomerBalance END ==========")
+            Log.d("CLIENT_CACHE", "========== updateCustomerBalance END ==========")
         }
     }
     

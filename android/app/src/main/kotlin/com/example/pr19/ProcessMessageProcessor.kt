@@ -60,10 +60,15 @@ object ProcessMessageProcessor {
 
         // ⭐ البحث في الكاش باستخدام المحفظة أولاً أو الاسم المسحوب ثانياً
         if (targetCustomerPhone.isBlank()) {
+            Log.d("PROCESSOR", "Searching by wallet/name...")
             if (!extractedWallet.isNullOrBlank()) {
+                Log.d("PROCESSOR", "Searching wallet = $extractedWallet")
+                Log.d("PROCESSOR", "Searching name = $extractedName")
                 targetCustomerPhone = AppCache.findPhoneByIdentifier(dbHelper, extractedWallet) ?: ""
             }
             if (targetCustomerPhone.isBlank() && !extractedName.isNullOrBlank()) {
+                Log.d("PROCESSOR", "Searching wallet = $extractedWallet")
+                Log.d("PROCESSOR", "Searching name = $extractedName")
                 targetCustomerPhone = AppCache.findPhoneByIdentifier(dbHelper, extractedName) ?: ""
             }
         }
@@ -203,6 +208,7 @@ object ProcessMessageProcessor {
         val allowAllSenders = AppCache.isAllowAllSenders(dbHelper)
         if (!allowAllSenders && !dbHelper.isSenderAllowed(originPackage) && !dbHelper.isSenderAllowed(rawSender)) {
             Log.d("PROCESSOR", "Sender rejected: $rawSender / $originPackage")
+            
             return
         }
 
@@ -225,6 +231,10 @@ object ProcessMessageProcessor {
         val rewardKeywordId = (matchedKwMap["reward_keyword_id"] as? Number)?.toInt()
 
         var targetCustomerPhone = customerPhoneInput
+        Log.d(
+            "PROCESSOR",
+            "customerPhoneInput='$customerPhoneInput' extractedName='$extractedName' extractedWallet='$extractedWallet'"
+        )
         if (targetCustomerPhone.isBlank()) {
             targetCustomerPhone = dbHelper.findCustomerPhoneByIdentifier(body) ?: ""
         }
@@ -300,6 +310,11 @@ object ProcessMessageProcessor {
                 )
             }
         }
+    
+            Log.d("PROCESSOR", "customerPhoneInput='$customerPhoneInput'")
+            Log.d("PROCESSOR", "targetCustomerPhone='$targetCustomerPhone'")
+            Log.d("PROCESSOR", "extractedName='$extractedName'")
+            Log.d("PROCESSOR", "extractedWallet='$extractedWallet'")
     }
 
     private fun extractNameFromBody(body: String): String? {

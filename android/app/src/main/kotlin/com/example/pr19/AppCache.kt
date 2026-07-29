@@ -44,8 +44,21 @@ object AppCache {
 
     // ✅ 3. دالة سريعة للبحث عن رقم العميل بواسطة المعرف/الاسم
     fun findPhoneByIdentifier(dbHelper: AppSqliteHelper, rawIdentifier: String): String? {
+        
+        Log.d("CLIENT_CACHE", "findPhoneByIdentifier() called")
         val cleanKey = normalizeText(rawIdentifier)
+        Log.d("CLIENT_CACHE", "Search Key = '$cleanKey'")
+        
         val map = getClientIdentifiers(dbHelper)
+        Log.d("CLIENT_CACHE", "Cache Size = ${map.size}")
+        
+        val phone = map[cleanKey]
+        Log.d("CLIENT_CACHE", "Result = $phone")
+
+        Log.d(
+            "CLIENT_CACHE",
+            "findPhoneByIdentifier called with: $rawIdentifier"
+        )
         return map[cleanKey]
     }
 

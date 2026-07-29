@@ -290,6 +290,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         name: String? = null,
         walletNumber: String? = null
     ) {
+        Log.d("CLIENT_CACHE", "updateCustomerBalance() ENTERED")
         Log.d("CLIENT_CACHE", "========== updateCustomerBalance START ==========")
         Log.d("CLIENT_CACHE", "Input -> phone=$phone, balance=$newBalance, name=$name, wallet=$walletNumber")
 

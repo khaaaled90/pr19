@@ -15,7 +15,7 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         
         val dbHelper = AppSqliteHelper.getInstance(applicationContext)
         Log.d("WORKER", "==============================")
-        Log.d("WORKER", "Sender = $sender")
+        Log.d("WORKER", "Sender = $rawSender")
         Log.d("WORKER", "Body = $body")
         // 1. التحقق من تفعيل الخدمة
         if (dbHelper.getSetting("service_enabled", "true") != "true") {
@@ -27,7 +27,7 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         val allowAllSenders = allowAllSendersValue == "true"
 
         Log.d("WORKER", "allowAllSenders = $allowAllSenders")
-        Log.d("WORKER", "isSenderAllowed = ${dbHelper.isSenderAllowed(sender)}")
+        Log.d("WORKER", "isSenderAllowed = ${dbHelper.isSenderAllowed(rawSender)}")
         
         if (!allowAllSenders && !dbHelper.isSenderAllowed(originPackage) && !dbHelper.isSenderAllowed(rawSender)) {
             Log.d("WORKER", "Message rejected because sender package is not allowed")

@@ -67,7 +67,8 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         var targetCustomerPhone: String? = inputData.getString("customer_phone")
         Log.d("WORKER", "Customer Phone = $targetCustomerPhone")
         // 2. إذا لم يوجد رقم في النص، يتم البحث بالاسم أو رقم المحفظة المذكور في النص من قاعدة البيانات
-        if (targetCustomerPhone == null) {
+        //if (targetCustomerPhone == null) {
+        if (targetCustomerPhone.isNullOrBlank()) {
             targetCustomerPhone = dbHelper.findCustomerPhoneByIdentifier(body)
         }
         /*var targetCustomerPhone: String? = null

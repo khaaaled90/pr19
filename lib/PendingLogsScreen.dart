@@ -140,6 +140,74 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
               onPressed: () async {
                 String phone = phoneController.text.trim();
                 String name = nameController.text.trim();
+                String matchedKeyword = pendingLog['matched_keyword'] ?? '';
+            
+                if (phone.length >= 9) {
+                  // 1. 🎯 التعديل الأساسي: سحب قسيمة جديدة ديناميكياً من قاعدة البيانات
+                  String? voucherCode = await DatabaseHelper.instance
+                      .getAndUseVoucherByKeyword(matchedKeyword, phone);
+            
+                  // في حال نفاد المخزون لهذا الكرت
+                  if (voucherCode == null || voucherCode.isEmpty) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("⚠️ نفدت القسائم المتوفرة لهذه الفئة! يرجى إضافة كروت جديدة أولاً."),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+            
+                  // 2. 📝 تحديث بيانات العملية المعلقة مع إضافة رقم القسيمة وتغيير حالتها
+                  await DatabaseHelper.instance.resolvePendingLog(
+                    logId: pendingLog['id'],
+                    customerPhone: phone,
+                    customerName: name,
+                    voucherCode: voucherCode,
+                  );
+            
+                  // 3. ✉️ إعداد نص الرد التلقائي وقراءة الإعدادات
+                  String defaultReply = await DatabaseHelper.instance
+                      .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');
+                  String fullMsg = "$defaultReply $voucherCode";
+            
+                  // 4. 🚀 إرسال القسيمة عبر SMS
+                  bool isSent = await _sendSmsNative(phone, fullMsg);
+            
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isSent
+                            ? "تم ربط العميل وصرف القسيمة ($voucherCode) وإرسالها بنجاح"
+                            : "تم ربط العميل وصرف القسيمة ولكن تعذر إرسال الـ SMS"),
+                        backgroundColor: isSent ? Colors.green : Colors.orange,
+                      ),
+                    );
+                    _loadPendingLogs();
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("يرجى إدخال رقم هاتف صحيح (9 أرقام)"),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              child: const Text("تأكيد وصرف القسيمة"),
+            )
+            
+            /*ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                String phone = phoneController.text.trim();
+                String name = nameController.text.trim();
                 String voucherCode = pendingLog['sent_number'];
 
                 if (phone.length >= 9) {
@@ -183,7 +251,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 }
               },
               child: const Text("تأكيد وإرسال"),
-            ),
+            ),*/
           ],
         );
       },

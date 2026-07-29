@@ -133,62 +133,122 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         createIndexes(db)
     }
 
+    private const val TAG = "CLIENT_CACHE"
     fun getAllClientIdentifiers(): Map<String, String> {
+        Log.d(TAG, "========== getAllClientIdentifiers START ==========")
+
         val map = mutableMapOf<String, String>()
         val db = readableDatabase
 
-        // 1. جلب البيانات الأساسية من جدول العملاء (الهاتف، الاسم، رقم المحفظة)
+        Log.d(TAG, "Loading customers table...")
+
         val cursor = db.rawQuery("SELECT phone, name, wallet_number FROM customers", null)
         cursor.use { c ->
             val phoneIdx = c.getColumnIndex("phone")
             val nameIdx = c.getColumnIndex("name")
             val walletIdx = c.getColumnIndex("wallet_number")
 
+            Log.d(
+                TAG,
+                "Columns -> phone=$phoneIdx name=$nameIdx wallet=$walletIdx"
+            )
+
+            var customerCount = 0
+
             if (phoneIdx != -1) {
                 while (c.moveToNext()) {
+
+                    customerCount++
+
                     val phone = c.getString(phoneIdx) ?: continue
-                    
+
+                    Log.d(TAG, "Customer[$customerCount] phone=$phone")
+
                     map[normalizeText(phone)] = phone
 
                     if (nameIdx != -1) {
                         val name = c.getString(nameIdx)
+
                         if (!name.isNullOrBlank()) {
+                            Log.d(TAG, "  Name -> $name")
                             map[normalizeText(name)] = phone
+                        } else {
+                            Log.d(TAG, "  Name -> EMPTY")
                         }
                     }
 
                     if (walletIdx != -1) {
                         val wallet = c.getString(walletIdx)
+
                         if (!wallet.isNullOrBlank()) {
+                            Log.d(TAG, "  Wallet -> $wallet")
                             map[normalizeText(wallet)] = phone
+                        } else {
+                            Log.d(TAG, "  Wallet -> EMPTY")
                         }
                     }
                 }
             }
+
+            Log.d(TAG, "Customers Loaded = $customerCount")
         }
 
-        // 2. ✅ المعدّل: استعلام المعرفات الإضافية عبر INNER JOIN للربط مع client_id
+        Log.d(TAG, "Loading client_identifiers...")
+
         val extraQuery = """
-            SELECT ci.identifier, c.phone 
+            SELECT ci.identifier, c.phone
             FROM client_identifiers ci
             INNER JOIN customers c ON ci.client_id = c.id
         """.trimIndent()
 
         val extraCursor = db.rawQuery(extraQuery, null)
+
         extraCursor.use { c ->
+
             val idIdx = c.getColumnIndex("identifier")
-            val phoneIdx = c.getColumnIndex("phone") // 👈 أصبحت تقرأ رقم الهاتف الناتج عن الربط
+            val phoneIdx = c.getColumnIndex("phone")
+
+            Log.d(
+                TAG,
+                "Alias Columns -> identifier=$idIdx phone=$phoneIdx"
+            )
+
+            var aliasCount = 0
 
             if (idIdx != -1 && phoneIdx != -1) {
+
                 while (c.moveToNext()) {
+
+                    aliasCount++
+
                     val identifier = c.getString(idIdx)
                     val phone = c.getString(phoneIdx)
+
                     if (!identifier.isNullOrBlank() && !phone.isNullOrBlank()) {
+
+                        Log.d(
+                            TAG,
+                            "Alias[$aliasCount] identifier='$identifier' -> phone=$phone"
+                        )
+
                         map[normalizeText(identifier)] = phone
+
+                    } else {
+
+                        Log.w(
+                            TAG,
+                            "Alias[$aliasCount] skipped (identifier=$identifier phone=$phone)"
+                        )
                     }
                 }
             }
+
+            Log.d(TAG, "Aliases Loaded = $aliasCount")
         }
+
+        Log.d(TAG, "Total cache entries = ${map.size}")
+
+        Log.d(TAG, "========== getAllClientIdentifiers END ==========")
 
         return map
     }
@@ -229,15 +289,21 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         name: String? = null,
         walletNumber: String? = null
     ) {
+        Log.d(TAG, "========== updateCustomerBalance START ==========")
+        Log.d(TAG, "Input -> phone=$phone, balance=$newBalance, name=$name, wallet=$walletNumber")
+
         val db = writableDatabase
         val now = System.currentTimeMillis()
 
+        Log.d(TAG, "Begin Transaction")
         db.beginTransaction()
+
         try {
             var clientId: Long? = null
             var currentName: String? = null
 
-            // 1. البحث عن العميل الحالي
+            Log.d(TAG, "Searching customer by phone: $phone")
+
             db.rawQuery(
                 "SELECT id, name FROM customers WHERE phone = ?",
                 arrayOf(phone)
@@ -245,6 +311,10 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 if (c.moveToFirst()) {
                     clientId = c.getLong(c.getColumnIndexOrThrow("id"))
                     currentName = c.getString(c.getColumnIndexOrThrow("name"))
+
+                    Log.d(TAG, "Customer Found -> id=$clientId, currentName=$currentName")
+                } else {
+                    Log.d(TAG, "Customer NOT FOUND")
                 }
             }
 
@@ -252,8 +322,12 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             val cleanWallet = walletNumber?.takeIf { it.isNotBlank() }
             val cleanBalance = newBalance.takeIf { it.isNotBlank() }
 
+            Log.d(TAG, "Clean Values -> name=$cleanName wallet=$cleanWallet balance=$cleanBalance")
+
             if (clientId == null) {
-                // 2. حالة العميل الجديد
+
+                Log.d(TAG, "Creating NEW customer")
+
                 val values = ContentValues().apply {
                     put("phone", phone)
                     put("name", cleanName)
@@ -261,29 +335,59 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     put("last_balance", cleanBalance)
                     put("created_at", now)
                 }
+
                 clientId = db.insert("customers", null, values)
 
+                Log.d(TAG, "Customer Inserted -> clientId=$clientId")
+
             } else {
-                // 3. حالة العميل الموجود (تحديث البيانات)
+
+                Log.d(TAG, "Updating Existing Customer")
+
                 val values = ContentValues().apply {
+
                     if (cleanName != null && currentName.isNullOrBlank()) {
+                        Log.d(TAG, "Updating empty customer name -> $cleanName")
                         put("name", cleanName)
+                    } else {
+                        Log.d(TAG, "Customer name NOT updated")
                     }
+
                     if (cleanWallet != null) {
+                        Log.d(TAG, "Updating wallet -> $cleanWallet")
                         put("wallet_number", cleanWallet)
                     }
+
                     if (cleanBalance != null) {
+                        Log.d(TAG, "Updating balance -> $cleanBalance")
                         put("last_balance", cleanBalance)
                     }
                 }
 
                 if (values.size() > 0) {
-                    db.update("customers", values, "phone = ?", arrayOf(phone))
+
+                    val rows = db.update(
+                        "customers",
+                        values,
+                        "phone = ?",
+                        arrayOf(phone)
+                    )
+
+                    Log.d(TAG, "Customer Updated -> affectedRows=$rows")
+
+                } else {
+
+                    Log.d(TAG, "Nothing to update")
+
                 }
             }
 
-            // 4. ربط الاسم بجدول المعرفات وتحديث الكاش (للجميع: سواء عميل جديد أو قديم)
+            Log.d(TAG, "Processing client_identifiers")
+
             if (clientId != null && !cleanName.isNullOrEmpty()) {
+
+                Log.d(TAG, "Adding Identifier -> clientId=$clientId identifier=$cleanName")
+
                 db.execSQL(
                     """
                     INSERT OR IGNORE INTO client_identifiers (client_id, identifier)
@@ -292,13 +396,34 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     arrayOf(clientId, cleanName)
                 )
 
-                // تحديث الكاش
+                Log.d(TAG, "Identifier INSERT OR IGNORE executed")
+
                 AppCache.updateIdentifierCache(cleanName, phone)
+
+                Log.d(TAG, "Cache Updated")
+
+            } else {
+
+                Log.d(TAG, "Identifier skipped")
+
             }
 
             db.setTransactionSuccessful()
+
+            Log.d(TAG, "Transaction Successful")
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "ERROR -> ${e.message}", e)
+            throw e
+
         } finally {
+
+            Log.d(TAG, "End Transaction")
+
             db.endTransaction()
+
+            Log.d(TAG, "========== updateCustomerBalance END ==========")
         }
     }
     

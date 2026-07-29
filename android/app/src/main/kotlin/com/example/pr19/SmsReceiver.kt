@@ -32,6 +32,7 @@ class SmsReceiver : BroadcastReceiver() {
                 val inputData = Data.Builder()
                     .putString("sender", originSender) 
                     .putString("body", body)
+                    .putString("customer_phone", formattedTargetPhone)
                     .build()
 
                 val workRequest = OneTimeWorkRequestBuilder<ProcessMessageWorker>()

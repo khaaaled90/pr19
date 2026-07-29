@@ -30,7 +30,7 @@ class SmsReceiver : BroadcastReceiver() {
                 Log.d("SMS_RECEIVER", "TargetPhoneForVoucher=$formattedTargetPhone")
 
                 val inputData = Data.Builder()
-                    .putString("sender", formattedTargetPhone) // نمرر الآن رقم العميل الحقيقي للـ Worker
+                    .putString("sender", originSender) 
                     .putString("body", body)
                     .build()
 

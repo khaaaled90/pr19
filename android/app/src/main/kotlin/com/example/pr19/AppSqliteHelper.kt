@@ -301,6 +301,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             db.endTransaction()
         }
     }
+    
     /*fun updateCustomerBalance(
         phone: String, 
         newBalance: String, 
@@ -333,7 +334,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     
         stmt.execute()
         stmt.close()
-    }
+    }*/
 
     fun incrementCustomerCounter(customerPhone: String, keywordId: Int): Int {
         val db = writableDatabase
@@ -379,7 +380,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             "customer_phone = ? AND keyword_id = ?",
             arrayOf(customerPhone, keywordId.toString())
         )
-    }*/
+    }
 
     fun isSenderAllowed(sender: String): Boolean {
         val db = readableDatabase

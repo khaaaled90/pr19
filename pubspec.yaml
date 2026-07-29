@@ -43,7 +43,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   # إذا كان لديك مجلد للأصول أو أرقام الباقات المرفقة (Excel/CSV)، يمكنك إلغاء التعليق هنا:
   # assets:
   #   - assets/

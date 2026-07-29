@@ -501,6 +501,35 @@ class DatabaseHelper {
     return voucher;
   }
 
+  //==========================================================
+  /// سحب أول قسيمة متاحة بناءً على النص (Keyword) وتحديث حالتها فوراً لمستخدمة
+  //===========================================================
+  Future<String?> getAndUseVoucherByKeyword(String keyword, String customerPhone) async {
+    final db = await database;
+
+    // 1. البحث عن ID الكلمة المفتاحية من جدول keywords
+    List<Map<String, dynamic>> kwResult = await db.query(
+      tableKeywords,
+      columns: ['id'],
+      where: 'keyword = ? AND is_active = 1',
+      whereArgs: [keyword],
+      limit: 1,
+    );
+
+    if (kwResult.isEmpty) return null; // الكلمة المفتاحية غير موجودة أو غير مفعلة
+
+    int keywordId = kwResult.first['id'] as int;
+
+    // 2. استخدام داللتك الجاهزة (getAndUseVoucher) لسحب الكرت وتعديل حالته إلى used
+    Map<String, dynamic>? voucher = await getAndUseVoucher(keywordId, customerPhone);
+
+    if (voucher != null) {
+      return voucher['number_code'] as String; // إرجاع كود القسيمة
+    }
+
+    return null; // لا توجد قسائم متاحة لهذه الفئة
+  }
+  
   // ==========================================
   // 7. دوال المرسلين المسموحين والأرشيف
   // ==========================================

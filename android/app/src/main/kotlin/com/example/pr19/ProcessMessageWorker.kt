@@ -63,7 +63,8 @@ class ProcessMessageWorker(context: Context, params: WorkerParameters) : Corouti
         // =========================================================
         
         // 1. نبحث أولاً وأساساً عن رقم هاتف العميل المذكور داخل نص الرسالة/الإشعار (body)
-        var targetCustomerPhone: String? = extractPhoneFromBody(body)
+        //var targetCustomerPhone: String? = extractPhoneFromBody(body)
+        var targetCustomerPhone: String? = inputData.getString("customer_phone")
         Log.d("WORKER", "Customer Phone = $targetCustomerPhone")
         // 2. إذا لم يوجد رقم في النص، يتم البحث بالاسم أو رقم المحفظة المذكور في النص من قاعدة البيانات
         if (targetCustomerPhone == null) {

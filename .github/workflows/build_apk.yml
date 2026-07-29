@@ -30,7 +30,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          cache: false
+          cache: true
 
       # تثبيت Android SDK 36
       - name: Install Android SDK 36
@@ -41,8 +41,8 @@ jobs:
             "build-tools;36.0.0"
 
       # Clean
-      - name: Clean Project
-        run: flutter clean
+      #- name: Clean Project
+      #  run: flutter clean
 
       # Packages
       - name: Install Dependencies

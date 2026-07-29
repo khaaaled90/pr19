@@ -133,8 +133,9 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         createIndexes(db)
     }
 
-    private const val TAG = "CLIENT_CACHE"
     fun getAllClientIdentifiers(): Map<String, String> {
+    
+        private const val TAG = "CLIENT_CACHE"
         Log.d(TAG, "========== getAllClientIdentifiers START ==========")
 
         val map = mutableMapOf<String, String>()

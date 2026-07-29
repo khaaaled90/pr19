@@ -70,7 +70,7 @@ class NativeNotificationListener : NotificationListenerService() {
         Log.d("NOTIFICATION", "Extracted TargetPhone = $formattedTargetPhone")
 
         val inputData = Data.Builder()
-            .putString("sender", formattedTargetPhone) // ✅ أصبح الآن يحمل رقم العميل (أو فارغ)
+            .putString("sender", packageName) 
             .putString("origin_package", packageName)  // الاحتفاظ باقتفاء مصدر الإشعار
             .putString("body", fullContent)
             .build()

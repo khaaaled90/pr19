@@ -61,6 +61,32 @@ object AppCache {
 
     // ✅ 3. دالة سريعة للبحث عن رقم العميل بواسطة المعرف/الاسم
     fun findPhoneByIdentifier(dbHelper: AppSqliteHelper, rawIdentifier: String): String? {
+
+        Log.e("CLIENT_CACHE", "findPhoneByIdentifier() called")
+
+        val cleanKey = normalizeText(rawIdentifier)
+        Log.e("CLIENT_CACHE", "Search Key = '$cleanKey' length=${cleanKey.length}")
+
+        val map = getClientIdentifiers(dbHelper)
+
+        Log.e("CLIENT_CACHE", "Cache Size = ${map.size}")
+        Log.e("CLIENT_CACHE", "========== CACHE CONTENT ==========")
+
+        map.forEach { (k, v) ->
+            Log.e(
+                "CLIENT_CACHE",
+                "KEY='$k' length=${k.length}  ---> PHONE=$v"
+            )
+        }
+
+        val phone = map[cleanKey]
+
+        Log.e("CLIENT_CACHE", "Lookup Result = $phone")
+        Log.e("CLIENT_CACHE", "Raw Identifier = '$rawIdentifier'")
+
+        return phone
+    }
+    /*fun findPhoneByIdentifier(dbHelper: AppSqliteHelper, rawIdentifier: String): String? {
         
         Log.e("CLIENT_CACHE", "findPhoneByIdentifier() called")
         val cleanKey = normalizeText(rawIdentifier)
@@ -77,7 +103,7 @@ object AppCache {
             "findPhoneByIdentifier called with: $rawIdentifier"
         )
         return map[cleanKey]
-    }
+    }*/
 
     // ✅ 4. دالة لتحديث الكاش فورياً عند ربط معاملة معلقة جديدة
     @Synchronized

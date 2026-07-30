@@ -135,7 +135,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     fun getAllClientIdentifiers(): Map<String, String> {
 
-        Log.e("CLIENT_CACHE", "clientIdentifiers == null ? ${clientIdentifiers == null}")
+        //Log.d("CLIENT_CACHE", "clientIdentifiers == null ? ${clientIdentifiers == null}")
 
         //private const val TAG = "CLIENT_CACHE"
         Log.e("CLIENT_CACHE", "========== getAllClientIdentifiers START ==========")

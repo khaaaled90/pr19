@@ -36,27 +36,43 @@ object AppCache {
         }
     }
 
-    // ✅ 2. جلب جميع المعرفات من قاعدة البيانات عند أول طلب
+    fun getClientIdentifiers(dbHelper: AppSqliteHelper): Map<String, String> {
+
+        Log.e("CLIENT_CACHE", ">>> ENTER getClientIdentifiers()")
+
+        return clientIdentifiers ?: synchronized(this) {
+
+            Log.e("CLIENT_CACHE", ">>> clientIdentifiers = $clientIdentifiers")
+
+            clientIdentifiers ?: dbHelper.getAllClientIdentifiers().also {
+
+                Log.e("CLIENT_CACHE", ">>> Loaded ${it.size} identifiers")
+
+                clientIdentifiers = it
+            }
+        }
+    }
+    /*// ✅ 2. جلب جميع المعرفات من قاعدة البيانات عند أول طلب
     fun getClientIdentifiers(dbHelper: AppSqliteHelper): Map<String, String> {
         return clientIdentifiers ?: synchronized(this) {
             clientIdentifiers ?: dbHelper.getAllClientIdentifiers().also { clientIdentifiers = it }
         }
-    }
+    }*/
 
     // ✅ 3. دالة سريعة للبحث عن رقم العميل بواسطة المعرف/الاسم
     fun findPhoneByIdentifier(dbHelper: AppSqliteHelper, rawIdentifier: String): String? {
         
-        Log.d("CLIENT_CACHE", "findPhoneByIdentifier() called")
+        Log.e("CLIENT_CACHE", "findPhoneByIdentifier() called")
         val cleanKey = normalizeText(rawIdentifier)
-        Log.d("CLIENT_CACHE", "Search Key = '$cleanKey'")
+        Log.e("CLIENT_CACHE", "Search Key = '$cleanKey'")
         
         val map = getClientIdentifiers(dbHelper)
-        Log.d("CLIENT_CACHE", "Cache Size = ${map.size}")
+        Log.e("CLIENT_CACHE", "Cache Size = ${map.size}")
         
         val phone = map[cleanKey]
-        Log.d("CLIENT_CACHE", "Result = $phone")
+        Log.e("CLIENT_CACHE", "Result = $phone")
 
-        Log.d(
+        Log.e(
             "CLIENT_CACHE",
             "findPhoneByIdentifier called with: $rawIdentifier"
         )

@@ -135,13 +135,15 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     fun getAllClientIdentifiers(): Map<String, String> {
 
+        Log.e("CLIENT_CACHE", "clientIdentifiers == null ? ${clientIdentifiers == null}")
+
         //private const val TAG = "CLIENT_CACHE"
-        Log.d("CLIENT_CACHE", "========== getAllClientIdentifiers START ==========")
+        Log.e("CLIENT_CACHE", "========== getAllClientIdentifiers START ==========")
 
         val map = mutableMapOf<String, String>()
         val db = readableDatabase
 
-        Log.d("CLIENT_CACHE", "Loading customers table...")
+        Log.e("CLIENT_CACHE", "Loading customers table...")
 
         val cursor = db.rawQuery("SELECT phone, name, wallet_number FROM customers", null)
         cursor.use { c ->
@@ -149,7 +151,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             val nameIdx = c.getColumnIndex("name")
             val walletIdx = c.getColumnIndex("wallet_number")
 
-            Log.d(
+            Log.e(
                 "CLIENT_CACHE",
                 "Columns -> phone=$phoneIdx name=$nameIdx wallet=$walletIdx"
             )
@@ -163,7 +165,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
                     val phone = c.getString(phoneIdx) ?: continue
 
-                    Log.d("CLIENT_CACHE", "Customer[$customerCount] phone=$phone")
+                    Log.e("CLIENT_CACHE", "Customer[$customerCount] phone=$phone")
 
                     map[normalizeText(phone)] = phone
 
@@ -171,10 +173,10 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                         val name = c.getString(nameIdx)
 
                         if (!name.isNullOrBlank()) {
-                            Log.d("CLIENT_CACHE", "  Name -> $name")
+                            Log.e("CLIENT_CACHE", "  Name -> $name")
                             map[normalizeText(name)] = phone
                         } else {
-                            Log.d("CLIENT_CACHE", "  Name -> EMPTY")
+                            Log.e("CLIENT_CACHE", "  Name -> EMPTY")
                         }
                     }
 
@@ -182,19 +184,19 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                         val wallet = c.getString(walletIdx)
 
                         if (!wallet.isNullOrBlank()) {
-                            Log.d("CLIENT_CACHE", "  Wallet -> $wallet")
+                            Log.e("CLIENT_CACHE", "  Wallet -> $wallet")
                             map[normalizeText(wallet)] = phone
                         } else {
-                            Log.d("CLIENT_CACHE", "  Wallet -> EMPTY")
+                            Log.e("CLIENT_CACHE", "  Wallet -> EMPTY")
                         }
                     }
                 }
             }
 
-            Log.d("CLIENT_CACHE", "Customers Loaded = $customerCount")
+            Log.e("CLIENT_CACHE", "Customers Loaded = $customerCount")
         }
 
-        Log.d("CLIENT_CACHE", "Loading client_identifiers...")
+        Log.e("CLIENT_CACHE", "Loading client_identifiers...")
 
         val extraQuery = """
             SELECT ci.identifier, c.phone
@@ -209,7 +211,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             val idIdx = c.getColumnIndex("identifier")
             val phoneIdx = c.getColumnIndex("phone")
 
-            Log.d(
+            Log.e(
                 "CLIENT_CACHE",
                 "Alias Columns -> identifier=$idIdx phone=$phoneIdx"
             )
@@ -247,9 +249,9 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             Log.d("CLIENT_CACHE", "Aliases Loaded = $aliasCount")
         }
 
-        Log.d("CLIENT_CACHE", "Total cache entries = ${map.size}")
+        Log.e("CLIENT_CACHE", "Total cache entries = ${map.size}")
 
-        Log.d("CLIENT_CACHE", "========== getAllClientIdentifiers END ==========")
+        Log.e("CLIENT_CACHE", "========== getAllClientIdentifiers END ==========")
 
         return map
     }

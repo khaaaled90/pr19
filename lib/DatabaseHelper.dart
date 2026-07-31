@@ -635,6 +635,68 @@ class DatabaseHelper {
   }) async {
     final db = await database;
 
+  /// البحث عن عميل بواسطة رقم الهاتف (في جدول العملاء أو جدول المعرفات)
+  Future<Map<String, dynamic>?> getCustomerByPhone(String phone) async {
+    final db = await database;
+
+    // 1. البحث أولاً في جدول العملاء الرئيسي بواسطة رقم الهاتف
+    final mainResult = await db.query(
+      'customers',
+      where: 'phone = ?',
+      whereArgs: [phone],
+      limit: 1,
+    );
+
+    if (mainResult.isNotEmpty) {
+      return mainResult.first;
+    }
+
+    // 2. إذا لم يوجد، نبحث في جدول المعرفات (client_identifiers)
+    final identifierResult = await db.rawQuery('''
+      SELECT c.* FROM customers c
+      INNER JOIN client_identifiers ci ON c.id = ci.client_id
+      WHERE ci.identifier = ?
+      LIMIT 1
+    ''', [phone]);
+
+    if (identifierResult.isNotEmpty) {
+      return identifierResult.first;
+    }
+
+    return null;
+  }
+
+  /// البحث عن عميل بواسطة الاسم أو المعرف (في جدول العملاء أو جدول المعرفات)
+  Future<Map<String, dynamic>?> getCustomerByNameOrIdentifier(String nameOrIdentifier) async {
+    final db = await database;
+
+    // 1. البحث أولاً في جدول العملاء الرئيسي (بالاسم أو الهاتف)
+    final mainResult = await db.query(
+      'customers',
+      where: 'name = ? OR phone = ?',
+      whereArgs: [nameOrIdentifier, nameOrIdentifier],
+      limit: 1,
+    );
+
+    if (mainResult.isNotEmpty) {
+      return mainResult.first;
+    }
+
+    // 2. إذا لم يوجد، نلجأ للبحث في جدول المعرفات (client_identifiers)
+    final identifierResult = await db.rawQuery('''
+      SELECT c.* FROM customers c
+      INNER JOIN client_identifiers ci ON c.id = ci.client_id
+      WHERE ci.identifier = ?
+      LIMIT 1
+    ''', [nameOrIdentifier]);
+
+    if (identifierResult.isNotEmpty) {
+      return identifierResult.first;
+    }
+
+    return null;
+  }
+
     /*await saveOrUpdateCustomer(
       customerPhone,
       name: customerName,

@@ -11,6 +11,8 @@ import android.telephony.SmsManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import android.util.Log
+
 
 class MainActivity: FlutterActivity() {
 
@@ -58,6 +60,7 @@ class MainActivity: FlutterActivity() {
                 // تفريغ الذاكرة المؤقتة (Clear AppCache) عند التعديل في Flutter
                 "clearCache" -> {
                     try {
+                        Log.e("CLIENT_CACHE", "******** clearCache() CALLED ********")
                         // ✅ تم التعديل هنا واستدعاء clearCache() بدلاً من clear()
                         AppCache.clearCache()
                         result.success(true)

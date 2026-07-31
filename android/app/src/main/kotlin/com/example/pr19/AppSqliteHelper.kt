@@ -386,11 +386,14 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 }
             }
 
-            Log.d("CLIENT_CACHE", "Processing client_identifiers")
+            Log.e("CLIENT_CACHE", "Processing client_identifiers")
 
+            Log.e("UPDATE_CUSTOMER", "clientId=$clientId")
+            Log.e("UPDATE_CUSTOMER", "cleanName='$cleanName'")
+            
             if (clientId != null && !cleanName.isNullOrEmpty()) {
 
-                Log.d("CLIENT_CACHE", "Adding Identifier -> clientId=$clientId identifier=$cleanName")
+                Log.e("CLIENT_CACHE", "Adding Identifier -> clientId=$clientId identifier=$cleanName")
 
                 db.execSQL(
                     """
@@ -400,21 +403,23 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     arrayOf(clientId, cleanName)
                 )
 
-                Log.d("CLIENT_CACHE", "Identifier INSERT OR IGNORE executed")
+                Log.e("UPDATE_CUSTOMER", "Updating AppCache...")
+                Log.e("CLIENT_CACHE", "Identifier INSERT OR IGNORE executed")
 
                 AppCache.updateIdentifierCache(cleanName, phone)
-
-                Log.d("CLIENT_CACHE", "Cache Updated")
+                
+                Log.e("UPDATE_CUSTOMER", "AppCache updated")
+                Log.e("CLIENT_CACHE", "Cache Updated")
 
             } else {
 
-                Log.d("CLIENT_CACHE", "Identifier skipped")
+                Log.e("CLIENT_CACHE", "Identifier skipped")
 
             }
 
             db.setTransactionSuccessful()
 
-            Log.d("CLIENT_CACHE", "Transaction Successful")
+            Log.e("CLIENT_CACHE", "Transaction Successful")
 
         } catch (e: Exception) {
 
@@ -423,11 +428,11 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
         } finally {
 
-            Log.d("CLIENT_CACHE", "End Transaction")
+            Log.e("CLIENT_CACHE", "End Transaction")
 
             db.endTransaction()
 
-            Log.d("CLIENT_CACHE", "========== updateCustomerBalance END ==========")
+            Log.e("CLIENT_CACHE", "========== updateCustomerBalance END ==========")
         }
     }
     

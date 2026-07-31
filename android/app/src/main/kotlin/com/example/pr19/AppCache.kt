@@ -108,10 +108,14 @@ object AppCache {
     // ✅ 4. دالة لتحديث الكاش فورياً عند ربط معاملة معلقة جديدة
     @Synchronized
     fun updateIdentifierCache(rawIdentifier: String, phone: String) {
+        Log.e("CLIENT_CACHE", "updateIdentifierCache()")
         val cleanKey = normalizeText(rawIdentifier)
+        Log.e("CLIENT_CACHE", "key=$cleanKey phone=$phone")
         val currentMap = clientIdentifiers?.toMutableMap() ?: mutableMapOf()
+        Log.e("CLIENT_CACHE", "Before Size=${currentMap.size}")
         currentMap[cleanKey] = phone
         clientIdentifiers = currentMap
+        Log.e("CLIENT_CACHE", "After Size=${clientIdentifiers?.size}")
     }
 
     // ✅ 5. دالة تنظيف وتوحيد الحروف لتسهيل المطابقة (إزالة المسافات والهمزات)

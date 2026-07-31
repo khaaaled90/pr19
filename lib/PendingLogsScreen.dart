@@ -65,6 +65,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
 
       for (var log in currentLogs) {
         String sender = log['sender'] ?? '';
+        String sendername = log['sender_name'] ?? '';
         String phone = log['customer_phone'] ?? '';
 
         Map<String, dynamic>? customer;
@@ -72,7 +73,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
           customer = await DatabaseHelper.instance.getCustomerByPhone(phone);
         }
         if (customer == null && sender.isNotEmpty) {
-          customer = await DatabaseHelper.instance.getCustomerByNameOrIdentifier(sender);
+          customer = await DatabaseHelper.instance.getCustomerByNameOrIdentifier(sendername);
         }
 
         if (customer != null) {

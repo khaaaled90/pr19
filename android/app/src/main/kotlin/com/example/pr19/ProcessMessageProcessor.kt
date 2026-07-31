@@ -51,10 +51,14 @@ object ProcessMessageProcessor {
         val targetCount = (matchedKwMap["target_count"] as? Number)?.toInt() ?: 0
         val rewardKeywordId = (matchedKwMap["reward_keyword_id"] as? Number)?.toInt()
 
+        
         // ⭐ 5. البحث عن رقم هاتف العميل من الكاش الموحد فوراً إذا لم يأتِ مع الإشعار
         // ⭐ استخراج الاسم ورقم المحفظة من النص
-        val extractedName = extractNameFromBody(body)
+        
+        //val extractedName = extractNameFromBody(body)
         val extractedWallet = extractWalletFromBody(body)
+        val rawName = extractNameFromBody(body)
+        val extractedName = if (rawName.isNullOrBlank()) extractedWallet ?: "" else rawName    
 
         var targetCustomerPhone = customerPhoneInput
 
@@ -139,8 +143,11 @@ object ProcessMessageProcessor {
                     status = if (isRewardGranted) "sent_reward" else "sent"
                 )
 
-                val extractedName = extractNameFromBody(body)
+                //val extractedName = extractNameFromBody(body)
                 val extractedWallet = extractWalletFromBody(body)
+                val rawName = extractNameFromBody(body)
+                val extractedName = if (rawName.isNullOrBlank()) extractedWallet ?: "" else rawName    
+    
 
                 Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
                 dbHelper.updateCustomerBalance(
@@ -173,7 +180,8 @@ object ProcessMessageProcessor {
     }
 
     private fun extractWalletFromBody(body: String): String? {
-        val walletRegex = Regex("""(?:محفظة|حساب|Acc|Wallet)[\s:]*(\d{6,15})""", RegexOption.IGNORE_CASE)
+        //val walletRegex = Regex("""(?:محفظة|حساب|Acc|Wallet)[\s:]*(\d{6,15})""", RegexOption.IGNORE_CASE)
+        val walletRegex = Regex("""(?:محفظة|حساب|Acc|Wallet|من|From)[\s:]*(\d{5,15})""", RegexOption.IGNORE_CASE)
         return walletRegex.find(body)?.groupValues?.get(1)?.trim()
     }
 

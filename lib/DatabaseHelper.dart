@@ -626,16 +626,6 @@ class DatabaseHelper {
     );
   }
 
-  Future<bool> resolvePendingLog({
-    required int logId,
-    required String customerPhone,
-    required String customerName,
-    String? walletNumber,
-    required String voucherCode,
-  }) async {
-    final db = await database;
-
-  /// البحث عن عميل بواسطة رقم الهاتف (في جدول العملاء أو جدول المعرفات)
   Future<Map<String, dynamic>?> getCustomerByPhone(String phone) async {
     final db = await database;
 
@@ -696,6 +686,17 @@ class DatabaseHelper {
 
     return null;
   }
+  
+  Future<bool> resolvePendingLog({
+    required int logId,
+    required String customerPhone,
+    required String customerName,
+    String? walletNumber,
+    required String voucherCode,
+  }) async {
+    final db = await database;
+
+  
 
     /*await saveOrUpdateCustomer(
       customerPhone,

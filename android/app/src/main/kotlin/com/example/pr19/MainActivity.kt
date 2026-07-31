@@ -25,34 +25,35 @@ class MainActivity: FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
 
         val messenger = flutterEngine.dartExecutor.binaryMessenger
-        // 🎯 تسجيل وتحديث العميل والـ AppCache
-        "registerCustomer" -> {
-            val phone = call.argument<String>("phone") ?: ""
-            val name = call.argument<String>("name")
-            val wallet = call.argument<String>("wallet")
-            val balance = call.argument<String>("balance") ?: ""
-
-            if (phone.isNotBlank()) {
-                try {
-                    AppSqliteHelper.getInstance(applicationContext).updateCustomerBalance(
-                        phone = phone,
-                        newBalance = balance,
-                        name = name,
-                        walletNumber = wallet
-                    )
-                    result.success(true)
-                } catch (e: Exception) {
-                    Log.e("CLIENT_CACHE", "Error in registerCustomer: ${e.message}", e)
-                    result.error("REGISTER_FAILED", e.localizedMessage, null)
-                }
-            } else {
-                result.error("INVALID_PHONE", "رقم الهاتف فارغ", null)
-            }
-        }
+        
         // 1. قناة التحكم بالأذونات واستثناء البطارية وتفريغ الـ Cache
         MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
 
+                // 🎯 تسجيل وتحديث العميل والـ AppCache
+                "registerCustomer" -> {
+                    val phone = call.argument<String>("phone") ?: ""
+                    val name = call.argument<String>("name")
+                    val wallet = call.argument<String>("wallet")
+                    val balance = call.argument<String>("balance") ?: ""
+
+                    if (phone.isNotBlank()) {
+                        try {
+                            AppSqliteHelper.getInstance(applicationContext).updateCustomerBalance(
+                                phone = phone,
+                                newBalance = balance,
+                                name = name,
+                                walletNumber = wallet
+                            )
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e("CLIENT_CACHE", "Error in registerCustomer: ${e.message}", e)
+                            result.error("REGISTER_FAILED", e.localizedMessage, null)
+                        }
+                    } else {
+                        result.error("INVALID_PHONE", "رقم الهاتف فارغ", null)
+                    }
+                }
                 // طلب إذن استماع الإشعارات للمحافظ
                 "requestNotificationListenerPermission" -> {
                     val isGranted = isNotificationServiceEnabled()

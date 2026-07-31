@@ -120,11 +120,13 @@ object ProcessMessageProcessor {
             val messagePrefix = if (isRewardGranted) "تهانينا! لقد حصلت على هدية العرض: " else defaultReply
             val fullMessage = "$messagePrefix $voucherCode"
 
+            Log.e("UPDATE_CUSTOMER", "voucherCode=$voucherCode")
             val isSent = DualSimSmsSender.sendSms(
                 context = context,
                 phoneNumber = destinationPhone,
                 message = fullMessage
             )
+            Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
 
             // ⭐ 8. الأرشفة وتحديث البيانات
             if (isSent) {
@@ -140,12 +142,14 @@ object ProcessMessageProcessor {
                 val extractedName = extractNameFromBody(body)
                 val extractedWallet = extractWalletFromBody(body)
 
+                Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
                 dbHelper.updateCustomerBalance(
                     phone = destinationPhone,
                     newBalance = extractedBalance ?: "",
                     name = extractedName,
                     walletNumber = extractedWallet
                 )
+                Log.e("UPDATE_CUSTOMER", "Calling updateCustomerBalance()")
             }
         }
     }

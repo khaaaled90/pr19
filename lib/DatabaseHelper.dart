@@ -635,11 +635,11 @@ class DatabaseHelper {
   }) async {
     final db = await database;
 
-    await saveOrUpdateCustomer(
+    /*await saveOrUpdateCustomer(
       customerPhone,
       name: customerName,
       walletNumber: walletNumber,
-    );
+    );*/
 
     await db.update(
       tableNumbersPool,

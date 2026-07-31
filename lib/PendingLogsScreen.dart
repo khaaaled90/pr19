@@ -143,6 +143,19 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 String matchedKeyword = pendingLog['matched_keyword'] ?? '';
             
                 if (phone.length >= 9) {
+                  // 1. 🧠 [التعديل الرئيسي] تحديث قاعدة البيانات الأصيلة والكاش عبر Kotlin أولاً
+                  try {
+                    const platform = MethodChannel("com.example.pr19/native_control"); // استبدلها باسي اسم قناتك
+                    await platform.invokeMethod("registerCustomer", {
+                      "phone": phone,
+                      "name": name,
+                      "wallet": null, // أرسل رقم المحفظة إن وجد داخل pendingLog
+                      "balance": "",
+                    });
+                  } catch (e) {
+                    debugPrint("تنبيه: تعذر تحديث كاش العميل في جانب Kotlin: $e");
+                  }
+                  
                   // 1. 🎯 التعديل الأساسي: سحب قسيمة جديدة ديناميكياً من قاعدة البيانات
                   String? voucherCode = await DatabaseHelper.instance
                       .getAndUseVoucherByKeyword(matchedKeyword, phone);
@@ -198,7 +211,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 }
               },
               child: const Text("تأكيد وصرف القسيمة"),
-            )
+            )*/
             
             /*ElevatedButton(
               style: ElevatedButton.styleFrom(

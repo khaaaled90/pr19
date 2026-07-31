@@ -83,7 +83,8 @@ object ProcessMessageProcessor {
 
         // ⭐ 6. فحص العميل المعلق (إذا لم يتعرف النظام على هاتف أو اسم)
         if (targetCustomerPhone.isNull_Or_Empty_Or_Invalid()) {
-            val displayName = extractNameFromBody(body) ?: "معلق (بحاجة لربط)"
+            //val displayName = extractNameFromBody(body) ?: "معلق (بحاجة لربط)"
+            val displayName = extractedName ?: "معلق (بحاجة لربط)"
             dbHelper.addToArchive(
                 sender = rawSender,
                 senderName = displayName,

@@ -266,6 +266,10 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 
     fun isDuplicateBalance(identifier: String, currentBalance: String): Boolean {
+        val tag = "DB_CHECK"
+        Log.d(tag, "--- بدء دالة isDuplicateBalance ---")
+        Log.d(tag, "المدخلات -> المعرف (identifier): '$identifier' | الرصيد الحالي (currentBalance): '$currentBalance'")
+    
         val db = readableDatabase
         val cursor = db.rawQuery(
             "SELECT last_balance FROM customers WHERE phone = ? OR wallet_number = ? LIMIT 1",
@@ -275,9 +279,12 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         var isDuplicate = false
         if (cursor.moveToFirst()) {
             val lastBalanceIndex = cursor.getColumnIndex("last_balance")
+            Log.d(tag, "تم العثور على سجل للعميل. الرصيد المحفوظ سابقاً (last_balance): '$lastBalance'")
             if (lastBalanceIndex != -1) {
+                
                 val lastBalance = cursor.getString(lastBalanceIndex)
                 if (lastBalance != null && lastBalance.trim() == currentBalance.trim()) {
+                    Log.w(tag, "تطابق الرصيد! الرصيد السابق '$lastBalance' يساوي الرصيد الجديد '$currentBalance'")
                     isDuplicate = true
                 }
             }

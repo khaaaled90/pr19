@@ -96,13 +96,26 @@ object ProcessMessageProcessor {
             return
         }
 
+        Log.e("PROCESSOR", "===> بدء مرحلة التحقق من الرصيد <===")
         val destinationPhone = targetCustomerPhone
+        Log.d("PROCESSOR", "رقم العميل المستهدف (destinationPhone): '$destinationPhone'")
+        
+        Log.d("PROCESSOR", "جاري استخراج الرصيد من نص الرسالة...")
         val extractedBalance = extractBalanceFromBody(body)
+        Log.d("PROCESSOR", "الرصيد المستخرج (extractedBalance): '$extractedBalance'")
+
         if (!extractedBalance.isNullOrBlank()) {
+            Log.d("PROCESSOR", "الرصيد غير فارغ، جاري فحص التكرار عبر isDuplicateBalance...")
+
             if (dbHelper.isDuplicateBalance(destinationPhone, extractedBalance)) {
-                Log.w("PROCESSOR", "Duplicate balance detected for $destinationPhone. Skipping.")
+                Log.w("PROCESSOR", "Duplicate balance detected for $destinationPhone. Skipping.")                
                 return
+            } else {
+                Log.i("PROCESSOR", "✅ الرصيد جديد وغير مكرر للعميل: $destinationPhone.")
             }
+
+        } else {
+            Log.w("PROCESSOR", "⚠️ لم يتم استخراج أي رصيد من الرسالة (extractedBalance is null or blank)، سيتم تجاوز فحص التكرار.")
         }
 
         var finalKeywordIdToUse = keywordId

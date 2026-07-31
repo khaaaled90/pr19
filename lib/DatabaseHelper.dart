@@ -629,7 +629,10 @@ class DatabaseHelper {
   Future<Map<String, dynamic>?> getCustomerByPhone(String phone) async {
     final db = await database;
 
-    // 1. البحث أولاً في جدول العملاء الرئيسي بواسطة رقم الهاتف
+    debugPrint("========== getCustomerByPhone ==========");
+    debugPrint("Searching phone = '$phone'");
+
+    // البحث في customers
     final mainResult = await db.query(
       'customers',
       where: 'phone = ?',
@@ -637,30 +640,45 @@ class DatabaseHelper {
       limit: 1,
     );
 
+    debugPrint("customers result count = ${mainResult.length}");
+
     if (mainResult.isNotEmpty) {
+      debugPrint("FOUND in customers");
+      debugPrint(mainResult.first.toString());
       return mainResult.first;
     }
 
-    // 2. إذا لم يوجد، نبحث في جدول المعرفات (client_identifiers)
+    debugPrint("NOT FOUND in customers");
+
+    // البحث في client_identifiers
     final identifierResult = await db.rawQuery('''
       SELECT c.* FROM customers c
-      INNER JOIN client_identifiers ci ON c.id = ci.client_id
+      INNER JOIN client_identifiers ci
+        ON c.id = ci.client_id
       WHERE ci.identifier = ?
       LIMIT 1
     ''', [phone]);
 
+    debugPrint("client_identifiers result count = ${identifierResult.length}");
+
     if (identifierResult.isNotEmpty) {
+      debugPrint("FOUND in client_identifiers");
+      debugPrint(identifierResult.first.toString());
       return identifierResult.first;
     }
 
+    debugPrint("Customer NOT FOUND");
     return null;
   }
+  Future<Map<String, dynamic>?> getCustomerByNameOrIdentifier(
+      String nameOrIdentifier) async {
 
-  /// البحث عن عميل بواسطة الاسم أو المعرف (في جدول العملاء أو جدول المعرفات)
-  Future<Map<String, dynamic>?> getCustomerByNameOrIdentifier(String nameOrIdentifier) async {
     final db = await database;
 
-    // 1. البحث أولاً في جدول العملاء الرئيسي (بالاسم أو الهاتف)
+    debugPrint("========== getCustomerByNameOrIdentifier ==========");
+    debugPrint("Searching = '$nameOrIdentifier'");
+
+    // customers
     final mainResult = await db.query(
       'customers',
       where: 'name = ? OR phone = ?',
@@ -668,21 +686,35 @@ class DatabaseHelper {
       limit: 1,
     );
 
+    debugPrint("customers result count = ${mainResult.length}");
+
     if (mainResult.isNotEmpty) {
+      debugPrint("FOUND in customers");
+      debugPrint(mainResult.first.toString());
       return mainResult.first;
     }
 
-    // 2. إذا لم يوجد، نلجأ للبحث في جدول المعرفات (client_identifiers)
+    debugPrint("NOT FOUND in customers");
+
+    // client_identifiers
     final identifierResult = await db.rawQuery('''
-      SELECT c.* FROM customers c
-      INNER JOIN client_identifiers ci ON c.id = ci.client_id
-      WHERE ci.identifier = ?
-      LIMIT 1
-    ''', [nameOrIdentifier]);
+        SELECT c.*
+        FROM customers c
+        INNER JOIN client_identifiers ci
+        ON c.id = ci.client_id
+        WHERE ci.identifier = ?
+        LIMIT 1
+      ''', [nameOrIdentifier]);
+
+    debugPrint("client_identifiers result count = ${identifierResult.length}");
 
     if (identifierResult.isNotEmpty) {
+      debugPrint("FOUND in client_identifiers");
+      debugPrint(identifierResult.first.toString());
       return identifierResult.first;
     }
+
+    debugPrint("Customer NOT FOUND");
 
     return null;
   }

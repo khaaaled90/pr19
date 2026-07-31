@@ -211,7 +211,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 }
               },
               child: const Text("تأكيد وصرف القسيمة"),
-            )*/
+            )
             
             /*ElevatedButton(
               style: ElevatedButton.styleFrom(

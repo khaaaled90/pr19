@@ -754,6 +754,7 @@ class DatabaseHelper {
         'sender': customerPhone,
         'sender_name': customerName,
         'status': 'sent_manual',
+        'sent_number': voucherCode,
       },
       where: 'id = ?',
       whereArgs: [logId],

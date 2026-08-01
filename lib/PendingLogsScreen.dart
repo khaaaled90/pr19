@@ -67,6 +67,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
         String sender = log['sender'] ?? '';
         String sendername = log['sender_name'] ?? '';
         String phone = log['customer_phone'] ?? '';
+        String messageBody = log['received_message'] ?? ''; // 👈 أضف هذا السطر لسحب نص الرسالة
 
         Map<String, dynamic>? customer;
         if (phone.isNotEmpty) {
@@ -91,6 +92,14 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
               customerName: matchedName,
               voucherCode: voucherCode,
             );
+
+            String? extractedBalance = _extractBalanceFromBody(messageBody);
+            if (extractedBalance != null && extractedBalance.isNotEmpty) {
+              await DatabaseHelper.instance.updateCustomerBalance(
+                phone: matchedPhone,
+                newBalance: extractedBalance,
+              );
+            }
 
             String fullMsg = "$defaultReply $voucherCode";
             await _sendSmsNative(matchedPhone, fullMsg);
@@ -123,6 +132,16 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
     } finally {
       if (mounted) setState(() => _isSyncing = false);
     }
+  }
+
+  // 👈 أضف هذه الدالة المساندة لاستخراج الرصيد من النص
+  String? _extractBalanceFromBody(String body) {
+    final balanceRegex = RegExp(
+      r'(?:رصيدك|الرصيد|رصيدكم|رصيد|متبقي|المتبقي|ر\.?ص|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)',
+      caseSensitive: false,
+    );
+    final match = balanceRegex.firstMatch(body);
+    return match?.group(1)?.replaceAll(',', '');
   }
 
   /// نافذة الربط والإرسال المحدثة

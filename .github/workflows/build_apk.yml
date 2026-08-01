@@ -40,17 +40,28 @@ jobs:
             "platforms;android-36" \
             "build-tools;36.0.0"
 
-      # Clean
-      #- name: Clean Project
-      #  run: flutter clean
-
       # Packages
       - name: Install Dependencies
         run: flutter pub get
 
-      # Build Release APK
+      # 🔑 1. تفكيك ملف الـ Keystore من GitHub Secrets وخزنه في مجلد android/app
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/kha.jks
+
+      # 🛠️ 2. بناء الـ APK واستدعاء متغيرات البيئة للتوقيع
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --build-number=${{ github.run_number }}
+        env:
+          KEYSTORE_PATH: "kha.jks"
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      # 🔑 3. تنظيف ملف الـ Keystore بعد انتهاء البناء للأمان
+      - name: Clean Keystore
+        if: always()
+        run: rm -f android/app/kha.jks
 
       # Upload APK
       - name: Upload APK

@@ -622,7 +622,7 @@ class DatabaseHelper {
     final db = await database;
     return await db.query(
       tableReplyLog,
-      where: "status = 'manual_approval_required'",
+      where: "status IN  ('manual_approval_required','voucher_approval_required')",
       orderBy: 'timestamp DESC',
     );
   }

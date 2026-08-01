@@ -172,6 +172,22 @@ object ProcessMessageProcessor {
                 )
                 Log.e("UPDATE_CUSTOMER", "Calling updateCustomerBalance()")
             }
+        } else {
+            // ⭐ 9. حفظ العملية كمعلقة عند نفاذ المخزون بحالة voucher_approval_required
+            Log.e("PROCESSOR", "⚠️ لا تتوفر قسائم حالياً! تم حفظ العملية كمعلقة (voucher_approval_required)")
+            
+            val rawName = extractNameFromBody(body)
+            val extractedWallet = extractWalletFromBody(body)
+            val displayName = if (!rawName.isNullOrBlank()) rawName else (extractedWallet ?: destinationPhone)
+
+            dbHelper.addToArchive(
+                sender = destinationPhone,
+                senderName = displayName,
+                receivedMessage = body,
+                matchedKeyword = keywordText,
+                sentNumber = "",
+                status = "voucher_approval_required"
+            )
         }
     }
 

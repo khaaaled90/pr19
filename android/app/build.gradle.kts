@@ -23,19 +23,41 @@ android {
     
     defaultConfig {
         applicationId = "com.example.pr19"
-    
+        
         minSdk = 21
         targetSdk = 36
-    
+        
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    // 🔑 إعدادات التوقيع باستعمال بيانات GitHub Secrets
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH") ?: "kha.jks"
+            val keystoreFile = rootProject.file("app/$keystorePath")
+            
+            // تحقق مما إذا كان ملف الـ Keystore موجوداً قبل ضبط التوقيع
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // استخدام التوقيع المحدد أعلاه عند البناء
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
+                signingConfig = releaseSigning
+            } else {
+                // للعمل المحلي في حال عدم وجود ملف الـ Keystore
+                signingConfig = signingConfigs.getByName("debug")
+            }
+
             isMinifyEnabled = false
             isShrinkResources = false
     

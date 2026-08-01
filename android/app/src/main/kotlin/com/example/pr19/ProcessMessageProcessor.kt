@@ -321,7 +321,8 @@ object ProcessMessageProcessor {
         // ⭐ إرسال الـ SMS المباشر فوراً
         val voucherCode = dbHelper.getAndUseVoucher(finalKeywordIdToUse, destinationPhone)
 
-        if (voucherCode != null) {
+        //if (voucherCode != null) {
+        if (voucherCode..isNullOrBlank()) {
             val defaultReply = AppCache.getDefaultReply(dbHelper)
             val messagePrefix = if (isRewardGranted) "تهانينا! لقد حصلت على هدية العرض: " else defaultReply
             val fullMessage = "$messagePrefix $voucherCode"

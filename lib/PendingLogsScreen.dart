@@ -96,10 +96,17 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
             String? extractedBalance = _extractBalanceFromBody(messageBody);
             if (extractedBalance != null && extractedBalance.isNotEmpty) {
               await DatabaseHelper.instance.updateCustomerBalance(
+                matchedPhone,
+                extractedBalance,
+              );
+            }
+            /*String? extractedBalance = _extractBalanceFromBody(messageBody);
+            if (extractedBalance != null && extractedBalance.isNotEmpty) {
+              await DatabaseHelper.instance.updateCustomerBalance(
                 phone: matchedPhone,
                 newBalance: extractedBalance,
               );
-            }
+            }*/
 
             String fullMsg = "$defaultReply $voucherCode";
             await _sendSmsNative(matchedPhone, fullMsg);

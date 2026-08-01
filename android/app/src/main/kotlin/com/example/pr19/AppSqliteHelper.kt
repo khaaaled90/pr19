@@ -279,10 +279,11 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         var isDuplicate = false
         if (cursor.moveToFirst()) {
             val lastBalanceIndex = cursor.getColumnIndex("last_balance")
-            Log.d(tag, "تم العثور على سجل للعميل. الرصيد المحفوظ سابقاً (last_balance): '$lastBalance'")
             if (lastBalanceIndex != -1) {
                 
                 val lastBalance = cursor.getString(lastBalanceIndex)
+                Log.d(tag, "تم العثور على سجل للعميل. الرصيد المحفوظ سابقاً (last_balance): '$lastBalance'")
+            
                 if (lastBalance != null && lastBalance.trim() == currentBalance.trim()) {
                     Log.w(tag, "تطابق الرصيد! الرصيد السابق '$lastBalance' يساوي الرصيد الجديد '$currentBalance'")
                     isDuplicate = true

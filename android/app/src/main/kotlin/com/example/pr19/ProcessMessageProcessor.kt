@@ -96,26 +96,26 @@ object ProcessMessageProcessor {
             return
         }
 
-        Log.e("PROCESSOR", "===> بدء مرحلة التحقق من الرصيد <===")
+        Log.e("PROCESSOR1", "===> بدء مرحلة التحقق من الرصيد <===")
         val destinationPhone = targetCustomerPhone
-        Log.d("PROCESSOR", "رقم العميل المستهدف (destinationPhone): '$destinationPhone'")
+        Log.e("PROCESSOR1", "رقم العميل المستهدف (destinationPhone): '$destinationPhone'")
         
-        Log.d("PROCESSOR", "جاري استخراج الرصيد من نص الرسالة...")
+        Log.e("PROCESSOR1", "جاري استخراج الرصيد من نص الرسالة...")
         val extractedBalance = extractBalanceFromBody(body)
-        Log.d("PROCESSOR", "الرصيد المستخرج (extractedBalance): '$extractedBalance'")
+        Log.e("PROCESSOR1", "الرصيد المستخرج (extractedBalance): '$extractedBalance'")
 
         if (!extractedBalance.isNullOrBlank()) {
-            Log.d("PROCESSOR", "الرصيد غير فارغ، جاري فحص التكرار عبر isDuplicateBalance...")
+            Log.e("PROCESSOR1", "الرصيد غير فارغ، جاري فحص التكرار عبر isDuplicateBalance...")
 
             if (dbHelper.isDuplicateBalance(destinationPhone, extractedBalance)) {
-                Log.w("PROCESSOR", "Duplicate balance detected for $destinationPhone. Skipping.")                
+                Log.e("PROCESSOR1", "Duplicate balance detected for $destinationPhone. Skipping.")                
                 return
             } else {
-                Log.i("PROCESSOR", "✅ الرصيد جديد وغير مكرر للعميل: $destinationPhone.")
+                Log.e("PROCESSOR1", "✅ الرصيد جديد وغير مكرر للعميل: $destinationPhone.")
             }
 
         } else {
-            Log.w("PROCESSOR", "⚠️ لم يتم استخراج أي رصيد من الرسالة (extractedBalance is null or blank)، سيتم تجاوز فحص التكرار.")
+            Log.e("PROCESSOR1", "⚠️ لم يتم استخراج أي رصيد من الرسالة (extractedBalance is null or blank)، سيتم تجاوز فحص التكرار.")
         }
 
         var finalKeywordIdToUse = keywordId
@@ -189,7 +189,8 @@ object ProcessMessageProcessor {
     }
 
     private fun extractBalanceFromBody(body: String): String? {
-        val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        //val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|رصيد|متبقي|المتبقي|ر\.?ص|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
         return balanceRegex.find(body)?.groupValues?.get(1)?.replace(",", "")
     }
 

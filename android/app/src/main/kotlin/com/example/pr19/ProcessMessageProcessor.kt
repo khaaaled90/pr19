@@ -132,7 +132,8 @@ object ProcessMessageProcessor {
 
         // ⭐ 7. سحب الكرت وإرسال الـ SMS المباشر
         val voucherCode = dbHelper.getAndUseVoucher(finalKeywordIdToUse, destinationPhone)
-
+        Log.e("PROCESSOR1", "voucher_approval_required=$voucherCode")
+            
         if (voucherCode != null) {
             val defaultReply = AppCache.getDefaultReply(dbHelper)
             val messagePrefix = if (isRewardGranted) "تهانينا! لقد حصلت على هدية العرض: " else defaultReply

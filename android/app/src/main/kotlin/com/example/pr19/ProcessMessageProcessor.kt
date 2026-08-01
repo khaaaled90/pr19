@@ -175,7 +175,7 @@ object ProcessMessageProcessor {
             }
         } else {
             // ⭐ 9. حفظ العملية كمعلقة عند نفاذ المخزون بحالة voucher_approval_required
-            Log.e("PROCESSOR", "⚠️ لا تتوفر قسائم حالياً! تم حفظ العملية كمعلقة (voucher_approval_required)")
+            Log.e("PROCESSOR1", "⚠️ لا تتوفر قسائم حالياً! تم حفظ العملية كمعلقة (voucher_approval_required)")
             
             val rawName = extractNameFromBody(body)
             val extractedWallet = extractWalletFromBody(body)

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'DatabaseHelper.dart'; // تأكد أن ملف DatabaseHelper في نفس المجلد
-static const MethodChannel _controlChannel = MethodChannel('com.example.pr19/native_control');
 
 
 class KeywordsScreen extends StatefulWidget {
@@ -12,6 +11,8 @@ class KeywordsScreen extends StatefulWidget {
 }
 
 class _KeywordsScreenState extends State<KeywordsScreen> {
+  static const MethodChannel _controlChannel = MethodChannel('com.example.pr19/native_control');
+
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
   List<Map<String, dynamic>> _keywords = [];

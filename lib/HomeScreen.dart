@@ -271,13 +271,13 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Column(
           children: const [
             Text(
-              'MikroTik Yemen',
+              'CardPay',
               style: TextStyle(
                   fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             SizedBox(height: 2),
             Text(
-              'AUTOCARD - البيع الآلي للكروت',
+              'Auto CardPay - البيع الآلي للكروت',
               style: TextStyle(fontSize: 11, color: Colors.white70),
             ),
           ],

@@ -36,6 +36,34 @@ object AppCache {
         }
     }
 
+    fun warmupCache(dbHelper: AppSqliteHelper) {
+        synchronized(this) {
+            Log.e("CLIENT_CACHE", ">>> 🚀 بدء تحميل الكاش تلقائياً...")
+
+            // 1. تحميل الفئات والكلمات المفتاحية
+            cachedKeywords = dbHelper.getAllActiveKeywords()
+
+            // 2. تحميل الإعدادات
+            serviceEnabled = (dbHelper.getSetting("service_enabled", "true") == "true")
+            allowAllSenders = (dbHelper.getSetting("allow_all_senders", "false") == "true")
+            defaultReply = dbHelper.getSetting("default_reply", "شكراً لتواصلك. رقمك الخاص هو: ")
+
+            // 3. تحميل جميع العملاء والمعرفات مع تنقية المفاتيح (Normalization)
+            val rawMap = dbHelper.getAllClientIdentifiers()
+            val normalizedMap = mutableMapOf<String, String>()
+
+            rawMap.forEach { (key, phone) ->
+                val cleanKey = normalizeText(key)
+                if (cleanKey.isNotEmpty() && phone.isNotEmpty()) {
+                    normalizedMap[cleanKey] = phone
+                }
+            }
+
+            clientIdentifiers = normalizedMap
+            Log.e("CLIENT_CACHE", "✅ تم تحميل ${clientIdentifiers?.size ?: 0} عميل ومعرف إلى الكاش بنجاح!")
+        }
+    }
+        
     fun getClientIdentifiers(dbHelper: AppSqliteHelper): Map<String, String> {
 
         Log.e("CLIENT_CACHE", ">>> ENTER getClientIdentifiers()")

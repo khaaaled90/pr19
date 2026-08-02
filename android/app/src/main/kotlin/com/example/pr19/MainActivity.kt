@@ -94,6 +94,20 @@ class MainActivity: FlutterActivity() {
                     }
                 }
 
+                "warmupCache" -> {
+                    try {
+                        val dbHelper = AppSqliteHelper.getInstance(applicationContext)
+                        // تشغيل التحميل في Thread خلفي كي لا يؤثر على سرعة فتح الواجهة
+                        Thread {
+                            AppCache.warmupCache(dbHelper)
+                        }.start()
+                        result.success(true)
+                    } catch (e: Exception) {
+                        Log.e("CLIENT_CACHE", "Error in warmupCache: ${e.message}")
+                        result.error("WARMUP_FAILED", e.localizedMessage, null)
+                    }
+                }
+
                 else -> {
                     result.notImplemented()
                 }

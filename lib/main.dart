@@ -6,6 +6,7 @@ import 'NotificationHelper.dart';
 import 'NotificationListener.dart';
 import 'SmsReceiver.dart';
 
+const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/native_control');
 void main() async {
   // 1. ضمان تهيئة المحرك لضمان ربط الـ Native MethodChannels
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,13 @@ void main() async {
   await _initializeServices();
 
   // 3. تشغيل التطبيق والواجهة الرئيسية
+  // 🚀 استدعاء إحماء الكاش تلقائياً عند فتح التطبيق
+  try {
+    await _nativeChannel.invokeMethod('warmupCache');
+    print("تم إرسال أمر إحماء الكاش بنجاح");
+  } catch (e) {
+    print("خطأ أثناء استدعاء الكاش: $e");
+  }
   runApp(const MyApp());
 }
 

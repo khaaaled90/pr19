@@ -12,6 +12,8 @@ import 'allowed_senders_screen.dart';
 import 'sales_screen.dart';
 import 'backup_screen.dart';
 import 'archive_screen.dart';
+import 'service/native_service_controller.dart';
+
 
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
 
@@ -123,7 +125,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
   bool isLoading = true;
+  bool _serviceEnabled = true;
+  bool _notificationEnabled = true;
+  
   int statReplies = 0;
   int totalAvailable = 0;
   int totalUsed = 0;
@@ -399,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                    )
+                    ),
                     /*Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),

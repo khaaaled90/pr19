@@ -15,7 +15,902 @@ import 'archive_screen.dart';
 
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
 
+
 class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const VouchersTabScreen(),
+    const ReportsTabScreen(),
+    const SettingsTabScreen(),
+    const ContactTabScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = theme.cardColor;
+
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
+              _buildNavItem(Icons.confirmation_number_rounded, 'الكروت', 1),
+              _buildNavItem(Icons.donut_small_rounded, 'التقارير', 2),
+              _buildNavItem(Icons.tune_rounded, 'الإعدادات', 3),
+              _buildNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final bool isActive = _currentIndex == index;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final activeColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A);
+    final inactiveColor = isDark ? Colors.white38 : Colors.black38;
+
+    return InkWell(
+      onTap: () => setState(() => _currentIndex = index),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: isActive
+            ? BoxDecoration(
+                color: activeColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(16),
+              )
+            : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: isActive ? activeColor : inactiveColor, size: 22),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                color: isActive ? activeColor : inactiveColor,
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool isLoading = true;
+  int statReplies = 0;
+  int totalAvailable = 0;
+  int totalUsed = 0;
+
+  List<_CategoryStatData> availableCategoriesData = [];
+  List<_CategoryStatData> usedCategoriesData = [];
+
+  final List<Color> categoryColors = [
+    const Color(0xFF0EA5E9),
+    const Color(0xFFF59E0B),
+    const Color(0xFF10B981),
+    const Color(0xFF8B5CF6),
+    const Color(0xFFEC4899),
+    const Color(0xFF6366F1),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadStats());
+  }
+
+  Future<void> _loadStats() async {
+    if (!mounted) return;
+    setState(() => isLoading = true);
+
+    try {
+      final db = DatabaseHelper.instance;
+      final dbInstance = await db.database;
+
+      final keywords = await db.getAllKeywords();
+      final numbers = await db.getAllNumbers();
+
+      final repliesCount = Sqflite.firstIntValue(
+              await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log')) ??
+          0;
+
+      _processChartData(keywords, numbers);
+
+      if (mounted) {
+        setState(() {
+          statReplies = repliesCount;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء جلب البيانات: $e");
+      if (mounted) _loadDummyData();
+    }
+  }
+
+  void _loadDummyData() {
+    setState(() {
+      statReplies = 42;
+      availableCategoriesData = [
+        _CategoryStatData('باقة 100', 50, categoryColors[0]),
+        _CategoryStatData('باقة 200', 30, categoryColors[1]),
+        _CategoryStatData('باقة 500', 15, categoryColors[2]),
+      ];
+      usedCategoriesData = [
+        _CategoryStatData('باقة 100', 120, categoryColors[0]),
+        _CategoryStatData('باقة 200', 85, categoryColors[1]),
+      ];
+
+      totalAvailable = availableCategoriesData.fold(0, (s, i) => s + i.count);
+      totalUsed = usedCategoriesData.fold(0, (s, i) => s + i.count);
+      isLoading = false;
+    });
+  }
+
+  void _processChartData(List<Map<String, dynamic>> keywords, List<Map<String, dynamic>> numbers) {
+    List<_CategoryStatData> availTemp = [];
+    List<_CategoryStatData> usedTemp = [];
+
+    int colorIndex = 0;
+    int availSum = 0;
+    int usedSum = 0;
+
+    for (var kw in keywords) {
+      int kwId = kw['id'];
+      String kwName = kw['keyword'] ?? 'فئة $kwId';
+      Color color = categoryColors[colorIndex % categoryColors.length];
+
+      int availCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'available').length;
+      int usedCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'used').length;
+
+      if (availCount > 0) availTemp.add(_CategoryStatData(kwName, availCount, color));
+      if (usedCount > 0) usedTemp.add(_CategoryStatData(kwName, usedCount, color));
+
+      availSum += availCount;
+      usedSum += usedCount;
+      colorIndex++;
+    }
+
+    if (mounted) {
+      setState(() {
+        availableCategoriesData = availTemp;
+        usedCategoriesData = usedTemp;
+        totalAvailable = availSum;
+        totalUsed = usedSum;
+      });
+    }
+  }
+
+  void _openManualSendDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ManualSendBottomSheet(
+        onSentSuccess: () => _loadStats(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgMain = theme.scaffoldBackgroundColor;
+    final cardBg = theme.cardColor;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subTextColor = isDark ? Colors.white60 : Colors.black54;
+
+    return Scaffold(
+      backgroundColor: bgMain,
+      appBar: AppBar(
+        centerTitle: false,
+        title: const Text(
+          'نظام البيع الآلي',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _loadStats,
+            tooltip: 'تحديث البيانات',
+          ),
+          IconButton(
+            icon: const Icon(Icons.power_settings_new_rounded),
+            onPressed: () => SystemNavigator.pop(),
+            tooltip: 'خروج',
+          ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadStats,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 🌟 بطاقة حالة النظام العصرية (طراز محفظة رقمية)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.bolt_rounded,
+                                color: Color(0xFF10B981), size: 28),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text('خادم الرسائل نشط',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            color: textColor)),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'الردود: $statReplies | إجمالي الكروت: ${totalAvailable + totalUsed}',
+                                  style: TextStyle(fontSize: 12, color: subTextColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 📊 الإحصائيات السريعة
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildQuickStatCard(
+                            'متاحة',
+                            '$totalAvailable',
+                            Icons.inventory_2_outlined,
+                            const Color(0xFF0EA5E9),
+                            cardBg,
+                            textColor,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildQuickStatCard(
+                            'مباعة',
+                            '$totalUsed',
+                            Icons.shopping_bag_outlined,
+                            const Color(0xFFF59E0B),
+                            cardBg,
+                            textColor,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildQuickStatCard(
+                            'مبيعات اليوم',
+                            '0',
+                            Icons.payments_outlined,
+                            const Color(0xFF10B981),
+                            cardBg,
+                            textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // 📈 الرسوم البيانية
+                    _buildPieChartSection('القسائم المتاحة', availableCategoriesData,
+                        totalAvailable, cardBg, textColor),
+                    const SizedBox(height: 16),
+                    _buildPieChartSection('القسائم المستخدمة', usedCategoriesData,
+                        totalUsed, cardBg, textColor),
+                    const SizedBox(height: 24),
+
+                    Text(
+                      'الخيارات والخدمات',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textColor),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // 🔲 شبكة خيارات الخدمة (Grid UI)
+                    GridView.count(
+                      crossAxisCount: 3,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 0.95,
+                      children: [
+                        _buildMenuItem('الباقات', Icons.vpn_key_rounded,
+                            const Color(0xFF8B5CF6), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const KeywordsScreen()));
+                          _loadStats();
+                        }),
+                        _buildMenuItem('تغذية الكروت', Icons.add_card_rounded,
+                            const Color(0xFFF59E0B), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const VouchersScreen()));
+                          _loadStats();
+                        }),
+                        _buildMenuItem('الأرشيف', Icons.mark_email_read_rounded,
+                            const Color(0xFF06B6D4), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const ArchiveScreen()));
+                          _loadStats();
+                        }),
+                        _buildMenuItem('المبيعات', Icons.insights_rounded,
+                            const Color(0xFF6366F1), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const SalesScreen()));
+                          _loadStats();
+                        }),
+                        _buildMenuItem('العمليات', Icons.pending_actions_rounded,
+                            const Color(0xFFEC4899), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const PendingLogsScreen()));
+                          _loadStats();
+                        }),
+                        _buildMenuItem('إرسال يدوي', Icons.send_rounded,
+                            const Color(0xFFEF4444), cardBg, textColor, _openManualSendDialog),
+                        _buildMenuItem('الحسابات', Icons.account_balance_rounded,
+                            const Color(0xFF10B981), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const AllowedSendersScreen()));
+                          _loadStats();
+                        }),
+                        _buildMenuItem('النسخ', Icons.cloud_sync_rounded,
+                            const Color(0xFF3B82F6), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const BackupScreen()));
+                          _loadStats();
+                        }),
+                        _buildMenuItem('الإعدادات', Icons.settings_rounded,
+                            const Color(0xFF64748B), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                          _loadStats();
+                        }),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildQuickStatCard(String title, String value, IconData icon, Color color, Color bg, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withOpacity(0.04)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            style: TextStyle(fontSize: 11, color: textColor.withOpacity(0.6)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPieChartSection(String title, List<_CategoryStatData> data,
+      int total, Color cardBg, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withOpacity(0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textColor)),
+              Text('المجموع: $total', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor.withOpacity(0.6))),
+            ],
+          ),
+          const Divider(height: 20),
+          data.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(child: Text('لا توجد بيانات متاحة', style: TextStyle(color: Colors.grey, fontSize: 12))),
+                )
+              : Row(
+                  children: [
+                    SizedBox(
+                      height: 90,
+                      width: 90,
+                      child: PieChart(
+                        PieChartData(
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 20,
+                          sections: data.map((item) {
+                            return PieChartSectionData(
+                              color: item.color,
+                              value: item.count.toDouble(),
+                              title: '',
+                              radius: 20,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        children: data.map((item) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2.0),
+                            child: Row(
+                              children: [
+                                Container(width: 8, height: 8, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle)),
+                                const SizedBox(width: 6),
+                                Expanded(child: Text(item.categoryName, style: TextStyle(fontSize: 11, color: textColor))),
+                                Text('${item.count}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(String title, IconData icon, Color color, Color cardBg, Color textColor, VoidCallback onTap) {
+    return Material(
+      color: cardBg,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.black.withOpacity(0.04)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryStatData {
+  final String categoryName;
+  final int count;
+  final Color color;
+
+  _CategoryStatData(this.categoryName, this.count, this.color);
+}
+
+class ManualSendBottomSheet extends StatefulWidget {
+  final VoidCallback onSentSuccess;
+  const ManualSendBottomSheet({Key? key, required this.onSentSuccess})
+      : super(key: key);
+
+  @override
+  State<ManualSendBottomSheet> createState() => _ManualSendBottomSheetState();
+}
+
+class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
+  List<Map<String, dynamic>> keywords = [];
+  int? selectedKeywordId;
+  Map<String, dynamic>? availableVoucher;
+  final TextEditingController _phoneController = TextEditingController();
+  bool isLoadingKeywords = true;
+  bool isSending = false;
+  bool noCardsAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKeywords();
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadKeywords() async {
+    try {
+      final list = await DatabaseHelper.instance.getAllKeywords();
+      if (mounted) {
+        setState(() {
+          keywords = list.where((k) => k['is_active'] == 1).toList();
+          isLoadingKeywords = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => isLoadingKeywords = false);
+    }
+  }
+
+  Future<void> _onKeywordSelected(int? id) async {
+    if (id == null) return;
+    setState(() {
+      selectedKeywordId = id;
+      availableVoucher = null;
+      noCardsAvailable = false;
+    });
+
+    try {
+      final db = await DatabaseHelper.instance.database;
+      List<Map<String, dynamic>> results = await db.query(
+        DatabaseHelper.tableNumbersPool,
+        where: 'keyword_id = ? AND status = ?',
+        whereArgs: [id, 'available'],
+        limit: 1,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (results.isNotEmpty) {
+            availableVoucher = results.first;
+          } else {
+            noCardsAvailable = true;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => noCardsAvailable = true);
+    }
+  }
+
+  Future<bool> _sendSmsNativeDirect(String phone, String message) async {
+    try {
+      final bool? result = await _smsChannel.invokeMethod('sendSms', {
+        'phone': phone,
+        'message': message,
+      });
+      return result ?? true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> _sendCard() async {
+    String phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      _showMessage('⚠️ الرجاء إدخال رقم الجوال', isError: true);
+      return;
+    }
+
+    if (availableVoucher == null || selectedKeywordId == null) {
+      _showMessage('⚠️ لا يوجد كرت متاح للإرسال', isError: true);
+      return;
+    }
+
+    setState(() => isSending = true);
+
+    try {
+      final dbHelper = DatabaseHelper.instance;
+      var usedVoucher =
+          await dbHelper.getAndUseVoucher(selectedKeywordId!, phone);
+
+      if (usedVoucher != null) {
+        String cardCode = usedVoucher['number_code'];
+        await dbHelper.saveOrUpdateCustomer(phone);
+        String footerMsg = await dbHelper.getSetting('footer_message', '');
+        String fullMessage =
+            cardCode + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+
+        var matchedKw =
+            keywords.firstWhere((k) => k['id'] == selectedKeywordId);
+        String kwName = matchedKw['keyword'] ?? 'يدوي';
+
+        bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);
+
+        await dbHelper.addToArchive(
+          sender: 'إرسال يدوي',
+          senderName: phone,
+          receivedMessage: fullMessage,
+          matchedKeyword: kwName,
+          sentNumber: cardCode,
+          status: sentStatus ? 'sent' : 'failed',
+        );
+
+        if (sentStatus) {
+          _showMessage('✅ تم إرسال الكرت إلى $phone بنجاح');
+          widget.onSentSuccess();
+          if (mounted) Navigator.pop(context);
+        } else {
+          _showMessage('⚠️ تم استهلاك الكرت ولكن فشل إرسال الـ SMS',
+              isError: true);
+        }
+      } else {
+        _showMessage('❌ فشل تعيين الكرت', isError: true);
+      }
+    } catch (e) {
+      _showMessage('⚠️ خطأ في معالجة العملية: $e', isError: true);
+    }
+
+    if (mounted) setState(() => isSending = false);
+  }
+
+  void _showMessage(String msg, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, textAlign: TextAlign.center),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bgSheet = theme.cardColor;
+
+    return Container(
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 16,
+        right: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      decoration: BoxDecoration(
+        color: bgSheet,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('إرسال كرت يدوي',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+            isLoadingKeywords
+                ? const Center(child: CircularProgressIndicator())
+                : DropdownButtonFormField<int>(
+                    value: selectedKeywordId,
+                    decoration: InputDecoration(
+                      labelText: 'اختر الباقة',
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    items: keywords.map((k) {
+                      return DropdownMenuItem<int>(
+                        value: k['id'] as int,
+                        child: Text('${k['keyword']}'),
+                      );
+                    }).toList(),
+                    onChanged: _onKeywordSelected,
+                  ),
+            if (noCardsAvailable) ...[
+              const SizedBox(height: 12),
+              const Text(
+                '⚠️ لا توجد كروت متاحة لهذه الباقة.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ],
+            if (availableVoucher != null) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                textDirection: TextDirection.ltr,
+                decoration: InputDecoration(
+                  labelText: 'رقم المستلم',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: isSending ? null : _sendCard,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.primaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: Text(
+                  isSending ? 'جاري الإرسال...' : 'تأكيد وإرسال',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class VouchersTabScreen extends StatelessWidget {
+  const VouchersTabScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('إدارة الكروت')),
+      body: const Center(child: Text('شاشة إدارة وتغذية الكروت')),
+    );
+  }
+}
+
+class ReportsTabScreen extends StatelessWidget {
+  const ReportsTabScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('التقارير والمبيعات')),
+      body: const Center(child: Text('شاشة التقارير والمبيعات')),
+    );
+  }
+}
+
+class SettingsTabScreen extends StatelessWidget {
+  const SettingsTabScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الإعدادات العامة')),
+      body: const Center(child: Text('شاشة الإعدادات')),
+    );
+  }
+}
+
+class ContactTabScreen extends StatelessWidget {
+  const ContactTabScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الدعم والتواصل')),
+      body: const Center(child: Text('شاشة التواصل والدعم الفني')),
+    );
+  }
+}
+
+
+/*class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
 
   @override
@@ -1202,7 +2097,7 @@ class ContactTabScreen extends StatelessWidget {
       ),
     );
   }
-}
+}*/
 /*import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import 'package:fl_chart/fl_chart.dart';

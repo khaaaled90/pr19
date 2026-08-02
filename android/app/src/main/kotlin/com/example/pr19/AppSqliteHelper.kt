@@ -294,6 +294,20 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         return isDuplicate
     }
 
+    fun getAvailableNumbersCountByKeywordId(keywordId: Int): Int {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT COUNT(*) FROM numbers WHERE keyword_id = ? AND status = 'available'",
+            arrayOf(keywordId.toString())
+        )
+        var count = 0
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0)
+        }
+        cursor.close()
+        return count
+    }
+
     fun updateCustomerBalance(
         phone: String,
         newBalance: String,

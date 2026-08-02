@@ -260,6 +260,9 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                       .getAndUseVoucherByKeyword(matchedKeyword, phone);
 
                   if (voucherCode == null || voucherCode.isEmpty) {
+                    if (keywordId != null) {
+                      await triggerManagerAlertNative(keywordId, matchedKeyword);
+                    }
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -271,6 +274,10 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                     return;
                   }
 
+                  //await triggerManagerAlertNative(keywordId, matchedKeyword);
+                  if (keywordId != null) {
+                    await triggerManagerAlertNative(keywordId, matchedKeyword);
+                  }
                   // 3. تحديث حالة العملية المعلقة
                   await DatabaseHelper.instance.resolvePendingLog(
                     logId: pendingLog['id'],

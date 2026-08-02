@@ -827,7 +827,10 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
   }
 
   Future<void> _sendCard() async {
+    
     String phone = _phoneController.text.trim();
+    // فور نجاح السحب أو عند الفشل لعدم توفر كروت:
+    await triggerManagerAlertNative(selectedKeywordId!, kwName);
     if (phone.isEmpty) {
       _showMessage('⚠️ الرجاء إدخال رقم الجوال', isError: true);
       return;
@@ -883,6 +886,17 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     }
 
     if (mounted) setState(() => isSending = false);
+  }
+
+  Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {
+    try {
+      await _nativeControlChannel.invokeMethod('native_control', {
+        'keywordId': keywordId,
+        'keywordText': keywordText,
+      });
+    } catch (e) {
+      debugPrint("⚠️ تعذر استدعاء دالة تنبيه المخزون في Kotlin: $e");
+    }
   }
 
   void _showMessage(String msg, {bool isError = false}) {

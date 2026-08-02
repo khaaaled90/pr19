@@ -19,6 +19,43 @@ object ProcessMessageProcessor {
         }
     }
 
+    // يمكنك وضعها داخل كلاس ProcessMessageProcessor أو كلاس أداة مستقل
+    fun checkAndSendManagerAlert(context: Context, dbHelper: AppSqliteHelper, keywordId: Int, keywordText: String) {
+        try {
+            // 1. قراءة الإعدادات من قاعدة البيانات/الكاش
+            val isAlertEnabled = AppCache.getSetting(dbHelper, "stock_alert_enabled", "true") == "true"
+            if (!isAlertEnabled) return
+
+            val ownerPhone = AppCache.getSetting(dbHelper, "owner_phone", "").trim()
+            if (ownerPhone.isBlank()) return
+
+            val thresholdStr = AppCache.getSetting(dbHelper, "warning_threshold", "5")
+            val warningThreshold = thresholdStr.toIntOrNull() ?: 5
+
+            // 2. حساب المتبقي من الكروت المتاحة لهذه الباقة
+            val availableCount = dbHelper.getAvailableNumbersCountByKeywordId(keywordId)
+
+            // 3. إذا وصل المتبقي للحد الأدنى أو نفذ تماماً
+            if (availableCount <= warningThreshold) {
+                val alertMessage = if (availableCount == 0) {
+                    "🚨 تنبيه نفاذ المخزون!\nنفذت أرقام الباقة ($keywordText) بالكامل!"
+                } else {
+                    "⚠️ تنبيه اقتراب نفاذ المخزون!\nالباقة ($keywordText) المتبقي منها: $availableCount فقط (الحد الأدنى: $warningThreshold)."
+                }
+
+                // إرسال SMS لرقم المدير
+                DualSimSmsSender.sendSms(
+                    context = context,
+                    phoneNumber = ownerPhone,
+                    message = alertMessage
+                )
+                Log.d("STOCK_ALERT", "✅ تم إرسال تنبيه المخزون للمدير: $ownerPhone")
+            }
+        } catch (e: Exception) {
+            Log.e("STOCK_ALERT", "خطأ أثناء فحص تنبيه المخزون: ${e.message}")
+        }
+    }
+
     private fun executeProcessing(context: Context, rawSender: String, originPackage: String, body: String, customerPhoneInput: String) {
         val dbHelper = AppSqliteHelper.getInstance(context)
 
@@ -172,8 +209,12 @@ object ProcessMessageProcessor {
                     walletNumber = extractedWallet
                 )
                 Log.e("UPDATE_CUSTOMER", "Calling updateCustomerBalance()")
+                // 🎯 إضافة التنبيه هنا (بعد نجاح عملية الإرسال الآلي)
+                checkAndSendManagerAlert(context, dbHelper, finalKeywordIdToUse, keywordText)
             }
         } else {
+            // 🎯 إضافة التنبيه هنا (عند محاولة السحب وعدم وجود كروت)
+            checkAndSendManagerAlert(context, dbHelper, finalKeywordIdToUse, keywordText)
             // ⭐ 9. حفظ العملية كمعلقة عند نفاذ المخزون بحالة voucher_approval_required
             Log.e("PROCESSOR1", "⚠️ لا تتوفر قسائم حالياً! تم حفظ العملية كمعلقة (voucher_approval_required)")
             

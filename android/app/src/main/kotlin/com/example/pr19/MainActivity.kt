@@ -94,6 +94,15 @@ class MainActivity: FlutterActivity() {
                     }
                 }
 
+                "checkAndSendManagerAlert" -> {
+                    val keywordId = call.argument<Int>("keywordId") ?: 0
+                    val keywordText = call.argument<String>("keywordText") ?: ""
+
+                    // 🎯 استدعاء دالتك الجاهزة مباشرة
+                    checkAndSendManagerAlert(context, dbHelper, keywordId, keywordText)
+                    result.success(true)
+                }
+
                 "warmupCache" -> {
                     try {
                         val dbHelper = AppSqliteHelper.getInstance(applicationContext)
@@ -111,6 +120,7 @@ class MainActivity: FlutterActivity() {
                 else -> {
                     result.notImplemented()
                 }
+                
             }
         }
 
@@ -134,6 +144,7 @@ class MainActivity: FlutterActivity() {
                 result.notImplemented()
             }
         }
+        
     }
 
     // دالة إرسال الـ SMS عبر نظام أندرويد (مُعدّلة ومُستقرّة لجميع الإصدارات بما فيها Android 12+)

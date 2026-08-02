@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'DatabaseHelper.dart';
@@ -8,36 +9,23 @@ import 'SmsReceiver.dart';
 
 const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/native_control');
 void main() async {
-  // 1. ضمان تهيئة المحرك لضمان ربط الـ Native MethodChannels
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 2. تهيئة الخدمات وقواعد البيانات أولاً
   await _initializeServices();
 
-  // 3. تشغيل التطبيق والواجهة الرئيسية
-  // 🚀 استدعاء إحماء الكاش تلقائياً عند فتح التطبيق
   try {
     await _nativeChannel.invokeMethod('warmupCache');
-    print("تم إرسال أمر إحماء الكاش بنجاح");
+    debugPrint("تم إرسال أمر إحماء الكاش بنجاح");
   } catch (e) {
-    print("خطأ أثناء استدعاء الكاش: $e");
+    debugPrint("خطأ أثناء استدعاء الكاش: $e");
   }
   runApp(const MyApp());
 }
 
-/// دالة تهيئة خدمات الخلفية وقاعدة البيانات
 Future<void> _initializeServices() async {
   try {
-    // أ. تهيئة قاعدة البيانات المحلية
     await DatabaseHelper.instance.database;
-
-    // ب. تهيئة نظام التنبيهات المحلية
     await NotificationHelper.init();
-
-    // ج. تهيئة مستمع الـ SMS عبر Native Kotlin
     SmsReceiver.initializeSmsListener();
-
-    // د. تشغيل مستمع إشعارات التطبيقات الأخرى
     await NotificationListenerManager.startListening();
   } catch (e) {
     debugPrint("⚠️ خطأ أثناء تهيئة خدمات الخلفية: $e");
@@ -53,30 +41,62 @@ class MyApp extends StatelessWidget {
       title: 'كرت شبكة',
       debugShowCheckedModeBanner: false,
 
-      // إعدادات اللغة العربية والاتجاه من اليمين لليسار (RTL)
+      // 🌍 إعدادات اللغة العربية
       locale: const Locale('ar', ''),
-      supportedLocales: const [
-        Locale('ar', ''),
-      ],
+      supportedLocales: const [Locale('ar', '')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
 
-      // الثيم العام للتطبيق
+      // 🎯 التكيف التلقائي مع نظام الهاتف (Dark / Light)
+      themeMode: ThemeMode.system,
+
+      // ☀️ الثيم الفاتح (Light Theme)
       theme: ThemeData(
         useMaterial3: true,
-        primarySwatch: Colors.blue,
-        fontFamily: 'Cairo',
+        brightness: Brightness.light,
+        primaryColor: const Color(0xFF0284C7),
         scaffoldBackgroundColor: const Color(0xFFF2F4F8),
+        cardColor: Colors.white,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0284C7),
+          brightness: Brightness.light,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0284C7),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        fontFamily: 'Cairo',
       ),
 
-      // الواجهة الرئيسية تصبح الآن التنقل العام MainNavigationScreen
+      // 🌙 الثيم الداكن (Dark Theme)
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        primaryColor: const Color(0xFF0D9488),
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        cardColor: const Color(0xFF1E293B),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0D9488),
+          brightness: Brightness.dark,
+          surface: const Color(0xFF1E293B),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1E293B),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        fontFamily: 'Cairo',
+      ),
+
       home: const MainNavigationScreen(),
     );
   }
 }
+
 /*import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'DatabaseHelper.dart';

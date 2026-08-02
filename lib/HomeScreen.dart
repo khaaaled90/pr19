@@ -74,7 +74,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final activeColor = const Color(0xFF0D9488);
+    final activeColor = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488);
     final inactiveColor = isDark ? Colors.white54 : Colors.black45;
 
     return InkWell(
@@ -267,8 +267,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: bgMain,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFF0284C7),
-        elevation: 0,
         centerTitle: true,
         title: Column(
           children: const [
@@ -311,8 +309,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFDC2626), Color(0xFF0D9488)],
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [const Color(0xFF991B1B), const Color(0xFF0F766E)]
+                              : [const Color(0xFFDC2626), const Color(0xFF0D9488)],
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                         ),
@@ -390,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: _buildQuickStatCard(
                             'كروت متاحة',
                             '$totalAvailable',
-                            isDark ? const Color(0xFF991B1B) : const Color(0xFFFEE2E2),
+                            isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2),
                             isDark ? Colors.white : const Color(0xFF991B1B),
                           ),
                         ),
@@ -399,10 +399,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
 
                     _buildPieChartSection('القسائم المتاحة حسب الفئة', '📥',
-                        availableCategoriesData, totalAvailable, Colors.teal, cardBg, textColor),
+                        availableCategoriesData, totalAvailable, isDark ? Colors.tealAccent : Colors.teal, cardBg, textColor),
                     const SizedBox(height: 16),
                     _buildPieChartSection('القسائم المستخدمة حسب الفئة', '📤',
-                        usedCategoriesData, totalUsed, Colors.deepOrange, cardBg, textColor),
+                        usedCategoriesData, totalUsed, isDark ? Colors.orangeAccent : Colors.deepOrange, cardBg, textColor),
                     const SizedBox(height: 20),
 
                     Text(
@@ -994,9 +994,9 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: Colors.red.shade900.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: Colors.red.shade300),
                 ),
                 child: const Text(
                   '⚠️ لا توجد كروت متاحة لهذه الباقة حالياً.',
@@ -1025,7 +1025,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF1E293B) : Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: Colors.grey.shade600),
                       ),
                       child: Text(
                         availableVoucher!['number_code'] ?? '---',
@@ -1183,7 +1183,7 @@ class ContactTabScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الدعم والتواصيل'),
+        title: const Text('الدعم والتواصل'),
       ),
       body: const Center(
         child: Column(

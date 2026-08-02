@@ -355,7 +355,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 8),
                           const Text(
                             'يستقبل التحويلات ويصرف الكروت تلقائياً',
-                            style: TextStyle(color: Colors.white90, fontSize: 13),
+                            //style: TextStyle(color: Colors.white90, fontSize: 13),
+                            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13),
                           ),
                           const SizedBox(height: 6),
                           Text(

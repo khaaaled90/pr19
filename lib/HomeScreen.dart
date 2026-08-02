@@ -1,4 +1,1209 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:sqflite/sqflite.dart';
+
+import 'DatabaseHelper.dart';
+import 'KeywordsScreen.dart';
+import 'PendingLogsScreen.dart';
+import 'SettingsScreen.dart';
+import 'vouchers_screen.dart';
+import 'allowed_senders_screen.dart';
+import 'sales_screen.dart';
+import 'backup_screen.dart';
+import 'archive_screen.dart';
+
+const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
+
+class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const VouchersTabScreen(),
+    const ReportsTabScreen(),
+    const SettingsTabScreen(),
+    const ContactTabScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cardBg = theme.cardColor;
+
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+            )
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(Icons.home, 'الرئيسية', 0),
+            _buildNavItem(Icons.style, 'الكروت', 1),
+            _buildNavItem(Icons.bar_chart, 'التقارير', 2),
+            _buildNavItem(Icons.settings, 'الإعدادات', 3),
+            _buildNavItem(Icons.support_agent, 'تواصل', 4),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final bool isActive = _currentIndex == index;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final activeColor = const Color(0xFF0D9488);
+    final inactiveColor = isDark ? Colors.white54 : Colors.black45;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: isActive
+                ? BoxDecoration(
+                    color: activeColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  )
+                : null,
+            child: Icon(icon, color: isActive ? activeColor : inactiveColor, size: 22),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              color: isActive ? activeColor : inactiveColor,
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool isLoading = true;
+  int statReplies = 0;
+  int totalAvailable = 0;
+  int totalUsed = 0;
+
+  List<_CategoryStatData> availableCategoriesData = [];
+  List<_CategoryStatData> usedCategoriesData = [];
+
+  final List<Color> categoryColors = [
+    const Color(0xFF2EC4B6),
+    const Color(0xFFFF9F1C),
+    const Color(0xFFE71D36),
+    const Color(0xFF3A86FF),
+    const Color(0xFF8338EC),
+    const Color(0xFF00F5D4),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadStats();
+    });
+  }
+
+  Future<void> _loadStats() async {
+    if (!mounted) return;
+    setState(() => isLoading = true);
+
+    try {
+      final db = DatabaseHelper.instance;
+      final dbInstance = await db.database;
+
+      final keywords = await db.getAllKeywords();
+      final numbers = await db.getAllNumbers();
+
+      final repliesCount = Sqflite.firstIntValue(
+              await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log')) ??
+          0;
+
+      _processChartData(keywords, numbers);
+
+      if (mounted) {
+        setState(() {
+          statReplies = repliesCount;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء جلب البيانات: $e");
+      if (mounted) {
+        _loadDummyData();
+      }
+    }
+  }
+
+  void _loadDummyData() {
+    setState(() {
+      statReplies = 42;
+      availableCategoriesData = [
+        _CategoryStatData('باقة 100', 50, categoryColors[0]),
+        _CategoryStatData('باقة 200', 30, categoryColors[1]),
+        _CategoryStatData('باقة 500', 15, categoryColors[2]),
+        _CategoryStatData('باقة 1000', 10, categoryColors[3]),
+      ];
+
+      usedCategoriesData = [
+        _CategoryStatData('باقة 100', 120, categoryColors[0]),
+        _CategoryStatData('باقة 200', 85, categoryColors[1]),
+        _CategoryStatData('باقة 500', 40, categoryColors[2]),
+        _CategoryStatData('باقة 1000', 20, categoryColors[3]),
+      ];
+
+      totalAvailable =
+          availableCategoriesData.fold(0, (sum, item) => sum + item.count);
+      totalUsed = usedCategoriesData.fold(0, (sum, item) => sum + item.count);
+      isLoading = false;
+    });
+  }
+
+  void _processChartData(
+      List<Map<String, dynamic>> keywords, List<Map<String, dynamic>> numbers) {
+    List<_CategoryStatData> availTemp = [];
+    List<_CategoryStatData> usedTemp = [];
+
+    int colorIndex = 0;
+    int availSum = 0;
+    int usedSum = 0;
+
+    for (var kw in keywords) {
+      int kwId = kw['id'];
+      String kwName = kw['keyword'] ?? 'فئة $kwId';
+      Color color = categoryColors[colorIndex % categoryColors.length];
+
+      int availCount = numbers
+          .where((n) => n['keyword_id'] == kwId && n['status'] == 'available')
+          .length;
+      int usedCount = numbers
+          .where((n) => n['keyword_id'] == kwId && n['status'] == 'used')
+          .length;
+
+      if (availCount > 0) {
+        availTemp.add(_CategoryStatData(kwName, availCount, color));
+      }
+      if (usedCount > 0) {
+        usedTemp.add(_CategoryStatData(kwName, usedCount, color));
+      }
+
+      availSum += availCount;
+      usedSum += usedCount;
+      colorIndex++;
+    }
+
+    if (mounted) {
+      setState(() {
+        availableCategoriesData = availTemp;
+        usedCategoriesData = usedTemp;
+        totalAvailable = availSum;
+        totalUsed = usedSum;
+      });
+    }
+  }
+
+  void _openManualSendDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ManualSendBottomSheet(
+        onSentSuccess: () => _loadStats(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgMain = theme.scaffoldBackgroundColor;
+    final cardBg = theme.cardColor;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+
+    return Scaffold(
+      backgroundColor: bgMain,
+      appBar: AppBar(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFF0284C7),
+        elevation: 0,
+        centerTitle: true,
+        title: Column(
+          children: const [
+            Text(
+              'MikroTik Yemen',
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            SizedBox(height: 2),
+            Text(
+              'AUTOCARD - البيع الآلي للكروت',
+              style: TextStyle(fontSize: 11, color: Colors.white70),
+            ),
+          ],
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+          onPressed: _loadStats,
+          tooltip: 'تحديث البيانات',
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.power_settings_new, color: Colors.white),
+            onPressed: () => SystemNavigator.pop(),
+            tooltip: 'خروج',
+          ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadStats,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFDC2626), Color(0xFF0D9488)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'النظام يعمل',
+                                style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF4ADE80),
+                                  shape: BoxShape.circle,
+                                ),
+                              )
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'يستقبل التحويلات ويصرف الكروت تلقائياً',
+                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'إجمالي الكروت: ${totalAvailable + totalUsed}  |  الردود: $statReplies',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildQuickStatCard(
+                            'مبيعات اليوم',
+                            '0',
+                            isDark ? const Color(0xFF0891B2) : const Color(0xFF0284C7),
+                            Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildQuickStatCard(
+                            'إجمالي اليوم',
+                            '0',
+                            isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                            textColor,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildQuickStatCard(
+                            'كروت متاحة',
+                            '$totalAvailable',
+                            isDark ? const Color(0xFF991B1B) : const Color(0xFFFEE2E2),
+                            isDark ? Colors.white : const Color(0xFF991B1B),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildPieChartSection('القسائم المتاحة حسب الفئة', '📥',
+                        availableCategoriesData, totalAvailable, Colors.teal, cardBg, textColor),
+                    const SizedBox(height: 16),
+                    _buildPieChartSection('القسائم المستخدمة حسب الفئة', '📤',
+                        usedCategoriesData, totalUsed, Colors.deepOrange, cardBg, textColor),
+                    const SizedBox(height: 20),
+
+                    Text(
+                      'أقسام النظام',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textColor),
+                    ),
+                    const SizedBox(height: 12),
+
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 1.35,
+                      children: [
+                        _buildMenuItem('إدارة الباقات', 'المخزون والاستيراد', '🔑',
+                            const Color(0xFF8B5CF6), cardBg, textColor, subTextColor, () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const KeywordsScreen()),
+                          );
+                          _loadStats();
+                        }),
+                        _buildMenuItem('تغذية الكروت', 'إضافة وتغذية الكروت', '📦',
+                            const Color(0xFFF59E0B), cardBg, textColor, subTextColor, () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const VouchersScreen()),
+                          );
+                          _loadStats();
+                        }),
+                        _buildMenuItem('أرشيف الرسائل', 'تتبع وقراءة الرسائل', '📋',
+                            const Color(0xFF06B6D4), cardBg, textColor, subTextColor, () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const ArchiveScreen()),
+                          );
+                          _loadStats();
+                        }),
+                        _buildMenuItem('تقرير المبيعات', 'المبيعات والعمليات', '📊',
+                            const Color(0xFF6366F1), cardBg, textColor, subTextColor, () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const SalesScreen()),
+                          );
+                          _loadStats();
+                        }),
+                        _buildMenuItem('العمليات المعلقة', 'متابعة الديون والعمليات', '🎁',
+                            const Color(0xFFEC4899), cardBg, textColor, subTextColor, () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const PendingLogsScreen()),
+                          );
+                          _loadStats();
+                        }),
+                        _buildMenuItem('الإعدادات العامة', 'الترخيص والنسخ والصحة', '⚙️',
+                            const Color(0xFF64748B), cardBg, textColor, subTextColor, () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const SettingsScreen()),
+                          );
+                          _loadStats();
+                        }),
+                        _buildMenuItem('حسابات البنوك', 'ربط معرف الحسابات', '👤',
+                            const Color(0xFFF97316), cardBg, textColor, subTextColor, () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const AllowedSendersScreen()),
+                          );
+                          _loadStats();
+                        }),
+                        _buildMenuItem(
+                          'إرسال يدوي',
+                          'سحب وإرسال كرت لعميل',
+                          '📤',
+                          const Color(0xFFEF4444),
+                          cardBg,
+                          textColor,
+                          subTextColor,
+                          _openManualSendDialog,
+                        ),
+                        _buildMenuItem('نسخ احتياطي', 'حفظ استعادة البيانات', '💾',
+                            const Color(0xFF10B981), cardBg, textColor, subTextColor, () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const BackupScreen()),
+                          );
+                          _loadStats();
+                        }),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: Text(
+                        '© 2026 كرت شبكة - جميع الحقوق محفوظة',
+                        style: TextStyle(color: subTextColor, fontSize: 11),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildQuickStatCard(String title, String value, Color bg, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(fontSize: 11, color: textColor.withOpacity(0.8)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPieChartSection(String title, String icon,
+      List<_CategoryStatData> data, int total, Color themeColor, Color cardBg, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(icon, style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: textColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                    color: themeColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20)),
+                child: Text(
+                  'المجموع: $total',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: themeColor),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          data.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Center(
+                      child: Text('لا توجد بيانات متوفرة حالياً',
+                          style: TextStyle(color: Colors.grey))),
+                )
+              : Row(
+                  children: [
+                    SizedBox(
+                      height: 110,
+                      width: 110,
+                      child: PieChart(
+                        PieChartData(
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 24,
+                          sections: data.map((item) {
+                            final double percentage =
+                                total > 0 ? (item.count / total) * 100 : 0;
+                            return PieChartSectionData(
+                              color: item.color,
+                              value: item.count.toDouble(),
+                              title: '${percentage.toStringAsFixed(0)}%',
+                              radius: 28,
+                              titleStyle: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: data.map((item) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 3.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                      color: item.color,
+                                      shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    item.categoryName,
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: textColor),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  '${item.count}',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor.withOpacity(0.7)),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(
+      String title,
+      String subtitle,
+      String icon,
+      Color iconBg,
+      Color cardBg,
+      Color textColor,
+      Color subTextColor,
+      VoidCallback onTap) {
+    return Material(
+      color: cardBg,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 0,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: Colors.black.withOpacity(0.04), width: 1),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: textColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 10, color: subTextColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(icon, style: const TextStyle(fontSize: 20)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryStatData {
+  final String categoryName;
+  final int count;
+  final Color color;
+
+  _CategoryStatData(this.categoryName, this.count, this.color);
+}
+
+class ManualSendBottomSheet extends StatefulWidget {
+  final VoidCallback onSentSuccess;
+  const ManualSendBottomSheet({Key? key, required this.onSentSuccess})
+      : super(key: key);
+
+  @override
+  State<ManualSendBottomSheet> createState() => _ManualSendBottomSheetState();
+}
+
+class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
+  List<Map<String, dynamic>> keywords = [];
+  int? selectedKeywordId;
+  Map<String, dynamic>? availableVoucher;
+  final TextEditingController _phoneController = TextEditingController();
+  bool isLoadingKeywords = true;
+  bool isSending = false;
+  bool noCardsAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKeywords();
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadKeywords() async {
+    try {
+      final list = await DatabaseHelper.instance.getAllKeywords();
+      if (mounted) {
+        setState(() {
+          keywords = list.where((k) => k['is_active'] == 1).toList();
+          isLoadingKeywords = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => isLoadingKeywords = false);
+    }
+  }
+
+  Future<void> _onKeywordSelected(int? id) async {
+    if (id == null) return;
+    setState(() {
+      selectedKeywordId = id;
+      availableVoucher = null;
+      noCardsAvailable = false;
+    });
+
+    try {
+      final db = await DatabaseHelper.instance.database;
+      List<Map<String, dynamic>> results = await db.query(
+        DatabaseHelper.tableNumbersPool,
+        where: 'keyword_id = ? AND status = ?',
+        whereArgs: [id, 'available'],
+        limit: 1,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (results.isNotEmpty) {
+            availableVoucher = results.first;
+          } else {
+            noCardsAvailable = true;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => noCardsAvailable = true);
+    }
+  }
+
+  Future<bool> _sendSmsNativeDirect(String phone, String message) async {
+    try {
+      final bool? result = await _smsChannel.invokeMethod('sendSms', {
+        'phone': phone,
+        'message': message,
+      });
+      return result ?? true;
+    } on PlatformException catch (e) {
+      debugPrint("فشل إرسال SMS عبر القناة: ${e.message}");
+      return false;
+    } catch (e) {
+      debugPrint("خطأ غير متوقع: $e");
+      return false;
+    }
+  }
+
+  Future<void> _sendCard() async {
+    String phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      _showMessage('⚠️ الرجاء إدخال رقم الجوال', isError: true);
+      return;
+    }
+
+    if (availableVoucher == null || selectedKeywordId == null) {
+      _showMessage('⚠️ لا يوجد كرت متاح للإرسال', isError: true);
+      return;
+    }
+
+    setState(() => isSending = true);
+
+    try {
+      final dbHelper = DatabaseHelper.instance;
+      var usedVoucher =
+          await dbHelper.getAndUseVoucher(selectedKeywordId!, phone);
+
+      if (usedVoucher != null) {
+        String cardCode = usedVoucher['number_code'];
+        await dbHelper.saveOrUpdateCustomer(phone);
+        String footerMsg = await dbHelper.getSetting('footer_message', '');
+        String fullMessage =
+            cardCode + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+
+        var matchedKw =
+            keywords.firstWhere((k) => k['id'] == selectedKeywordId);
+        String kwName = matchedKw['keyword'] ?? 'يدوي';
+
+        bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);
+
+        await dbHelper.addToArchive(
+          sender: 'إرسال يدوي',
+          senderName: phone,
+          receivedMessage: fullMessage,
+          matchedKeyword: kwName,
+          sentNumber: cardCode,
+          status: sentStatus ? 'sent' : 'failed',
+        );
+
+        if (sentStatus) {
+          _showMessage('✅ تم إرسال الكرت إلى $phone بنجاح');
+          widget.onSentSuccess();
+          if (mounted) Navigator.pop(context);
+        } else {
+          _showMessage('⚠️ تم استهلاك الكرت ولكن فشل إرسال الـ SMS',
+              isError: true);
+        }
+      } else {
+        _showMessage('❌ فشل تعيين الكرت', isError: true);
+      }
+    } catch (e) {
+      _showMessage('⚠️ خطأ في معالجة العملية: $e', isError: true);
+    }
+
+    if (mounted) setState(() => isSending = false);
+  }
+
+  void _showMessage(String msg, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, textAlign: TextAlign.center),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgSheet = theme.cardColor;
+
+    return Container(
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 16,
+        right: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      decoration: BoxDecoration(
+        color: bgSheet,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('📤 إرسال يدوي',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const Divider(),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('🔑 اختر الباقة:',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  isLoadingKeywords
+                      ? const Center(child: CircularProgressIndicator())
+                      : DropdownButtonFormField<int>(
+                          value: selectedKeywordId,
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30)),
+                          ),
+                          hint: const Text('-- اختر الباقة --'),
+                          items: keywords.map((k) {
+                            return DropdownMenuItem<int>(
+                              value: k['id'] as int,
+                              child: Text(
+                                  '${k['keyword']} ${k['description'] != null ? "- " + k['description'] : ""}'),
+                            );
+                          }).toList(),
+                          onChanged: _onKeywordSelected,
+                        ),
+                ],
+              ),
+            ),
+            if (noCardsAvailable) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: const Text(
+                  '⚠️ لا توجد كروت متاحة لهذه الباقة حالياً.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+            if (availableVoucher != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('💳 الكرت المتاح:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        availableVoucher!['number_code'] ?? '---',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('📞 رقم الجوال:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      textDirection: TextDirection.ltr,
+                      decoration: InputDecoration(
+                        hintText: 'أدخل رقم الجوال',
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: isSending ? null : _sendCard,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        icon: isSending
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Icon(Icons.send, color: Colors.white),
+                        label: Text(
+                          isSending ? 'جاري الإرسال...' : 'إرسال الكرت الآن',
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class VouchersTabScreen extends StatelessWidget {
+  const VouchersTabScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('إدارة الكروت'),
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.style, size: 64, color: Color(0xFF0D9488)),
+            SizedBox(height: 12),
+            Text(
+              'شاشة إدارة وتغذية الكروت',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 6),
+            Text('يمكنك تصميم أو ربط كود الكروت هنا', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ReportsTabScreen extends StatelessWidget {
+  const ReportsTabScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('التقارير والمبيعات'),
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bar_chart, size: 64, color: Color(0xFF6366F1)),
+            SizedBox(height: 12),
+            Text(
+              'شاشة التقارير والمبيعات',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 6),
+            Text('يمكنك استعراض الرسوم البيانية والعمليات هنا', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SettingsTabScreen extends StatelessWidget {
+  const SettingsTabScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الإعدادات العامة'),
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.settings, size: 64, color: Color(0xFF64748B)),
+            SizedBox(height: 12),
+            Text(
+              'شاشة الإعدادات والضبط',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 6),
+            Text('يمكنك ربط إعدادات التطبيق أو الترخيص هنا', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ContactTabScreen extends StatelessWidget {
+  const ContactTabScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الدعم والتواصيل'),
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.support_agent, size: 64, color: Color(0xFFF97316)),
+            SizedBox(height: 12),
+            Text(
+              'شاشة التواصل والدعم الفني',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 6),
+            Text('يمكنك إدراج أرقام التواصل أو الدعم هنا', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+/*import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:sqflite/sqflite.dart';
@@ -1220,7 +2425,9 @@ class ContactTabScreen extends StatelessWidget {
       ),
     );
   }
-}
+}*/
+
+
 /*import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // يتضمن MethodChannel
 import 'package:fl_chart/fl_chart.dart';

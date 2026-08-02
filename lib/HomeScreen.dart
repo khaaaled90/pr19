@@ -283,6 +283,125 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 🌟 بطاقة حالة النظام العصرية (طراز محفظة رقمية)
                     Container(
                       width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 1. رأس الكارت: حالة الخادم والإحصائيات
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withOpacity(0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.bolt_rounded,
+                                    color: Color(0xFF10B981), size: 24),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _serviceEnabled ? 'خادم الرسائل نشط' : 'خادم الرسائل متوقف',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            color: _serviceEnabled
+                                                ? const Color(0xFF10B981)
+                                                : Colors.redAccent,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'الردود: $statReplies | إجمالي الكروت: ${totalAvailable + totalUsed}',
+                                      style: TextStyle(fontSize: 12, color: subTextColor),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
+                            child: Divider(height: 1),
+                          ),
+
+                          // 2. التحكم السريع بالخدمات (الرد الآلي والإشعارات)
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            title: Text(
+                              '🤖 الرد الآلي',
+                              style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
+                            ),
+                            subtitle: Text(
+                              'تفعيل المعالجة التلقائية للرسائل الواردة',
+                              style: TextStyle(fontSize: 11, color: subTextColor),
+                            ),
+                            value: _serviceEnabled,
+                            activeColor: const Color(0xFF10B981),
+                            onChanged: (val) async {
+                              setState(() => _serviceEnabled = val);
+                              await DatabaseHelper.instance.updateSetting('service_enabled', val ? 'true' : 'false');
+                            },
+                          ),
+
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            title: Text(
+                              '🔔 قراءة الإشعارات',
+                              style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
+                            ),
+                            subtitle: Text(
+                              'استلام الإشعارات من البنوك والمحافظ',
+                              style: TextStyle(fontSize: 11, color: subTextColor),
+                            ),
+                            value: _notificationEnabled,
+                            activeColor: const Color(0xFF10B981),
+                            onChanged: (val) async {
+                              setState(() => _notificationEnabled = val);
+                              await DatabaseHelper.instance.updateSetting('enable_notification', val ? 'true' : 'false');
+                              if (val) {
+                                await NativeServiceController.requestNotificationListenerPermission();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    )
+                    /*Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: cardBg,
@@ -341,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                    ),
+                    ),*/
                     const SizedBox(height: 16),
 
                     // 📊 الإحصائيات السريعة

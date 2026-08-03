@@ -318,6 +318,97 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 🌟 بطاقة حالة النظام العصرية (طراز محفظة رقمية)
                     Row(
                       children: [
+                        // تفعيل / إيقاف الرد الآلي
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '🤖 الرد الآلي',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: textColor,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Transform.scale(
+                                  scale: 0.8,
+                                  child: Switch(
+                                    value: _serviceEnabled,
+                                    activeColor: const Color(0xFF10B981),
+                                    onChanged: (val) async {
+                                      setState(() => _serviceEnabled = val);
+                                      await DatabaseHelper.instance.updateSetting(
+                                          'service_enabled', val ? 'true' : 'false');
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // تفعيل / إيقاف قراءة الإشعارات
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '🔔 الإشعارات',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: textColor,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Transform.scale(
+                                  scale: 0.8,
+                                  child: Switch(
+                                    value: _notificationEnabled,
+                                    activeColor: const Color(0xFF10B981),
+                                    onChanged: (val) async {
+                                      setState(() => _notificationEnabled = val);
+                                      await DatabaseHelper.instance.updateSetting(
+                                          'enable_notification', val ? 'true' : 'false');
+                                      if (val) {
+                                        await NativeServiceController
+                                            .requestNotificationListenerPermission();
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    /*Row(
+                      children: [
                         Expanded(
                           child: _buildToggleControl(
                             title: '🤖 الرد الآلي',
@@ -352,7 +443,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ],
-                    ),
+                    ),*/
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,

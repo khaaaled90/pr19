@@ -722,6 +722,50 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildToggleControl({
+    required String title,
+    required bool value,
+    required bool isDark,
+    required Color cardBg,
+    required Color textColor,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: textColor,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Transform.scale(
+            scale: 0.8,
+            child: Switch(
+              value: value,
+              activeColor: const Color(0xFF10B981),
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildQuickStatCard(String title, String value, IconData icon, Color color, Color bg, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),

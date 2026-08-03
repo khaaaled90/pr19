@@ -164,6 +164,61 @@ class _HomeScreenState extends State<HomeScreen> {
       final keywords = await db.getAllKeywords();
       final numbers = await db.getAllNumbers();
 
+      // 1. حساب إجمالي الردود
+      final repliesCount = Sqflite.firstIntValue(
+            await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ?? 0;
+
+      // 2. 🎯 جلب قائمة الكلمات المفتاحية المباعة اليوم فقط
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
+
+      final List<Map<String, dynamic>> todayLogs = await dbInstance.rawQuery('''
+        SELECT matched_keyword 
+        FROM reply_log 
+        WHERE is_deleted = 0 
+          AND (status = 'sent' OR status = 'sent_reward')
+          AND (timestamp BETWEEN ? AND ?)
+      ''', [startOfDay, endOfDay]);
+
+      // 3. 🎯 حساب المجموع المالي بالريال
+      int todayTotalAmount = 0;
+
+      for (var log in todayLogs) {
+        String kw = log['matched_keyword'] ?? '';
+        
+        // استخراج كافة الأرقام من اسم الباقة (مثلاً: "باقة 200" يُستخرج منها 200)
+        String priceStr = kw.replaceAll(RegExp(r'[^0-9]'), '');
+        int price = int.tryParse(priceStr) ?? 0;
+
+        todayTotalAmount += price; // تجميع المبالغ المالية (200 + 200 + 200 + 100 + 250 + 250 = 1200)
+      }
+
+      // 4. معالجة البيانات وتمرير المبلغ الإجمالي
+      _processChartData(keywords, numbers, todayTotalAmount);
+
+      if (mounted) {
+        setState(() {
+          statReplies = repliesCount;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء جلب البيانات: $e");
+      if (mounted) _loadDummyData();
+    }
+  }
+  /*Future<void> _loadStats() async {
+    if (!mounted) return;
+    setState(() => isLoading = true);
+
+    try {
+      final db = DatabaseHelper.instance;
+      final dbInstance = await db.database;
+
+      final keywords = await db.getAllKeywords();
+      final numbers = await db.getAllNumbers();
+
       // 1. حساب إجمالي الردود في جدول reply_log
       final repliesCount = Sqflite.firstIntValue(
             await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ??
@@ -195,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint("خطأ أثناء جلب البيانات: $e");
       if (mounted) _loadDummyData();
     }
-  }
+  }*/
   /*Future<void> _loadStats() async {
     if (!mounted) return;
     setState(() => isLoading = true);
@@ -851,7 +906,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: _buildQuickStatCard(
                             'مبيعات اليوم',
-                            '$todaySalesCount',
+                            //'$todaySalesCount',
+                            '$todaySalesCount ر.ي', // 🎯 سيعرض الآن: 1200 ر.ي
                             Icons.payments_outlined,
                             const Color(0xFF10B981),
                             cardBg,

@@ -21,27 +21,49 @@ object ProcessMessageProcessor {
 
     // يمكنك وضعها داخل كلاس ProcessMessageProcessor أو كلاس أداة مستقل
     fun checkAndSendManagerAlert(context: Context, dbHelper: AppSqliteHelper, keywordId: Int, keywordText: String) {
+        Log.e("STOCK_ALERT", "================== START ==================")
         try {
+
             // 1. قراءة الإعدادات من قاعدة البيانات/الكاش
             val isAlertEnabled = dbHelper.getSetting("stock_alert_enabled", "true") == "true"
-            if (!isAlertEnabled) return
+            Log.e("STOCK_ALERT", "================== START ==================")
+            if (!isAlertEnabled){
+                Log.e("STOCK_ALERT", "الخدمة معطلة -> RETURN")
+                return
+            }    
 
             val ownerPhone = dbHelper.getSetting("owner_phone", "").trim()
-            if (ownerPhone.isBlank()) return
-
+            Log.e("STOCK_ALERT", "ownerPhone = '$ownerPhone'")
+            if (ownerPhone.isBlank()){
+                Log.e("STOCK_ALERT", "رقم المدير فارغ -> RETURN")   
+                return
+            }
             val thresholdStr = dbHelper.getSetting("warning_threshold", "5")
+            Log.e("STOCK_ALERT", "warning_threshold(raw) = $thresholdStr")
+            
             val warningThreshold = thresholdStr.toIntOrNull() ?: 5
+            Log.e("STOCK_ALERT", "warningThreshold = $warningThreshold")
+            Log.e("STOCK_ALERT", "Step 2 -> حساب الكروت المتبقية")
 
             // 2. حساب المتبقي من الكروت المتاحة لهذه الباقة
             val availableCount = dbHelper.getAvailableNumbersCountByKeywordId(keywordId)
-
+            Log.e(
+                "STOCK_ALERT",
+                "keywordId=$keywordId availableCount=$availableCount threshold=$warningThreshold"
+            )
             // 3. إذا وصل المتبقي للحد الأدنى أو نفذ تماماً
             if (availableCount <= warningThreshold) {
+                Log.e(
+                    "STOCK_ALERT",
+                    "الشرط تحقق ($availableCount <= $warningThreshold)"
+                )
                 val alertMessage = if (availableCount == 0) {
                     "🚨 تنبيه نفاذ المخزون!\nنفذت أرقام الباقة ($keywordText) بالكامل!"
                 } else {
                     "⚠️ تنبيه اقتراب نفاذ المخزون!\nالباقة ($keywordText) المتبقي منها: $availableCount فقط (الحد الأدنى: $warningThreshold)."
                 }
+                Log.e("STOCK_ALERT", "alertMessage = $alertMessage")
+                Log.e("STOCK_ALERT", "Step 4 -> إرسال الرسالة")
 
                 // إرسال SMS لرقم المدير
                 DualSimSmsSender.sendSms(

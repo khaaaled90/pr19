@@ -1070,7 +1070,20 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     if (mounted) setState(() => isSending = false);
   }
 
+  /// دالة تنبيه الـ Native لمتابعة مخزون الكروت
   Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {
+    try {
+      // 🎯 استخدام اسم الـ Method المطابق لـ Kotlin: 'checkAndSendManagerAlert'
+      await _nativeControlChannel.invokeMethod('checkAndSendManagerAlert', {
+        'keywordId': keywordId,
+        'keywordText': keywordText,
+      });
+      debugPrint("✅ تم طلب فحص تنبيه المخزون بنجاح");
+    } catch (e) {
+      debugPrint("⚠️ تعذر استدعاء دالة تنبيه المخزون في Kotlin: $e");
+    }
+  }
+  /*Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {
     try {
       await _nativeControlChannel.invokeMethod('native_control', {
         'keywordId': keywordId,
@@ -1079,7 +1092,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     } catch (e) {
       debugPrint("⚠️ تعذر استدعاء دالة تنبيه المخزون في Kotlin: $e");
     }
-  }
+  }*/
 
   void _showMessage(String msg, {bool isError = false}) {
     if (!mounted) return;

@@ -28,6 +28,19 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
   /// دالة تنبيه الـ Native لمتابعة مخزون الكروت
   Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {
     try {
+      // 🎯 استخدام اسم الـ Method المطابق لـ Kotlin: 'checkAndSendManagerAlert'
+      await _nativeControlChannel.invokeMethod('checkAndSendManagerAlert', {
+        'keywordId': keywordId,
+        'keywordText': keywordText,
+      });
+      debugPrint("✅ تم طلب فحص تنبيه المخزون بنجاح");
+    } catch (e) {
+      debugPrint("⚠️ تعذر استدعاء دالة تنبيه المخزون في Kotlin: $e");
+    }
+  }
+  /// دالة تنبيه الـ Native لمتابعة مخزون الكروت
+  /*Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {
+    try {
       await _nativeControlChannel.invokeMethod('native_control', {
         'keywordId': keywordId,
         'keywordText': keywordText,
@@ -35,7 +48,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
     } catch (e) {
       debugPrint("⚠️ تعذر استدعاء دالة تنبيه المخزون في Kotlin: $e");
     }
-  }
+  }*/
 
   /// دالة إرسال الـ SMS المباشرة عبر Kotlin
   Future<bool> _sendSmsNative(String phone, String message) async {

@@ -101,6 +101,28 @@ class MainActivity: FlutterActivity() {
 
                     try {
                         val dbHelper = AppSqliteHelper.getInstance(applicationContext)
+                        
+                        // 🎯 الاستدعاء المباشر عن طريق اسم الـ object
+                        ProcessMessageProcessor.checkAndSendManagerAlert(
+                            context = applicationContext,
+                            dbHelper = dbHelper,
+                            keywordId = keywordId,
+                            keywordText = keywordText
+                        )
+                        
+                        result.success(true)
+                    } catch (e: Exception) {
+                        Log.e("STOCK_ALERT", "خطأ في استدعاء تنبيه المخزون: ${e.message}", e)
+                        result.error("ALERT_FAILED", e.localizedMessage, null)
+                    }
+                }
+                // ✅ الكود المصحح والمستقر:
+                /*"checkAndSendManagerAlert" -> {
+                    val keywordId = call.argument<Int>("keywordId") ?: 0
+                    val keywordText = call.argument<String>("keywordText") ?: ""
+
+                    try {
+                        val dbHelper = AppSqliteHelper.getInstance(applicationContext)
                         checkAndSendManagerAlert(
                             context = applicationContext,
                             dbHelper = dbHelper,
@@ -112,7 +134,7 @@ class MainActivity: FlutterActivity() {
                         Log.e("STOCK_ALERT", "خطأ في استدعاء تنبيه المخزون: ${e.message}", e)
                         result.error("ALERT_FAILED", e.localizedMessage, null)
                     }
-                }
+                }*/
                     
                 /*"checkAndSendManagerAlert" -> {
                     val keywordId = call.argument<Int>("keywordId") ?: 0

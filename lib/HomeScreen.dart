@@ -286,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. مفاتيح التحكم السريعة (الرد الآلي والإشعارات متجاورين في الأعلى)
+                    // 🌟 بطاقة حالة النظام العصرية (طراز محفظة رقمية)
                     Row(
                       children: [
                         Expanded(
@@ -324,27 +324,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 12),
-
-                    // 2. ⚡ كارت خادم الوسائط والرسائل (مطابق للصور)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isDark
-                              ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
-                              : [const Color(0xFF38BDF8), const Color(0xFF0284C7)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: cardBg,
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
                         boxShadow: [
                           BoxShadow(
-                            color: (isDark ? Colors.black : const Color(0xFF0284C7))
-                                .withOpacity(0.25),
-                            blurRadius: 12,
+                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                            blurRadius: 10,
                             offset: const Offset(0, 4),
                           )
                         ],
@@ -354,14 +346,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: const Color(0xFF10B981).withOpacity(0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(
-                              _serviceEnabled ? Icons.dns_rounded : Icons.dns_outlined,
-                              color: Colors.white,
-                              size: 28,
-                            ),
+                            child: const Icon(Icons.bolt_rounded,
+                                color: Color(0xFF10B981), size: 28),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -370,34 +359,26 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    Text(
-                                      _serviceEnabled ? 'خادم الوسائط نشط' : 'خادم الوسائط متوقف',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
+                                    Text('خادم الرسائل نشط',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            color: textColor)),
+                                    const SizedBox(width: 6),
                                     Container(
-                                      width: 9,
-                                      height: 9,
-                                      decoration: BoxDecoration(
-                                        color: _serviceEnabled
-                                            ? const Color(0xFF10B981)
-                                            : Colors.redAccent,
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
                                         shape: BoxShape.circle,
                                       ),
                                     )
                                   ],
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 2),
                                 Text(
-                                  'الردود المسجلة: $statReplies | الكروت: ${totalAvailable + totalUsed}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white.withOpacity(0.85),
-                                  ),
+                                  'الردود: $statReplies | إجمالي الكروت: ${totalAvailable + totalUsed}',
+                                  style: TextStyle(fontSize: 12, color: subTextColor),
                                 ),
                               ],
                             ),
@@ -405,389 +386,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // 📊 3. مربعات الإحصائيات (متاحة، مباعة، مبيعات اليوم) بلون متناسق ومطابق للصور
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStyledStatCard(
-                            title: 'متاحة',
-                            value: '$totalAvailable',
-                            icon: Icons.inventory_2_rounded,
-                            bgColor: isDark
-                                ? const Color(0xFF0284C7).withOpacity(0.2)
-                                : const Color(0xFFE0F2FE),
-                            accentColor: const Color(0xFF0284C7),
-                            textColor: textColor,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildStyledStatCard(
-                            title: 'مباعة',
-                            value: '$totalUsed',
-                            icon: Icons.shopping_bag_rounded,
-                            bgColor: isDark
-                                ? const Color(0xFFD97706).withOpacity(0.2)
-                                : const Color(0xFFFEF3C7),
-                            accentColor: const Color(0xFFD97706),
-                            textColor: textColor,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildStyledStatCard(
-                            title: 'مبيعات اليوم',
-                            value: '0',
-                            icon: Icons.payments_rounded,
-                            bgColor: isDark
-                                ? const Color(0xFF059669).withOpacity(0.2)
-                                : const Color(0xFFD1FAE5),
-                            accentColor: const Color(0xFF059669),
-                            textColor: textColor,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // 📈 الرسوم البيانية
-                    _buildPieChartSection('القسائم المتاحة', availableCategoriesData,
-                        totalAvailable, cardBg, textColor),
-                    const SizedBox(height: 16),
-                    _buildPieChartSection('القسائم المستخدمة', usedCategoriesData,
-                        totalUsed, cardBg, textColor),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      'الخيارات والخدمات',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: textColor),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // 🔲 4. شبكة خيارات الشاشات بتنسيق وترتيب الصور
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.3,
-                      children: [
-                        _buildGridMenuItem(
-                          title: 'إرسال يدوي',
-                          subtitle: 'سحب وإرسال كرت لعميل',
-                          icon: Icons.send_rounded,
-                          iconBgColor: const Color(0xFFEF4444),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () => _openManualSendDialog(),
-                        ),
-                        _buildGridMenuItem(
-                          title: 'ربط الحسابات',
-                          subtitle: 'ربط معرف الحساب المخفي',
-                          icon: Icons.person_rounded,
-                          iconBgColor: const Color(0xFFF97316),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () {},
-                        ),
-                        _buildGridMenuItem(
-                          title: 'حسابات العملاء',
-                          subtitle: 'متابعة الديون الآجلة',
-                          icon: Icons.account_balance_wallet_rounded,
-                          iconBgColor: const Color(0xFF14B8A6),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () {},
-                        ),
-                        _buildGridMenuItem(
-                          title: 'استثناءات الأرقام',
-                          subtitle: 'تحديد الفئات المسموحة',
-                          icon: Icons.verified_user_rounded,
-                          iconBgColor: const Color(0xFFEA580C),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AllowedSendersScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildGridMenuItem(
-                          title: 'العروض والهدايا',
-                          subtitle: 'اشتر فئة واحصل على كرت',
-                          icon: Icons.card_giftcard_rounded,
-                          iconBgColor: const Color(0xFFEC4899),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () {},
-                        ),
-                        _buildGridMenuItem(
-                          title: 'بحث كرت',
-                          subtitle: 'تتبع كرت معين',
-                          icon: Icons.search_rounded,
-                          iconBgColor: const Color(0xFF0284C7),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () {},
-                        ),
-                        _buildGridMenuItem(
-                          title: 'التقارير والسجل',
-                          subtitle: 'المبيعات والعمليات',
-                          icon: Icons.bar_chart_rounded,
-                          iconBgColor: const Color(0xFF6366F1),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const PendingLogsScreen(),
-                              ),
-                            );
-                            _loadStats();
-                          },
-                        ),
-                        _buildGridMenuItem(
-                          title: 'المحافظ',
-                          subtitle: 'Jaib و Jawali',
-                          icon: Icons.account_balance_rounded,
-                          iconBgColor: const Color(0xFF0EA5E9),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () {},
-                        ),
-                        _buildGridMenuItem(
-                          title: 'الإعدادات',
-                          subtitle: 'الترخيص، الرسائل، النسخ',
-                          icon: Icons.settings_rounded,
-                          iconBgColor: const Color(0xFF64748B),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SettingsScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildGridMenuItem(
-                          title: 'المساعدة',
-                          subtitle: 'الشرح والتواصل والدعم',
-                          icon: Icons.help_outline_rounded,
-                          iconBgColor: const Color(0xFF0284C7),
-                          cardBg: cardBg,
-                          textColor: textColor,
-                          subTextColor: subTextColor,
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                
-                /*child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    
-                    // 🌟 بطاقة حالة النظام العصرية (طراز محفظة رقمية)
-                    /*Column(
-                      children: [
-                        // 1. مفاتيح التحكم السريعة (متجورة في سطر واحد أعلى الكارت)
-                        Row(
-                          children: [
-                            // تفعيل / إيقاف الرد الآلي
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: cardBg,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '🤖 الرد الآلي',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                          color: textColor,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Transform.scale(
-                                      scale: 0.8,
-                                      child: Switch(
-                                        value: _serviceEnabled,
-                                        activeColor: const Color(0xFF10B981),
-                                        onChanged: (val) async {
-                                          setState(() => _serviceEnabled = val);
-                                          await DatabaseHelper.instance.updateSetting(
-                                              'service_enabled', val ? 'true' : 'false');
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // تفعيل / إيقاف قراءة الإشعارات
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: cardBg,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '🔔 الإشعارات',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                          color: textColor,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Transform.scale(
-                                      scale: 0.8,
-                                      child: Switch(
-                                        value: _notificationEnabled,
-                                        activeColor: const Color(0xFF10B981),
-                                        onChanged: (val) async {
-                                          setState(() => _notificationEnabled = val);
-                                          await DatabaseHelper.instance.updateSetting(
-                                              'enable_notification', val ? 'true' : 'false');
-                                          if (val) {
-                                            await NativeServiceController
-                                                .requestNotificationListenerPermission();
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // 2. كارت حالة الخادم (التصميم السابق الأنيق كما هو بدون أي تغيير في هيكليته)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: cardBg,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              )
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: _serviceEnabled
-                                      ? const Color(0xFF10B981).withOpacity(0.15)
-                                      : Colors.redAccent.withOpacity(0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.bolt_rounded,
-                                  color: _serviceEnabled
-                                      ? const Color(0xFF10B981)
-                                      : Colors.redAccent,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          _serviceEnabled
-                                              ? 'خادم الرسائل نشط'
-                                              : 'خادم الرسائل متوقف',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: _serviceEnabled
-                                                ? const Color(0xFF10B981)
-                                                : Colors.redAccent,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'الردود: $statReplies | إجمالي الكروت: ${totalAvailable + totalUsed}',
-                                      style: TextStyle(fontSize: 12, color: subTextColor),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),*/
                     /*Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -1028,12 +626,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // 🔲 شبكة خيارات الخدمة (Grid UI)
                     GridView.count(
-                      crossAxisCount: 3,
+                      crossAxisCount: 2,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.95,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 1.35,
                       children: [
                         _buildMenuItem('الباقات', Icons.vpn_key_rounded,
                             const Color(0xFF8B5CF6), cardBg, textColor, () async {
@@ -1089,7 +687,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 24),
                   ],
-                ),*/
+                ),
               ),
             ),
     );

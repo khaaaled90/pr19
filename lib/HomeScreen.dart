@@ -258,6 +258,35 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: bgMain,
       appBar: AppBar(
+        centerTitle: true,
+        title: Column(
+          children: const [
+            Text(
+              'CardPay',
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            SizedBox(height: 2),
+            Text(
+              'Auto CardPay - البيع الآلي للكروت',
+              style: TextStyle(fontSize: 11, color: Colors.white70),
+            ),
+          ],
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+          onPressed: _loadStats,
+          tooltip: 'تحديث البيانات',
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.power_settings_new, color: Colors.white),
+            onPressed: () => SystemNavigator.pop(),
+            tooltip: 'خروج',
+          ),
+        ],
+      ),
+      /*appBar: AppBar(
         centerTitle: false,
         title: const Text(
           'نظام البيع الآلي',
@@ -275,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'خروج',
           ),
         ],
-      ),
+      ),*/
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

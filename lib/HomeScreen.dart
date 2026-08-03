@@ -16,7 +16,7 @@ import 'service/native_service_controller.dart';
 
 
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
-
+const MethodChannel _nativeControlChannel = MethodChannel('com.example.pr19/native_control');
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
@@ -287,7 +287,183 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 🌟 بطاقة حالة النظام العصرية (طراز محفظة رقمية)
-                    Container(
+                    Column(
+                      children: [
+                        // 1. مفاتيح التحكم السريعة (متجورة في سطر واحد أعلى الكارت)
+                        Row(
+                          children: [
+                            // تفعيل / إيقاف الرد الآلي
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '🤖 الرد الآلي',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                          color: textColor,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Transform.scale(
+                                      scale: 0.8,
+                                      child: Switch(
+                                        value: _serviceEnabled,
+                                        activeColor: const Color(0xFF10B981),
+                                        onChanged: (val) async {
+                                          setState(() => _serviceEnabled = val);
+                                          await DatabaseHelper.instance.updateSetting(
+                                              'service_enabled', val ? 'true' : 'false');
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // تفعيل / إيقاف قراءة الإشعارات
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '🔔 الإشعارات',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                          color: textColor,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Transform.scale(
+                                      scale: 0.8,
+                                      child: Switch(
+                                        value: _notificationEnabled,
+                                        activeColor: const Color(0xFF10B981),
+                                        onChanged: (val) async {
+                                          setState(() => _notificationEnabled = val);
+                                          await DatabaseHelper.instance.updateSetting(
+                                              'enable_notification', val ? 'true' : 'false');
+                                          if (val) {
+                                            await NativeServiceController
+                                                .requestNotificationListenerPermission();
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // 2. كارت حالة الخادم (التصميم السابق الأنيق كما هو بدون أي تغيير في هيكليته)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: _serviceEnabled
+                                      ? const Color(0xFF10B981).withOpacity(0.15)
+                                      : Colors.redAccent.withOpacity(0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.bolt_rounded,
+                                  color: _serviceEnabled
+                                      ? const Color(0xFF10B981)
+                                      : Colors.redAccent,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _serviceEnabled
+                                              ? 'خادم الرسائل نشط'
+                                              : 'خادم الرسائل متوقف',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            color: _serviceEnabled
+                                                ? const Color(0xFF10B981)
+                                                : Colors.redAccent,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'الردود: $statReplies | إجمالي الكروت: ${totalAvailable + totalUsed}',
+                                      style: TextStyle(fontSize: 12, color: subTextColor),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    /*Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -405,7 +581,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                    ),
+                    ),*/
                     /*Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -829,8 +1005,6 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
   Future<void> _sendCard() async {
     
     String phone = _phoneController.text.trim();
-    // فور نجاح السحب أو عند الفشل لعدم توفر كروت:
-    await triggerManagerAlertNative(selectedKeywordId!, kwName);
     if (phone.isEmpty) {
       _showMessage('⚠️ الرجاء إدخال رقم الجوال', isError: true);
       return;
@@ -841,6 +1015,14 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
       return;
     }
 
+    // فور نجاح السحب أو عند الفشل لعدم توفر كروت:
+    var matchedKw = keywords.firstWhere(
+      (k) => k['id'] == selectedKeywordId,
+      orElse: () => <String, dynamic>{},
+    );
+    String kwName = matchedKw['keyword'] ?? 'يدوي';
+    await triggerManagerAlertNative(selectedKeywordId!, kwName);
+    
     setState(() => isSending = true);
 
     try {

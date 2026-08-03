@@ -5,6 +5,7 @@ import 'DatabaseHelper.dart';
 // قنوات الاتصال المباشرة مع Kotlin
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
 const MethodChannel _nativeControlChannel = MethodChannel('com.example.pr19/native_control');
+//const MethodChannel _nativeControlChannel = MethodChannel('com.example.pr19/native_control');
 
 class PendingLogsScreen extends StatefulWidget {
   const PendingLogsScreen({super.key});
@@ -22,6 +23,18 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
   void initState() {
     super.initState();
     _loadPendingLogs();
+  }
+
+  /// دالة تنبيه الـ Native لمتابعة مخزون الكروت
+  Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {
+    try {
+      await _nativeControlChannel.invokeMethod('native_control', {
+        'keywordId': keywordId,
+        'keywordText': keywordText,
+      });
+    } catch (e) {
+      debugPrint("⚠️ تعذر استدعاء دالة تنبيه المخزون في Kotlin: $e");
+    }
   }
 
   /// دالة إرسال الـ SMS المباشرة عبر Kotlin
@@ -241,6 +254,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 String phone = phoneController.text.trim();
                 String name = nameController.text.trim();
                 String matchedKeyword = pendingLog['matched_keyword'] ?? '';
+                int? keywordId = pendingLog['keyword_id'] as int?;
 
                 if (phone.length >= 9) {
                   // 1. تحديث الكاش وقاعدة البيانات عبر Kotlin

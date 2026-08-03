@@ -297,7 +297,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     fun getAvailableNumbersCountByKeywordId(keywordId: Int): Int {
         val db = readableDatabase
         val cursor = db.rawQuery(
-            "SELECT COUNT(*) FROM numbers WHERE keyword_id = ? AND status = 'available'",
+            "SELECT COUNT(*) FROM numbers_pool WHERE keyword_id = ? AND status = 'available'",
             arrayOf(keywordId.toString())
         )
         var count = 0

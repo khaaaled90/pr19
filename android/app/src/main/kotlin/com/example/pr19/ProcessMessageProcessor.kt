@@ -23,13 +23,13 @@ object ProcessMessageProcessor {
     fun checkAndSendManagerAlert(context: Context, dbHelper: AppSqliteHelper, keywordId: Int, keywordText: String) {
         try {
             // 1. قراءة الإعدادات من قاعدة البيانات/الكاش
-            val isAlertEnabled = AppCache.getSetting(dbHelper, "stock_alert_enabled", "true") == "true"
+            val isAlertEnabled = dbHelper.getSetting("stock_alert_enabled", "true") == "true"
             if (!isAlertEnabled) return
 
-            val ownerPhone = AppCache.getSetting(dbHelper, "owner_phone", "").trim()
+            val ownerPhone = dbHelper.getSetting("owner_phone", "").trim()
             if (ownerPhone.isBlank()) return
 
-            val thresholdStr = AppCache.getSetting(dbHelper, "warning_threshold", "5")
+            val thresholdStr = dbHelper.getSetting("warning_threshold", "5")
             val warningThreshold = thresholdStr.toIntOrNull() ?: 5
 
             // 2. حساب المتبقي من الكروت المتاحة لهذه الباقة

@@ -555,7 +555,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                    )
+                    ),
                     /*Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),

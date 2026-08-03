@@ -447,61 +447,59 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: cardBg,
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [const Color(0xFF991B1B), const Color(0xFF0F766E)]
+                              : [const Color(0xFFDC2626), const Color(0xFF0D9488)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                            color: Colors.black.withOpacity(0.15),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           )
                         ],
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withOpacity(0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.bolt_rounded,
-                                color: Color(0xFF10B981), size: 28),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'النظام يعمل',
+                                style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF4ADE80),
+                                  shape: BoxShape.circle,
+                                ),
+                              )
+                            ],
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text('خادم الرسائل نشط',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                            color: textColor)),
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF10B981),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'الردود: $statReplies | إجمالي الكروت: ${totalAvailable + totalUsed}',
-                                  style: TextStyle(fontSize: 12, color: subTextColor),
-                                ),
-                              ],
-                            ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'يستقبل التحويلات ويصرف الكروت تلقائياً',
+                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'إجمالي الكروت: ${totalAvailable + totalUsed}  |  الردود: $statReplies',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12),
                           ),
                         ],
                       ),

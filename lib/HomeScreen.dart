@@ -116,6 +116,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 }
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -124,10 +125,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
   bool isLoading = true;
   bool _serviceEnabled = true;
   bool _notificationEnabled = true;
-
+  
   int statReplies = 0;
   int totalAvailable = 0;
   int totalUsed = 0;
@@ -198,8 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _processChartData(
-      List<Map<String, dynamic>> keywords, List<Map<String, dynamic>> numbers) {
+  void _processChartData(List<Map<String, dynamic>> keywords, List<Map<String, dynamic>> numbers) {
     List<_CategoryStatData> availTemp = [];
     List<_CategoryStatData> usedTemp = [];
 
@@ -212,10 +213,8 @@ class _HomeScreenState extends State<HomeScreen> {
       String kwName = kw['keyword'] ?? 'فئة $kwId';
       Color color = categoryColors[colorIndex % categoryColors.length];
 
-      int availCount =
-          numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'available').length;
-      int usedCount =
-          numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'used').length;
+      int availCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'available').length;
+      int usedCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'used').length;
 
       if (availCount > 0) availTemp.add(_CategoryStatData(kwName, availCount, color));
       if (usedCount > 0) usedTemp.add(_CategoryStatData(kwName, usedCount, color));
@@ -235,13 +234,24 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _openManualSendDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ManualSendBottomSheet(
+        onSentSuccess: () => _loadStats(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     final bgMain = theme.scaffoldBackgroundColor;
-    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final cardBg = theme.cardColor;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subTextColor = isDark ? Colors.white60 : Colors.black54;
 
@@ -596,423 +606,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-              ),
-            ),
-    );
-  }
-
-  // ودجت زر التبديل المزدوج لـ الرد الآلي / الإشعارات
-  Widget _buildToggleControl({
-    required String title,
-    required bool value,
-    required bool isDark,
-    required Color cardBg,
-    required Color textColor,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: textColor,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Transform.scale(
-            scale: 0.8,
-            child: Switch(
-              value: value,
-              activeColor: const Color(0xFF10B981),
-              onChanged: onChanged,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ودجت بطاقات الإحصائيات الملونة المتناسقة
-  Widget _buildStyledStatCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color bgColor,
-    required Color accentColor,
-    required Color textColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accentColor.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: accentColor, size: 22),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: textColor.withOpacity(0.7),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ودجت عناصر شبكة القائمة (تطابق تصميم بطاقات الشاشات في الصور)
-  Widget _buildGridMenuItem({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color iconBgColor,
-    required Color cardBg,
-    required Color textColor,
-    required Color subTextColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.05),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            )
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: iconBgColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 20),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    size: 12,
-                    color: subTextColor,
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: textColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: subTextColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ودجت رسم المخطط الدائري
-  Widget _buildPieChartSection(String title, List<_CategoryStatData> data,
-      int total, Color cardBg, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: textColor)),
-              Text('المجموع: $total',
-                  style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.6))),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 120,
-            child: data.isEmpty
-                ? Center(
-                    child: Text('لا توجد بيانات',
-                        style: TextStyle(color: textColor.withOpacity(0.5))),
-                  )
-                : PieChart(
-                    PieChartData(
-                      sectionsSpace: 2,
-                      centerSpaceRadius: 30,
-                      sections: data
-                          .map(
-                            (e) => PieChartSectionData(
-                              color: e.color,
-                              value: e.count.toDouble(),
-                              title: '${e.count}',
-                              radius: 25,
-                              titleStyle: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-class _CategoryStatData {
-  final String name;
-  final int count;
-  final Color color;
-  _CategoryStatData(this.name, this.count, this.color);
-}
-/*class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-
-  bool isLoading = true;
-  bool _serviceEnabled = true;
-  bool _notificationEnabled = true;
-  
-  int statReplies = 0;
-  int totalAvailable = 0;
-  int totalUsed = 0;
-
-  List<_CategoryStatData> availableCategoriesData = [];
-  List<_CategoryStatData> usedCategoriesData = [];
-
-  final List<Color> categoryColors = [
-    const Color(0xFF0EA5E9),
-    const Color(0xFFF59E0B),
-    const Color(0xFF10B981),
-    const Color(0xFF8B5CF6),
-    const Color(0xFFEC4899),
-    const Color(0xFF6366F1),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadStats());
-  }
-
-  Future<void> _loadStats() async {
-    if (!mounted) return;
-    setState(() => isLoading = true);
-
-    try {
-      final db = DatabaseHelper.instance;
-      final dbInstance = await db.database;
-
-      final keywords = await db.getAllKeywords();
-      final numbers = await db.getAllNumbers();
-
-      final repliesCount = Sqflite.firstIntValue(
-              await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log')) ??
-          0;
-
-      _processChartData(keywords, numbers);
-
-      if (mounted) {
-        setState(() {
-          statReplies = repliesCount;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("خطأ أثناء جلب البيانات: $e");
-      if (mounted) _loadDummyData();
-    }
-  }
-
-  void _loadDummyData() {
-    setState(() {
-      statReplies = 42;
-      availableCategoriesData = [
-        _CategoryStatData('باقة 100', 50, categoryColors[0]),
-        _CategoryStatData('باقة 200', 30, categoryColors[1]),
-        _CategoryStatData('باقة 500', 15, categoryColors[2]),
-      ];
-      usedCategoriesData = [
-        _CategoryStatData('باقة 100', 120, categoryColors[0]),
-        _CategoryStatData('باقة 200', 85, categoryColors[1]),
-      ];
-
-      totalAvailable = availableCategoriesData.fold(0, (s, i) => s + i.count);
-      totalUsed = usedCategoriesData.fold(0, (s, i) => s + i.count);
-      isLoading = false;
-    });
-  }
-
-  void _processChartData(List<Map<String, dynamic>> keywords, List<Map<String, dynamic>> numbers) {
-    List<_CategoryStatData> availTemp = [];
-    List<_CategoryStatData> usedTemp = [];
-
-    int colorIndex = 0;
-    int availSum = 0;
-    int usedSum = 0;
-
-    for (var kw in keywords) {
-      int kwId = kw['id'];
-      String kwName = kw['keyword'] ?? 'فئة $kwId';
-      Color color = categoryColors[colorIndex % categoryColors.length];
-
-      int availCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'available').length;
-      int usedCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'used').length;
-
-      if (availCount > 0) availTemp.add(_CategoryStatData(kwName, availCount, color));
-      if (usedCount > 0) usedTemp.add(_CategoryStatData(kwName, usedCount, color));
-
-      availSum += availCount;
-      usedSum += usedCount;
-      colorIndex++;
-    }
-
-    if (mounted) {
-      setState(() {
-        availableCategoriesData = availTemp;
-        usedCategoriesData = usedTemp;
-        totalAvailable = availSum;
-        totalUsed = usedSum;
-      });
-    }
-  }
-
-  void _openManualSendDialog() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ManualSendBottomSheet(
-        onSentSuccess: () => _loadStats(),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final bgMain = theme.scaffoldBackgroundColor;
-    final cardBg = theme.cardColor;
-    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final subTextColor = isDark ? Colors.white60 : Colors.black54;
-
-    return Scaffold(
-      backgroundColor: bgMain,
-      appBar: AppBar(
-        centerTitle: false,
-        title: const Text(
-          'نظام البيع الآلي',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _loadStats,
-            tooltip: 'تحديث البيانات',
-          ),
-          IconButton(
-            icon: const Icon(Icons.power_settings_new_rounded),
-            onPressed: () => SystemNavigator.pop(),
-            tooltip: 'خروج',
-          ),
-        ],
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadStats,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
+                
+                /*child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    
                     // 🌟 بطاقة حالة النظام العصرية (طراز محفظة رقمية)
-                    Column(
+                    /*Column(
                       children: [
                         // 1. مفاتيح التحكم السريعة (متجورة في سطر واحد أعلى الكارت)
                         Row(
@@ -1187,7 +787,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ],
-                    ),
+                    ),*/
                     /*Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -1489,7 +1089,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 24),
                   ],
-                ),
+                ),*/
               ),
             ),
     );
@@ -1630,15 +1230,15 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}*/
+}
 
-/*class _CategoryStatData {
+class _CategoryStatData {
   final String categoryName;
   final int count;
   final Color color;
 
   _CategoryStatData(this.categoryName, this.count, this.color);
-}*/
+}
 
 class ManualSendBottomSheet extends StatefulWidget {
   final VoidCallback onSentSuccess;

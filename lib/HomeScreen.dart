@@ -450,9 +450,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: isDark
-                              ? [const Color(0xFF991B1B), const Color(0xFF0F766E)]
-                              : [const Color(0xFFDC2626), const Color(0xFF0D9488)],
+                          colors: _serviceEnabled
+                              ? (isDark
+                                  ? [
+                                      const Color(0xFF991B1B),
+                                      const Color(0xFF0F766E),
+                                    ]
+                                  : [
+                                      const Color(0xFFDC2626),
+                                      const Color(0xFF0D9488),
+                                    ])
+                              : (isDark
+                                  ? [
+                                      const Color(0xFF374151),
+                                      const Color(0xFF111827),
+                                    ]
+                                  : [
+                                      const Color(0xFF9CA3AF),
+                                      const Color(0xFF6B7280),
+                                    ]),
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                         ),
@@ -462,48 +478,84 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.black.withOpacity(0.15),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
-                          )
+                          ),
                         ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'النظام يعمل',
-                                style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white),
-                              ),
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF4ADE80),
-                                  shape: BoxShape.circle,
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.bolt_rounded,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+
+                          const SizedBox(width: 16),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _serviceEnabled
+                                            ? 'خادم الرسائل نشط'
+                                            : 'خادم الرسائل متوقف',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: _serviceEnabled
+                                            ? const Color(0xFF4ADE80)
+                                            : Colors.redAccent,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              )
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'يستقبل التحويلات ويصرف الكروت تلقائياً',
-                            style: TextStyle(color: Colors.white70, fontSize: 13),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'إجمالي الكروت: ${totalAvailable + totalUsed}  |  الردود: $statReplies',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12),
+
+                                const SizedBox(height: 8),
+
+                                const Text(
+                                  'يستقبل التحويلات ويصرف الكروت تلقائياً',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 8),
+
+                                Text(
+                                  'الردود: $statReplies | إجمالي الكروت: ${totalAvailable + totalUsed}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
+                    )
                     /*Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),

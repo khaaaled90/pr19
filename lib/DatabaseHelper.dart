@@ -719,7 +719,29 @@ class DatabaseHelper {
 
     return null;
   }
-  
+  Future<List<Map<String, dynamic>>> getTodaySalesGroupedByKeyword() async {
+    final db = await instance.database;
+
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
+
+    final List<Map<String, dynamic>> result = await db.rawQuery('''
+      SELECT 
+        matched_keyword, 
+        COUNT(*) as total_count
+      FROM $tableReplyLog 
+      WHERE is_deleted = 0 
+        AND (status = 'sent' OR status = 'sent_reward')
+        AND timestamp BETWEEN ? AND ?
+        AND matched_keyword IS NOT NULL 
+        AND matched_keyword != ''
+      GROUP BY matched_keyword
+      ORDER BY total_count DESC
+    ''', [startOfDay, endOfDay]);
+
+    return result;
+  }
   Future<bool> resolvePendingLog({
     required int logId,
     required String customerPhone,

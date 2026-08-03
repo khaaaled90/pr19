@@ -133,6 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int statReplies = 0;
   int totalAvailable = 0;
   int totalUsed = 0;
+  int todaySalesCount = 0; // 👈 قم بإنشاء هذا المتغير هنا
 
   List<_CategoryStatData> availableCategoriesData = [];
   List<_CategoryStatData> usedCategoriesData = [];
@@ -163,6 +164,49 @@ class _HomeScreenState extends State<HomeScreen> {
       final keywords = await db.getAllKeywords();
       final numbers = await db.getAllNumbers();
 
+      // 1. حساب إجمالي الردود في جدول reply_log
+      final repliesCount = Sqflite.firstIntValue(
+            await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ??
+        0;
+
+      // 2. 🎯 حساب مبيعات اليوم من جدول reply_log عبر الـ timestamp
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
+
+      final todaySales = Sqflite.firstIntValue(
+            await dbInstance.rawQuery('''
+              SELECT COUNT(*) FROM reply_log 
+              WHERE is_deleted = 0 
+                AND (status = 'sent' OR status = 'sent_reward')
+                AND (timestamp BETWEEN ? AND ?)
+            ''', [startOfDay, endOfDay])) ?? 0;
+
+      // 3. معالجة البيانات وتمرير مبيعات اليوم
+      _processChartData(keywords, numbers, todaySales);
+
+      if (mounted) {
+        setState(() {
+          statReplies = repliesCount;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء جلب البيانات: $e");
+      if (mounted) _loadDummyData();
+    }
+  }
+  /*Future<void> _loadStats() async {
+    if (!mounted) return;
+    setState(() => isLoading = true);
+
+    try {
+      final db = DatabaseHelper.instance;
+      final dbInstance = await db.database;
+
+      final keywords = await db.getAllKeywords();
+      final numbers = await db.getAllNumbers();
+
       final repliesCount = Sqflite.firstIntValue(
               await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log')) ??
           0;
@@ -179,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint("خطأ أثناء جلب البيانات: $e");
       if (mounted) _loadDummyData();
     }
-  }
+  }*/
 
   void _loadDummyData() {
     setState(() {
@@ -200,7 +244,48 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _processChartData(List<Map<String, dynamic>> keywords, List<Map<String, dynamic>> numbers) {
+  void _processChartData(
+    List<Map<String, dynamic>> keywords, 
+    List<Map<String, dynamic>> numbers,
+    int todaySales, // 🎯 تم إضافة مبيعات اليوم هنا
+  ) {
+    List<_CategoryStatData> availTemp = [];
+    List<_CategoryStatData> usedTemp = [];
+
+    int colorIndex = 0;
+    int availSum = 0;
+    int usedSum = 0;
+
+    for (var kw in keywords) {
+      int kwId = kw['id'];
+      String kwName = kw['keyword'] ?? 'فئة $kwId';
+      Color color = categoryColors[colorIndex % categoryColors.length];
+
+      int availCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'available').length;
+      int usedCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'used').length;
+
+      if (availCount > 0) availTemp.add(_CategoryStatData(kwName, availCount, color));
+      if (usedCount > 0) usedTemp.add(_CategoryStatData(kwName, usedCount, color));
+
+      availSum += availCount;
+      usedSum += usedCount;
+      colorIndex++;
+    }
+
+    if (mounted) {
+      setState(() {
+        availableCategoriesData = availTemp;
+        usedCategoriesData = usedTemp;
+        totalAvailable = availSum;
+        totalUsed = usedSum;
+        todaySalesCount = todaySales; // 🎯 تحديث قيمة مبيعات اليوم
+      });
+    }
+  }
+  /*void _processChartData(
+    List<Map<String, dynamic>> keywords, 
+    List<Map<String, dynamic>> numbers
+    ) {
     List<_CategoryStatData> availTemp = [];
     List<_CategoryStatData> usedTemp = [];
 
@@ -232,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
         totalUsed = usedSum;
       });
     }
-  }
+  }*/
 
   void _openManualSendDialog() {
     showModalBottomSheet(
@@ -766,7 +851,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: _buildQuickStatCard(
                             'مبيعات اليوم',
-                            '0',
+                            '$todaySalesCount',
                             Icons.payments_outlined,
                             const Color(0xFF10B981),
                             cardBg,

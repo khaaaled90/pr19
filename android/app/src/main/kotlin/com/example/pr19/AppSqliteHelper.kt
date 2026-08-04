@@ -10,6 +10,507 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     companion object {
         private const val DATABASE_NAME = "smsqaiddb.db"
+        private const val DATABASE_VERSION = 13 // ✅ رفع الإصدار إلى 13 لإضافة price
+
+        @Volatile
+        private var instance: AppSqliteHelper? = null
+
+        fun getInstance(context: Context): AppSqliteHelper {
+            return instance ?: synchronized(this) {
+                instance ?: AppSqliteHelper(context.applicationContext).also { instance = it }
+            }
+        }
+    }
+
+    override fun onCreate(db: SQLiteDatabase?) {
+        db?.execSQL("""
+            CREATE TABLE IF NOT EXISTS customers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT NOT NULL UNIQUE,
+                name TEXT,
+                wallet_number TEXT,
+                last_balance TEXT,
+                created_at INTEGER
+            )
+        """)
+
+        db?.execSQL("""
+            CREATE TABLE IF NOT EXISTS customer_vouchers_count (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_phone TEXT NOT NULL,
+                keyword_id INTEGER NOT NULL,
+                received_count INTEGER DEFAULT 0,
+                last_updated INTEGER,
+                UNIQUE(customer_phone, keyword_id)
+            )
+        """)
+
+        db?.execSQL("""
+            CREATE TABLE IF NOT EXISTS client_identifiers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                identifier TEXT NOT NULL UNIQUE,
+                FOREIGN KEY(client_id) REFERENCES customers(id) ON DELETE CASCADE
+            )
+        """)
+        createIndexes(db)
+    }
+
+    private fun createIndexes(db: SQLiteDatabase?) {
+        try {
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_customers_phone_wallet ON customers(phone, wallet_number)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_numbers_pool_kw_status ON numbers_pool(keyword_id, status)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_keywords_active ON keywords(is_active)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_allowed_senders ON allowed_senders(is_active, sender)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_client_identifiers ON client_identifiers(identifier)")
+        } catch (e: Exception) {
+            Log.e("SQLite", "Error creating indexes: ${e.message}")
+        }
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 8) {
+            try {
+                db?.execSQL("ALTER TABLE keywords ADD COLUMN target_count INTEGER DEFAULT 0")
+                db?.execSQL("ALTER TABLE keywords ADD COLUMN reward_keyword_id INTEGER")
+                db?.execSQL("ALTER TABLE keywords ADD COLUMN reward_qty INTEGER DEFAULT 1")
+            } catch (e: Exception) {
+                Log.e("SQLite", "Error upgrading v8: ${e.message}")
+            }
+
+            db?.execSQL("""
+                CREATE TABLE IF NOT EXISTS customer_vouchers_count (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    customer_phone TEXT NOT NULL,
+                    keyword_id INTEGER NOT NULL,
+                    received_count INTEGER DEFAULT 0,
+                    last_updated INTEGER,
+                    UNIQUE(customer_phone, keyword_id)
+                )
+            """)
+        }
+
+        if (oldVersion < 9) {
+            db?.execSQL("""
+                CREATE TABLE IF NOT EXISTS customers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    phone TEXT NOT NULL UNIQUE,
+                    name TEXT,
+                    created_at INTEGER
+                )
+            """)
+        }
+
+        if (oldVersion < 10) {
+            try {
+                db?.execSQL("ALTER TABLE customers ADD COLUMN wallet_number TEXT;")
+            } catch (e: Exception) {
+                Log.e("SQLite", "Error upgrading v10: ${e.message}")
+            }
+        }
+
+        if (oldVersion < 11) {
+            try {
+                db?.execSQL("ALTER TABLE customers ADD COLUMN last_balance TEXT;")
+            } catch (e: Exception) {
+                Log.e("SQLite", "Error upgrading v11: ${e.message}")
+            }
+        }
+
+        if (oldVersion < 12) {
+            db?.execSQL("""
+                CREATE TABLE IF NOT EXISTS client_identifiers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    client_phone TEXT NOT NULL,
+                    identifier TEXT NOT NULL UNIQUE
+                )
+            """)
+        }
+
+        // ✅ الترقية للـ Version 13: إضافة سعر الفئة ومبلغ الأرشيف
+        if (oldVersion < 13) {
+            try {
+                db?.execSQL("ALTER TABLE keywords ADD COLUMN price REAL DEFAULT 0.0;")
+                db?.execSQL("ALTER TABLE reply_log ADD COLUMN price REAL DEFAULT 0.0;")
+            } catch (e: Exception) {
+                Log.e("SQLite", "Error upgrading v13: ${e.message}")
+            }
+        }
+
+        createIndexes(db)
+    }
+
+    fun getAllClientIdentifiers(): Map<String, String> {
+        Log.e("CLIENT_CACHE", "========== getAllClientIdentifiers START ==========")
+
+        val map = mutableMapOf<String, String>()
+        val db = readableDatabase
+
+        val cursor = db.rawQuery("SELECT phone, name, wallet_number FROM customers", null)
+        cursor.use { c ->
+            val phoneIdx = c.getColumnIndex("phone")
+            val nameIdx = c.getColumnIndex("name")
+            val walletIdx = c.getColumnIndex("wallet_number")
+
+            var customerCount = 0
+
+            if (phoneIdx != -1) {
+                while (c.moveToNext()) {
+                    customerCount++
+                    val phone = c.getString(phoneIdx) ?: continue
+                    map[normalizeText(phone)] = phone
+
+                    if (nameIdx != -1) {
+                        val name = c.getString(nameIdx)
+                        if (!name.isNullOrBlank()) {
+                            map[normalizeText(name)] = phone
+                        }
+                    }
+
+                    if (walletIdx != -1) {
+                        val wallet = c.getString(walletIdx)
+                        if (!wallet.isNullOrBlank()) {
+                            map[normalizeText(wallet)] = phone
+                        }
+                    }
+                }
+            }
+        }
+
+        val extraQuery = """
+            SELECT ci.identifier, c.phone
+            FROM client_identifiers ci
+            INNER JOIN customers c ON ci.client_id = c.id
+        """.trimIndent()
+
+        val extraCursor = db.rawQuery(extraQuery, null)
+
+        extraCursor.use { c ->
+            val idIdx = c.getColumnIndex("identifier")
+            val phoneIdx = c.getColumnIndex("phone")
+
+            if (idIdx != -1 && phoneIdx != -1) {
+                while (c.moveToNext()) {
+                    val identifier = c.getString(idIdx)
+                    val phone = c.getString(phoneIdx)
+
+                    if (!identifier.isNullOrBlank() && !phone.isNullOrBlank()) {
+                        map[normalizeText(identifier)] = phone
+                    }
+                }
+            }
+        }
+
+        Log.e("CLIENT_CACHE", "========== getAllClientIdentifiers END ==========")
+        return map
+    }
+
+    private fun normalizeText(text: String): String {
+        return text.trim()
+            .replace(Regex("[أإآ]"), "ا")
+            .replace("ة", "ه")
+            .replace(Regex("\\s+"), " ")
+            .lowercase()
+    }
+
+    fun isDuplicateBalance(identifier: String, currentBalance: String): Boolean {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT last_balance FROM customers WHERE phone = ? OR wallet_number = ? LIMIT 1",
+            arrayOf(identifier, identifier)
+        )
+        
+        var isDuplicate = false
+        if (cursor.moveToFirst()) {
+            val lastBalanceIndex = cursor.getColumnIndex("last_balance")
+            if (lastBalanceIndex != -1) {                
+                val lastBalance = cursor.getString(lastBalanceIndex)
+                if (lastBalance != null && lastBalance.trim() == currentBalance.trim()) {
+                    isDuplicate = true
+                }
+            }
+        }
+        cursor.close()
+        return isDuplicate
+    }
+
+    fun getAvailableNumbersCountByKeywordId(keywordId: Int): Int {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT COUNT(*) FROM numbers_pool WHERE keyword_id = ? AND status = 'available'",
+            arrayOf(keywordId.toString())
+        )
+        var count = 0
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0)
+        }
+        cursor.close()
+        return count
+    }
+
+    fun updateCustomerBalance(
+        phone: String,
+        newBalance: String,
+        name: String? = null,
+        walletNumber: String? = null
+    ) {
+        val db = writableDatabase
+        val now = System.currentTimeMillis()
+
+        db.beginTransaction()
+        try {
+            var clientId: Long? = null
+            var currentName: String? = null
+
+            db.rawQuery(
+                "SELECT id, name FROM customers WHERE phone = ?",
+                arrayOf(phone)
+            ).use { c ->
+                if (c.moveToFirst()) {
+                    clientId = c.getLong(c.getColumnIndexOrThrow("id"))
+                    currentName = c.getString(c.getColumnIndexOrThrow("name"))
+                }
+            }
+
+            val cleanName = name?.takeIf { it.isNotBlank() }
+            val cleanWallet = walletNumber?.takeIf { it.isNotBlank() }
+            val cleanBalance = newBalance.takeIf { it.isNotBlank() }
+
+            if (clientId == null) {
+                val values = ContentValues().apply {
+                    put("phone", phone)
+                    put("name", cleanName)
+                    put("wallet_number", cleanWallet)
+                    put("last_balance", cleanBalance)
+                    put("created_at", now)
+                }
+                clientId = db.insert("customers", null, values)
+            } else {
+                val values = ContentValues().apply {
+                    if (cleanName != null && currentName.isNullOrBlank()) {
+                        put("name", cleanName)
+                    }
+                    if (cleanWallet != null) {
+                        put("wallet_number", cleanWallet)
+                    }
+                    if (cleanBalance != null) {
+                        put("last_balance", cleanBalance)
+                    }
+                }
+
+                if (values.size() > 0) {
+                    db.update("customers", values, "phone = ?", arrayOf(phone))
+                }
+            }
+
+            if (clientId != null && !cleanName.isNullOrEmpty()) {
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO client_identifiers (client_id, identifier)
+                    VALUES (?, ?)
+                    """.trimIndent(),
+                    arrayOf(clientId, cleanName)
+                )
+                AppCache.updateIdentifierCache(cleanName, phone)
+            }
+
+            db.setTransactionSuccessful()
+        } catch (e: Exception) {
+            Log.e("CLIENT_CACHE", "ERROR -> ${e.message}", e)
+            throw e
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    fun incrementCustomerCounter(customerPhone: String, keywordId: Int): Int {
+        val db = writableDatabase
+        val now = System.currentTimeMillis()
+
+        val sql = """
+            INSERT INTO customer_vouchers_count (customer_phone, keyword_id, received_count, last_updated)
+            VALUES (?, ?, 1, ?)
+            ON CONFLICT(customer_phone, keyword_id) DO UPDATE SET
+              received_count = received_count + 1,
+              last_updated = ?
+        """.trimIndent()
+
+        val stmt = db.compileStatement(sql)
+        stmt.bindString(1, customerPhone)
+        stmt.bindLong(2, keywordId.toLong())
+        stmt.bindLong(3, now)
+        stmt.bindLong(4, now)
+        stmt.execute()
+        stmt.close()
+
+        var count = 1
+        val cursor = db.rawQuery(
+            "SELECT received_count FROM customer_vouchers_count WHERE customer_phone = ? AND keyword_id = ?",
+            arrayOf(customerPhone, keywordId.toString())
+        )
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(cursor.getColumnIndexOrThrow("received_count"))
+        }
+        cursor.close()
+        return count
+    }
+
+    fun resetCustomerCounter(customerPhone: String, keywordId: Int) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("received_count", 0)
+            put("last_updated", System.currentTimeMillis())
+        }
+        db.update(
+            "customer_vouchers_count",
+            values,
+            "customer_phone = ? AND keyword_id = ?",
+            arrayOf(customerPhone, keywordId.toString())
+        )
+    }
+
+    fun isSenderAllowed(sender: String): Boolean {
+        val db = readableDatabase
+        val cleanSender = sender.replace(Regex("[^0-9]"), "")
+        val cursor = db.rawQuery(
+            "SELECT 1 FROM allowed_senders WHERE is_active = 1 AND (sender = ? OR REPLACE(REPLACE(sender, '+', ''), '-', '') = ?)",
+            arrayOf(sender, cleanSender)
+        )
+        val allowed = cursor.count > 0
+        cursor.close()
+        return allowed
+    }
+
+    // ✅ تم تعديل الاستعلام وقراءة حقل price
+    fun getAllActiveKeywords(): List<Map<String, Any>> {
+        val db = readableDatabase
+        val cursor = db.rawQuery("SELECT id, keyword, is_offer, target_count, reward_keyword_id, reward_qty, price FROM keywords WHERE is_active = 1", null)
+        val list = mutableListOf<Map<String, Any>>()
+        while (cursor.moveToNext()) {
+            val priceIdx = cursor.getColumnIndex("price")
+            val priceVal = if (priceIdx != -1) cursor.getDouble(priceIdx) else 0.0
+
+            list.add(mapOf(
+                "id" to cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                "keyword" to cursor.getString(cursor.getColumnIndexOrThrow("keyword")),
+                "is_offer" to cursor.getInt(cursor.getColumnIndexOrThrow("is_offer")),
+                "target_count" to cursor.getInt(cursor.getColumnIndexOrThrow("target_count")),
+                "reward_keyword_id" to cursor.getLong(cursor.getColumnIndexOrThrow("reward_keyword_id")),
+                "reward_qty" to cursor.getInt(cursor.getColumnIndexOrThrow("reward_qty")),
+                "price" to priceVal // 👈 السعر
+            ))
+        }
+        cursor.close()
+        return list
+    }
+
+    fun findCustomerPhoneByIdentifier(textContent: String): String? {
+        val db = readableDatabase
+        val cursor = db.rawQuery("SELECT phone, name, wallet_number FROM customers", null)
+
+        var foundPhone: String? = null
+        while (cursor.moveToNext()) {
+            val name = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+            val wallet = cursor.getString(cursor.getColumnIndexOrThrow("wallet_number"))
+            val phone = cursor.getString(cursor.getColumnIndexOrThrow("phone"))
+
+            if (!name.isNullOrEmpty() && textContent.contains(name, ignoreCase = true)) {
+                foundPhone = phone
+                break
+            }
+            if (!wallet.isNullOrEmpty() && textContent.contains(wallet.trim())) {
+                foundPhone = phone
+                break
+            }
+        }
+        cursor.close()
+        return foundPhone
+    }
+
+    @Synchronized
+    fun getAndUseVoucher(keywordId: Int, assignedPhone: String): String? {
+        val db = writableDatabase
+        db.beginTransaction()
+        var voucherCode: String? = null
+        try {
+            val cursor = db.rawQuery(
+                "SELECT id, number_code FROM numbers_pool WHERE keyword_id = ? AND status = 'available' LIMIT 1",
+                arrayOf(keywordId.toString())
+            )
+
+            if (cursor.moveToFirst()) {
+                val voucherId = cursor.getInt(cursor.getColumnIndexOrThrow("id"))
+                voucherCode = cursor.getString(cursor.getColumnIndexOrThrow("number_code"))
+
+                val values = ContentValues().apply {
+                    put("status", "used")
+                    put("assigned_to", assignedPhone)
+                    put("assigned_at", System.currentTimeMillis())
+                }
+                db.update("numbers_pool", values, "id = ?", arrayOf(voucherId.toString()))
+            }
+            cursor.close()
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return voucherCode
+    }
+
+    // ✅ إضافة تمرير وحفظ price عند الأرشفة
+    fun addToArchive(
+        sender: String,
+        senderName: String?,
+        receivedMessage: String,
+        matchedKeyword: String?,
+        sentNumber: String?,
+        status: String,
+        source: String = "Native_SMS",
+        extraData: String? = null,
+        price: Double = 0.0 // 👈 بارامتر السعر
+    ): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("sender", sender)
+            put("sender_name", senderName ?: "")
+            put("received_message", receivedMessage)
+            put("matched_keyword", matchedKeyword ?: "")
+            put("sent_number", sentNumber ?: "")
+            put("source", source)
+            put("extra_data", extraData ?: "")
+            put("status", status)
+            put("timestamp", System.currentTimeMillis())
+            put("is_deleted", 0)
+            put("price", price) // 👈 حفظ السعر
+        }
+        return db.insert("reply_log", null, values)
+    }
+
+    fun getSetting(key: String, defaultValue: String): String {
+        val db = readableDatabase
+        val cursor = db.query("settings", arrayOf("setting_value"), "setting_key = ?", arrayOf(key), null, null, null)
+        var value = defaultValue
+        if (cursor.moveToFirst()) {
+            value = cursor.getString(cursor.getColumnIndexOrThrow("setting_value")) ?: defaultValue
+        }
+        cursor.close()
+        return value
+    }
+}
+******************************************************
+/*package com.example.pr19
+
+import android.content.ContentValues
+import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
+
+class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+
+    companion object {
+        private const val DATABASE_NAME = "smsqaiddb.db"
         private const val DATABASE_VERSION = 12 // ✅ رفع رقم الإصدار
 
         @Volatile
@@ -657,7 +1158,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         cursor.close()
         return value
     }
-}
+}*/
 /*package com.example.pr19
 
 import android.content.ContentValues

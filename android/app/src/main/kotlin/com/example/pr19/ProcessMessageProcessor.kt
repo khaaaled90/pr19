@@ -109,6 +109,212 @@ object ProcessMessageProcessor {
         val keywordText = matchedKwMap["keyword"] as? String ?: ""
         val targetCount = (matchedKwMap["target_count"] as? Number)?.toInt() ?: 0
         val rewardKeywordId = (matchedKwMap["reward_keyword_id"] as? Number)?.toInt()
+        // 🎯 جلب سعر الفئة المضافة حديثاً
+        val keywordPrice = (matchedKwMap["price"] as? Number)?.toDouble() ?: 0.0
+
+        // ⭐ 5. استخراج الاسم ورقم المحفظة من النص والبحث عن رقم هاتف العميل
+        val extractedWallet = extractWalletFromBody(body)
+        val rawName = extractNameFromBody(body)
+        val extractedName = if (rawName.isNullOrBlank()) extractedWallet ?: "" else rawName    
+
+        var targetCustomerPhone = customerPhoneInput
+
+        // ⭐ البحث في الكاش باستخدام المحفظة أولاً أو الاسم المسحوب ثانياً
+        if (targetCustomerPhone.isBlank()) {
+            Log.d("PROCESSOR", "Searching by wallet/name...")
+            if (!extractedWallet.isNullOrBlank()) {
+                Log.d("PROCESSOR", "Searching wallet = $extractedWallet")
+                Log.d("PROCESSOR", "Searching name = $extractedName")
+                targetCustomerPhone = AppCache.findPhoneByIdentifier(dbHelper, extractedWallet) ?: ""
+            }
+            if (targetCustomerPhone.isBlank() && !extractedName.isNullOrBlank()) {
+                Log.d("PROCESSOR", "Searching wallet = $extractedWallet")
+                Log.d("PROCESSOR", "Searching name = $extractedName")
+                targetCustomerPhone = AppCache.findPhoneByIdentifier(dbHelper, extractedName) ?: ""
+            }
+        }
+
+        // ⭐ 6. فحص العميل المعلق (إذا لم يتعرف النظام على هاتف أو اسم)
+        if (targetCustomerPhone.isNull_Or_Empty_Or_Invalid()) {
+            val displayName = extractedName ?: "معلق (بحاجة لربط)"
+            dbHelper.addToArchive(
+                sender = rawSender,
+                senderName = displayName,
+                receivedMessage = body,
+                matchedKeyword = keywordText,
+                sentNumber = "",
+                status = "manual_approval_required",
+                price = keywordPrice // 🎯 تمرير السعر
+            )
+            return
+        }
+
+        Log.e("PROCESSOR1", "===> بدء مرحلة التحقق من الرصيد <===")
+        val destinationPhone = targetCustomerPhone
+        Log.e("PROCESSOR1", "رقم العميل المستهدف (destinationPhone): '$destinationPhone'")
+        
+        Log.e("PROCESSOR1", "جاري استخراج الرصيد من نص الرسالة...")
+        val extractedBalance = extractBalanceFromBody(body)
+        Log.e("PROCESSOR1", "الرصيد المستخرج (extractedBalance): '$extractedBalance'")
+
+        if (!extractedBalance.isNullOrBlank()) {
+            Log.e("PROCESSOR1", "الرصيد غير فارغ، جاري فحص التكرار عبر isDuplicateBalance...")
+
+            if (dbHelper.isDuplicateBalance(destinationPhone, extractedBalance)) {
+                Log.e("PROCESSOR1", "Duplicate balance detected for $destinationPhone. Skipping.")                
+                return
+            } else {
+                Log.e("PROCESSOR1", "✅ الرصيد جديد وغير مكرر للعميل: $destinationPhone.")
+            }
+        } else {
+            Log.e("PROCESSOR1", "⚠️ لم يتم استخراج أي رصيد من الرسالة، سيتم تجاوز فحص التكرار.")
+        }
+
+        var finalKeywordIdToUse = keywordId
+        var isRewardGranted = false
+
+        if (targetCount > 0 && rewardKeywordId != null) {
+            val currentCount = dbHelper.incrementCustomerCounter(destinationPhone, keywordId)
+            if (currentCount >= targetCount) {
+                finalKeywordIdToUse = rewardKeywordId
+                isRewardGranted = true
+                dbHelper.resetCustomerCounter(destinationPhone, keywordId)
+            }
+        }
+
+        // ⭐ 7. سحب القسيمة الأساسية وإرسالها دائماً (الرسالة الأولى)
+        val mainVoucherCode = dbHelper.getAndUseVoucher(keywordId, destinationPhone)
+        Log.e("PROCESSOR1", "voucher_approval_required=$mainVoucherCode")
+            
+        if (mainVoucherCode != null) {
+            val defaultReply = AppCache.getDefaultReply(dbHelper)
+            val fullMessage = "$defaultReply $mainVoucherCode"
+
+            Log.e("UPDATE_CUSTOMER", "mainVoucherCode=$mainVoucherCode")
+            val isSent = DualSimSmsSender.sendSms(
+                context = context,
+                phoneNumber = destinationPhone,
+                message = fullMessage
+            )
+            Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
+
+            if (isSent) {
+                // أرشفة القسيمة الأساسية مع السعر
+                dbHelper.addToArchive(
+                    sender = destinationPhone,
+                    senderName = null,
+                    receivedMessage = body,
+                    matchedKeyword = keywordText,
+                    sentNumber = mainVoucherCode,
+                    status = "sent",
+                    price = keywordPrice // 🎯 تمرير السعر
+                )
+
+                val extractedWallet = extractWalletFromBody(body)
+                val rawName = extractNameFromBody(body)
+                val extractedName = if (rawName.isNullOrBlank()) extractedWallet ?: "" else rawName    
+
+                Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
+                dbHelper.updateCustomerBalance(
+                    phone = destinationPhone,
+                    newBalance = extractedBalance ?: "",
+                    name = extractedName,
+                    walletNumber = extractedWallet
+                )
+                Log.e("UPDATE_CUSTOMER", "Calling updateCustomerBalance()")
+                
+                checkAndSendManagerAlert(context, dbHelper, keywordId, keywordText)
+
+                // 🎯 ⭐ 8. فحص شرط العرض بعد إرسال القسيمة الأساسية (إرسال الرسالة الثانية)
+                if (targetCount > 0 && rewardKeywordId != null) {
+                    val currentCount = dbHelper.incrementCustomerCounter(destinationPhone, keywordId)
+                    
+                    if (currentCount >= targetCount) {
+                        val rewardVoucherCode = dbHelper.getAndUseVoucher(rewardKeywordId, destinationPhone)
+
+                        if (rewardVoucherCode != null) {
+                            // تصفير العداد عند نجاح سحب كرت العرض
+                            dbHelper.resetCustomerCounter(destinationPhone, keywordId)
+
+                            val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $rewardVoucherCode"
+                            val isRewardSent = DualSimSmsSender.sendSms(
+                                context = context,
+                                phoneNumber = destinationPhone,
+                                message = rewardMessage
+                            )
+
+                            if (isRewardSent) {
+                                // هدايا العروض تُحسب بقيمة 0.0 في الأرشيف
+                                dbHelper.addToArchive(
+                                    sender = destinationPhone,
+                                    senderName = null,
+                                    receivedMessage = "هدية عرض للكلمة: $keywordText",
+                                    matchedKeyword = keywordText,
+                                    sentNumber = rewardVoucherCode,
+                                    status = "sent_reward",
+                                    price = 0.0 // 🎯 الهدايا مجانية (0.0)
+                                )
+                            }
+                            checkAndSendManagerAlert(context, dbHelper, rewardKeywordId, "هدية: $keywordText")
+                        } else {
+                            Log.e("PROCESSOR1", "⚠️ تحقق شرط العرض لكن كروت الهدية غير متوفرة!")
+                            checkAndSendManagerAlert(context, dbHelper, rewardKeywordId, "نفاد هدايا العرض: $keywordText")
+                        }
+                    }
+                }
+            }
+        } else {
+            // ⭐ 9. حفظ العملية كمعلقة عند نفاذ المخزون الأساسي
+            checkAndSendManagerAlert(context, dbHelper, keywordId, keywordText)
+            Log.e("PROCESSOR1", "⚠️ لا تتوفر قسائم حالياً! تم حفظ العملية كمعلقة (voucher_approval_required)")
+            
+            val rawName = extractNameFromBody(body)
+            val extractedWallet = extractWalletFromBody(body)
+            val displayName = if (!rawName.isNullOrBlank()) rawName else (extractedWallet ?: destinationPhone)
+
+            dbHelper.addToArchive(
+                sender = destinationPhone,
+                senderName = displayName,
+                receivedMessage = body,
+                matchedKeyword = keywordText,
+                sentNumber = "",
+                status = "voucher_approval_required",
+                price = keywordPrice // 🎯 تمرير السعر
+            )
+        }
+    }
+
+    /*private fun executeProcessing(context: Context, rawSender: String, originPackage: String, body: String, customerPhoneInput: String) {
+        val dbHelper = AppSqliteHelper.getInstance(context)
+
+        // 1. فحص تفعيل الخدمة من الكاش
+        if (!AppCache.isServiceEnabled(dbHelper)) return
+
+        // 2. فحص المرسل المسموح به من الكاش
+        val allowAllSenders = AppCache.isAllowAllSenders(dbHelper)
+        if (!allowAllSenders && !dbHelper.isSenderAllowed(originPackage) && !dbHelper.isSenderAllowed(rawSender)) {
+            Log.d("PROCESSOR", "Sender rejected: $rawSender / $originPackage")
+            return
+        }
+
+        // 3. مطابقة الكلمة المفتاحية عبر الكاش
+        val keywords = AppCache.getKeywords(dbHelper)
+        var matchedKwMap: Map<String, Any>? = null
+        for (kw in keywords) {
+            val kwText = kw["keyword"] as? String ?: continue
+            if (body.contains(kwText, ignoreCase = true)) {
+                matchedKwMap = kw
+                break
+            }
+        }
+
+        if (matchedKwMap == null) return
+
+        // ⭐ 4. التحويل الآمن للأرقام لمنع ClassCastException (Number casting)
+        val keywordId = (matchedKwMap["id"] as? Number)?.toInt() ?: return
+        val keywordText = matchedKwMap["keyword"] as? String ?: ""
+        val targetCount = (matchedKwMap["target_count"] as? Number)?.toInt() ?: 0
+        val rewardKeywordId = (matchedKwMap["reward_keyword_id"] as? Number)?.toInt()
 
         
         // ⭐ 5. البحث عن رقم هاتف العميل من الكاش الموحد فوراً إذا لم يأتِ مع الإشعار
@@ -350,7 +556,7 @@ object ProcessMessageProcessor {
                 status = "voucher_approval_required"
             )
         }*/
-    }
+    }*/
 
     private fun extractNameFromBody(body: String): String? {
         val nameRegex = Regex("""(?:من|المودع|العميل|المحول|حساب|من الحساب|From)[\s:]+([^\d\n,.:]{3,30})""", RegexOption.IGNORE_CASE)

@@ -189,8 +189,105 @@ object ProcessMessageProcessor {
             }
         }
 
+        // ⭐ 7. سحب القسيمة الأساسية وإرسالها دائماً (الرسالة الأولى)
+        val mainVoucherCode = dbHelper.getAndUseVoucher(keywordId, destinationPhone)
+        Log.e("PROCESSOR1", "voucher_approval_required=$mainVoucherCode")
+            
+        if (mainVoucherCode != null) {
+            val defaultReply = AppCache.getDefaultReply(dbHelper)
+            val fullMessage = "$defaultReply $mainVoucherCode"
+
+            Log.e("UPDATE_CUSTOMER", "mainVoucherCode=$mainVoucherCode")
+            val isSent = DualSimSmsSender.sendSms(
+                context = context,
+                phoneNumber = destinationPhone,
+                message = fullMessage
+            )
+            Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
+
+            if (isSent) {
+                // أرشفة القسيمة الأساسية
+                dbHelper.addToArchive(
+                    sender = destinationPhone,
+                    senderName = null,
+                    receivedMessage = body,
+                    matchedKeyword = keywordText,
+                    sentNumber = mainVoucherCode,
+                    status = "sent"
+                )
+
+                val extractedWallet = extractWalletFromBody(body)
+                val rawName = extractNameFromBody(body)
+                val extractedName = if (rawName.isNullOrBlank()) extractedWallet ?: "" else rawName    
+
+                Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
+                dbHelper.updateCustomerBalance(
+                    phone = destinationPhone,
+                    newBalance = extractedBalance ?: "",
+                    name = extractedName,
+                    walletNumber = extractedWallet
+                )
+                Log.e("UPDATE_CUSTOMER", "Calling updateCustomerBalance()")
+                
+                checkAndSendManagerAlert(context, dbHelper, keywordId, keywordText)
+
+                // 🎯 ⭐ 8. فحص شرط العرض بعد إرسال القسيمة الأساسية (إرسال الرسالة الثانية)
+                if (targetCount > 0 && rewardKeywordId != null) {
+                    val currentCount = dbHelper.incrementCustomerCounter(destinationPhone, keywordId)
+                    
+                    if (currentCount >= targetCount) {
+                        val rewardVoucherCode = dbHelper.getAndUseVoucher(rewardKeywordId, destinationPhone)
+
+                        if (rewardVoucherCode != null) {
+                            // تصفير العداد عند نجاح سحب كرت العرض
+                            dbHelper.resetCustomerCounter(destinationPhone, keywordId)
+
+                            val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $rewardVoucherCode"
+                            val isRewardSent = DualSimSmsSender.sendSms(
+                                context = context,
+                                phoneNumber = destinationPhone,
+                                message = rewardMessage
+                            )
+
+                            if (isRewardSent) {
+                                dbHelper.addToArchive(
+                                    sender = destinationPhone,
+                                    senderName = null,
+                                    receivedMessage = "هدية عرض للكلمة: $keywordText",
+                                    matchedKeyword = keywordText,
+                                    sentNumber = rewardVoucherCode,
+                                    status = "sent_reward"
+                                )
+                            }
+                            checkAndSendManagerAlert(context, dbHelper, rewardKeywordId, "هدية: $keywordText")
+                        } else {
+                            Log.e("PROCESSOR1", "⚠️ تحقق شرط العرض لكن كروت الهدية غير متوفرة!")
+                            checkAndSendManagerAlert(context, dbHelper, rewardKeywordId, "نفاد هدايا العرض: $keywordText")
+                        }
+                    }
+                }
+            }
+        } else {
+            // ⭐ 9. حفظ العملية كمعلقة عند نفاذ المخزون الأساسي
+            checkAndSendManagerAlert(context, dbHelper, keywordId, keywordText)
+            Log.e("PROCESSOR1", "⚠️ لا تتوفر قسائم حالياً! تم حفظ العملية كمعلقة (voucher_approval_required)")
+            
+            val rawName = extractNameFromBody(body)
+            val extractedWallet = extractWalletFromBody(body)
+            val displayName = if (!rawName.isNullOrBlank()) rawName else (extractedWallet ?: destinationPhone)
+
+            dbHelper.addToArchive(
+                sender = destinationPhone,
+                senderName = displayName,
+                receivedMessage = body,
+                matchedKeyword = keywordText,
+                sentNumber = "",
+                status = "voucher_approval_required"
+            )
+        }
+
         // ⭐ 7. سحب الكرت وإرسال الـ SMS المباشر
-        val voucherCode = dbHelper.getAndUseVoucher(finalKeywordIdToUse, destinationPhone)
+        /*val voucherCode = dbHelper.getAndUseVoucher(finalKeywordIdToUse, destinationPhone)
         Log.e("PROCESSOR1", "voucher_approval_required=$voucherCode")
             
         if (voucherCode != null) {
@@ -252,7 +349,7 @@ object ProcessMessageProcessor {
                 sentNumber = "",
                 status = "voucher_approval_required"
             )
-        }
+        }*/
     }
 
     private fun extractNameFromBody(body: String): String? {

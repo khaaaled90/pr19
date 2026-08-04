@@ -481,7 +481,7 @@ class _KeywordsScreenState extends State<KeywordsScreen> {
                                                     style: TextStyle(
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: 16,
-                                                        color: isDark ? Colors.white : Colors.black80)),
+                                                        color: isDark ? Colors.white : Colors.black87)),
                                                 const SizedBox(width: 8),
                                                 // 👈 شارة عرض السعر المتجاوبة مع الثيم
                                                 Container(
@@ -560,7 +560,7 @@ class _KeywordsScreenState extends State<KeywordsScreen> {
                                       Text('متاح: $avail | مستخدم: $used',
                                           style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              color: isDark ? Colors.white70 : Colors.black80)),
+                                              color: isDark ? Colors.white70 : Colors.black87)),
                                       Row(
                                         children: [
                                           IconButton(

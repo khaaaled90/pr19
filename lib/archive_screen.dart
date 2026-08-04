@@ -1,4 +1,603 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' hide TextDirection;
+import 'DatabaseHelper.dart';
+
+class ArchiveScreen extends StatefulWidget {
+  const ArchiveScreen({super.key});
+
+  @override
+  State<ArchiveScreen> createState() => _ArchiveScreenState();
+}
+
+class _ArchiveScreenState extends State<ArchiveScreen> {
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+
+  List<Map<String, dynamic>> _allData = [];
+  List<Map<String, dynamic>> _filteredData = [];
+  List<Map<String, dynamic>> _keywordsList = [];
+
+  bool _isLoading = true;
+  String _currentFilter = 'today';
+  String _selectedKeyword = 'all';
+  String _searchQuery = '';
+
+  final TextEditingController _searchController = TextEditingController();
+
+  static const int _perPage = 50;
+  int _currentPage = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+
+    final db = await _dbHelper.database;
+    final archiveData = await db.query(
+      DatabaseHelper.tableReplyLog,
+      where: 'is_deleted = 0 OR is_deleted IS NULL',
+      orderBy: 'timestamp DESC',
+    );
+
+    final keywords = await _dbHelper.getAllKeywords();
+
+    if (!mounted) return;
+    setState(() {
+      _allData = archiveData;
+      _keywordsList = keywords;
+      _isLoading = false;
+    });
+
+    _applyFilters();
+  }
+
+  void _applyFilters() {
+    List<Map<String, dynamic>> temp = List.from(_allData);
+
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+
+    if (_currentFilter == 'today') {
+      temp = temp.where((r) => (r['timestamp'] ?? 0) >= todayStart).toList();
+    } else if (_currentFilter == 'week') {
+      final weekStart = DateTime(now.year, now.month, now.day)
+          .subtract(const Duration(days: 6))
+          .millisecondsSinceEpoch;
+      temp = temp.where((r) => (r['timestamp'] ?? 0) >= weekStart).toList();
+    } else if (_currentFilter == 'month') {
+      final monthStart =
+          DateTime(now.year, now.month, 1).millisecondsSinceEpoch;
+      temp = temp.where((r) => (r['timestamp'] ?? 0) >= monthStart).toList();
+    }
+
+    if (_selectedKeyword != 'all') {
+      temp =
+          temp.where((r) => r['matched_keyword'] == _selectedKeyword).toList();
+    }
+
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      temp = temp.where((r) {
+        final sentNumber = (r['sent_number'] ?? '').toString().toLowerCase();
+        final senderName = (r['sender_name'] ?? '').toString().toLowerCase();
+        final sender = (r['sender'] ?? '').toString().toLowerCase();
+        return sentNumber.contains(query) ||
+            senderName.contains(query) ||
+            sender.contains(query);
+      }).toList();
+    }
+
+    setState(() {
+      _filteredData = temp;
+      _currentPage = 1;
+    });
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor:
+            isError ? const Color(0xFFE74C3C) : const Color(0xFF27AE60),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+      ),
+    );
+  }
+
+  Future<void> _deleteRecord(int id) async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('حذف السجل',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: const Text('هل أنت متأكد من حذف هذا السجل من الأرشيف؟',
+              style: TextStyle(fontSize: 13)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE74C3C)),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('حذف',
+                  style: TextStyle(color: Colors.white, fontSize: 13)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirm == true) {
+      final db = await _dbHelper.database;
+      await db.update(
+        DatabaseHelper.tableReplyLog,
+        {'is_deleted': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      _showSnackBar('✅ تم الحذف بنجاح');
+      _loadData();
+    }
+  }
+
+  Map<String, int> _calculateSummary() {
+    final Map<String, int> counts = {};
+    final dataToSummarize = _currentFilter == 'all' ? _allData : _filteredData;
+
+    for (var row in dataToSummarize) {
+      final kw = (row['matched_keyword'] != null &&
+              row['matched_keyword'].toString().isNotEmpty)
+          ? row['matched_keyword'].toString()
+          : 'غير معروف';
+      counts[kw] = (counts[kw] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final totalPages = (_filteredData.length / _perPage).ceil();
+    final startIndex = (_currentPage - 1) * _perPage;
+    final endIndex = (startIndex + _perPage < _filteredData.length)
+        ? startIndex + _perPage
+        : _filteredData.length;
+    final pageData = _filteredData.isEmpty
+        ? []
+        : _filteredData.sublist(startIndex, endIndex);
+
+    final summaryCounts = _calculateSummary();
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: isDark ? theme.appBarTheme.backgroundColor : const Color(0xFF1E2A36),
+          title: const Text('📊 أرشيف الكروت',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold)),
+          centerTitle: true,
+          elevation: 0,
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF27AE60)))
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(12.0),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // 1. أزرار الفلترة الزمانية
+                        Row(
+                          children: [
+                            _buildTabButton('📊 اليوم', 'today', isDark),
+                            const SizedBox(width: 4),
+                            _buildTabButton('📅 الأسبوع', 'week', isDark),
+                            const SizedBox(width: 4),
+                            _buildTabButton('📆 الشهر', 'month', isDark),
+                            const SizedBox(width: 4),
+                            _buildTabButton('📋 الكل', 'all', isDark),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // 2. كروت الملخص العلوي
+                        SizedBox(
+                          height: 52,
+                          child: summaryCounts.isEmpty
+                              ? _buildSummaryCard('📭 لا توجد سجلات', '', isDark)
+                              : ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  children: summaryCounts.entries.map((e) {
+                                    return _buildSummaryCard(
+                                        'باقة ${e.key}', '${e.value} كرت', isDark);
+                                  }).toList(),
+                                ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // 3. شريط البحث والفلترة حسب الباقة
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(
+                                color: theme.cardColor,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  dropdownColor: theme.cardColor,
+                                  value: _selectedKeyword,
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : Colors.black87),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() => _selectedKeyword = val);
+                                      _applyFilters();
+                                    }
+                                  },
+                                  items: [
+                                    const DropdownMenuItem(
+                                        value: 'all', child: Text('جميع الباقات')),
+                                    ..._keywordsList.map((k) {
+                                      return DropdownMenuItem<String>(
+                                        value: k['keyword'].toString(),
+                                        child: Text('باقة ${k['keyword']}'),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                                decoration: InputDecoration(
+                                  hintText: '🔍 بحث عن رقم / اسم / كود...',
+                                  hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
+                                  fillColor: theme.cardColor,
+                                  filled: true,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                                  ),
+                                ),
+                                onChanged: (val) {
+                                  _searchQuery = val.trim();
+                                  _applyFilters();
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // 4. قائمة البطاقات الأرشيفية
+                        pageData.isEmpty
+                            ? const Padding(
+                                padding: EdgeInsets.all(40.0),
+                                child: Center(
+                                  child: Text('📭 لا توجد سجلات أرشيفية',
+                                      style: TextStyle(color: Colors.grey, fontSize: 14)),
+                                ),
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: pageData.length,
+                                itemBuilder: (ctx, idx) {
+                                  final item = pageData[idx];
+                                  return _buildArchiveCard(item, isDark, theme);
+                                },
+                              ),
+
+                        const SizedBox(height: 10),
+
+                        // 5. الترقيم والتمرير
+                        if (totalPages > 1)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.chevron_left),
+                                onPressed: _currentPage > 1
+                                    ? () => setState(() => _currentPage--)
+                                    : null,
+                              ),
+                              Text('صفحة $_currentPage من $totalPages',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : Colors.black87)),
+                              IconButton(
+                                icon: const Icon(Icons.chevron_right),
+                                onPressed: _currentPage < totalPages
+                                    ? () => setState(() => _currentPage++)
+                                    : null,
+                              ),
+                            ],
+                          ),
+
+                        // 6. ملخص العدد الأرشيفي
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              '📊 إجمالي المعروض: ${_filteredData.length} كرت',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildTabButton(String label, String value, bool isDark) {
+    final bool isActive = _currentFilter == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() => _currentFilter = value);
+          _applyFilters();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive
+                ? const Color(0xFF27AE60)
+                : (isDark ? Colors.grey.shade800 : Colors.white),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isActive ? const Color(0xFF27AE60) : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: isActive
+                  ? Colors.white
+                  : (isDark ? Colors.grey.shade300 : Colors.black87),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(String title, String count, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade800 : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(title,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.grey.shade300 : Colors.black87)),
+          if (count.isNotEmpty)
+            Text(count,
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF27AE60),
+                    fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArchiveCard(Map<String, dynamic> r, bool isDark, ThemeData theme) {
+    final int? timestamp = r['timestamp'];
+    String dateStr = '-';
+    if (timestamp != null) {
+      final dt = DateTime.fromMillisecondsSinceEpoch(timestamp);
+      dateStr = DateFormat('yyyy-MM-dd HH:mm').format(dt);
+    }
+
+    final String source = r['source'] ?? 'Noti';
+    final bool isSms = source.toUpperCase() == 'SMS';
+
+    final String senderName =
+        (r['sender_name'] != null && r['sender_name'].toString().isNotEmpty)
+            ? r['sender_name'].toString()
+            : (r['sender'] ?? '-').toString();
+
+    // 👈 قراءة حقل السعر بشكل مباشر وسليم من السجل الأرشيفي
+    final double price = (r['price'] as num?)?.toDouble() ?? 0.0;
+
+    return Card(
+      elevation: 1.5,
+      color: theme.cardColor,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // كود الكرت المبعوث
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade800 : const Color(0xFFF2F4F8),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                r['sent_number'] ?? '-',
+                textDirection: TextDirection.ltr,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.greenAccent : const Color(0xFF1E2A36),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            // التفاصيل
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('📅 $dateStr',
+                      style: TextStyle(fontSize: 10, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
+                  const SizedBox(height: 2),
+                  Text('👤 $senderName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: [
+                      // Badge المصدر
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isSms
+                              ? (isDark ? Colors.blue.shade900.withOpacity(0.5) : const Color(0xFFE3F2FD))
+                              : (isDark ? Colors.red.shade900.withOpacity(0.5) : const Color(0xFFFCE4EC)),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          isSms ? '📨 SMS' : '🔔 إشعار',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: isSms
+                                ? (isDark ? Colors.blue.shade200 : const Color(0xFF1976D2))
+                                : (isDark ? Colors.red.shade200 : const Color(0xFFC62828)),
+                          ),
+                        ),
+                      ),
+                      // Badge اسم الباقة
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1B3E2B) : const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '🔑 باقة: ${r['matched_keyword'] ?? '-'}',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? const Color(0xFF52D68A) : const Color(0xFF2E7D32),
+                          ),
+                        ),
+                      ),
+                      // 👈 Badge حقل السعر الأصلي وليس الكيورد
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.amber.shade900.withOpacity(0.4) : const Color(0xFFFFF8E1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isDark ? Colors.amber.shade700 : Colors.amber.shade300,
+                          ),
+                        ),
+                        child: Text(
+                          '💵 $price ر.ي',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.amber.shade200 : const Color(0xFFB8860B),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // زر الحذف
+            InkWell(
+              onTap: () => _deleteRecord(r['id']),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.red.shade900.withOpacity(0.4) : const Color(0xFFFFE6E5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.close,
+                    color: isDark ? Colors.red.shade300 : const Color(0xFFE74C3C), size: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+//*************************** */
+/*import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'
     hide TextDirection; // إخفاء TextDirection لمنع التعارض
 import 'DatabaseHelper.dart';
@@ -585,3 +1184,4 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     );
   }
 }
+*/

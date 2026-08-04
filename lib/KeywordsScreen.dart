@@ -146,7 +146,7 @@ class _KeywordsScreenState extends State<KeywordsScreen> {
                   children: [
                     TextField(
                       controller: keywordController,
-                      keyboardType: TextInputType.text
+                      keyboardType: TextInputType.text,
                       //keyboardType: TextInputType.number,
                       //inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(

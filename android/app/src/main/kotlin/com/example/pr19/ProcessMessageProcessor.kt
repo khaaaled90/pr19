@@ -236,6 +236,51 @@ object ProcessMessageProcessor {
                             // تصفير العداد عند نجاح سحب كرت العرض
                             dbHelper.resetCustomerCounter(destinationPhone, keywordId)
 
+                            // 🎯 جلب اسم وسعر باقة الهدية من الكاش بدقة
+                            val rewardKwMap = AppCache.getKeywords(dbHelper).find { 
+                                (it["id"] as? Number)?.toInt() == rewardKeywordId 
+                            }
+                            val rewardKwText = rewardKwMap?.get("keyword") as? String ?: "عرض مجاني"
+                            val rewardPrice = (rewardKwMap?.get("price") as? Number)?.toDouble() ?: 0.0
+
+                            val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $rewardVoucherCode"
+                            val isRewardSent = DualSimSmsSender.sendSms(
+                                context = context,
+                                phoneNumber = destinationPhone,
+                                message = rewardMessage
+                            )
+
+                            if (isRewardSent) {
+                                // 🎯 أرشفة كارت الهدية بالاسم والسعر الخواص به (مثلاً: فئة 002 وسعرها)
+                                dbHelper.addToArchive(
+                                    sender = destinationPhone,
+                                    senderName = null,
+                                    receivedMessage = "هدية عرض للباقة: $keywordText",
+                                    matchedKeyword = rewardKwText, // 👈 تم التعديل: اسم باقة الهدية (مثلاً 002)
+                                    sentNumber = rewardVoucherCode,
+                                    status = "sent_reward",
+                                    price = rewardPrice // 👈 تم التعديل: سعر باقة الهدية الحقيقي
+                                )
+                            }
+                            checkAndSendManagerAlert(context, dbHelper, rewardKeywordId, "هدية: $rewardKwText")
+                        } else {
+                            Log.e("PROCESSOR1", "⚠️ تحقق شرط العرض لكن كروت الهدية غير متوفرة!")
+                            checkAndSendManagerAlert(context, dbHelper, rewardKeywordId, "نفاد هدايا العرض للرمز: $keywordId")
+                        }
+                    }
+                }
+                // 🎯 ⭐ 8. فحص شرط العرض بعد إرسال القسيمة الأساسية (إرسال الرسالة الثانية)
+                /*if (targetCount > 0 && rewardKeywordId != null) {
+                    val currentCount = dbHelper.incrementCustomerCounter(destinationPhone, keywordId)
+                    
+                    if (currentCount >= targetCount) {
+                        val rewardVoucherCode = dbHelper.getAndUseVoucher(rewardKeywordId, destinationPhone)
+
+                        if (rewardVoucherCode != null) {
+                            // تصفير العداد عند نجاح سحب كرت العرض
+                            dbHelper.resetCustomerCounter(destinationPhone, keywordId)
+
+                            
                             val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $rewardVoucherCode"
                             val isRewardSent = DualSimSmsSender.sendSms(
                                 context = context,
@@ -261,7 +306,7 @@ object ProcessMessageProcessor {
                             checkAndSendManagerAlert(context, dbHelper, rewardKeywordId, "نفاد هدايا العرض: $keywordText")
                         }
                     }
-                }
+                }*/
             }
         } else {
             // ⭐ 9. حفظ العملية كمعلقة عند نفاذ المخزون الأساسي

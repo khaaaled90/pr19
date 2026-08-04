@@ -30,9 +30,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const VouchersTabScreen(),
-    const ReportsTabScreen(),
-    const SettingsTabScreen(),
+    //const VouchersTabScreen(),
+    //const ReportsTabScreen(),
+    //const SettingsTabScreen(),
+    const VouchersScreen(),
+    const SalesScreen(),
+    const SettingsScreen(),
     const ContactTabScreen(),
   ];
 
@@ -166,6 +169,57 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // 1. حساب إجمالي الردود
       final repliesCount = Sqflite.firstIntValue(
+          await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ?? 0;
+
+      // 2. 🎯 جلب حقل price المالي لسجلات مبيعات اليوم من جدول reply_log
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
+
+      final List<Map<String, dynamic>> todayLogs = await dbInstance.rawQuery('''
+        SELECT price 
+        FROM reply_log 
+        WHERE is_deleted = 0 
+          AND (status = 'sent' OR status = 'sent_reward')
+          AND (timestamp BETWEEN ? AND ?)
+      ''', [startOfDay, endOfDay]);
+
+      // 3. 🎯 حساب المجموع المالي بالريال مباشرة من حقل price
+      int todayTotalAmount = 0;
+
+      for (var log in todayLogs) {
+        // قراءة السعر مباشرة وتحويله لعدد صحيح أماناً
+        int price = int.tryParse(log['price']?.toString() ?? '0') ?? 0;
+        todayTotalAmount += price; // تجميع المبالغ المالية مباشرة
+      }
+
+      // 4. معالجة البيانات وتمرير المبلغ الإجمالي
+      _processChartData(keywords, numbers, todayTotalAmount);
+
+      if (mounted) {
+        setState(() {
+          statReplies = repliesCount;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء جلب البيانات: $e");
+      if (mounted) _loadDummyData();
+    }
+  }
+  /*Future<void> _loadStats() async {
+    if (!mounted) return;
+    setState(() => isLoading = true);
+
+    try {
+      final db = DatabaseHelper.instance;
+      final dbInstance = await db.database;
+
+      final keywords = await db.getAllKeywords();
+      final numbers = await db.getAllNumbers();
+
+      // 1. حساب إجمالي الردود
+      final repliesCount = Sqflite.firstIntValue(
             await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ?? 0;
 
       // 2. 🎯 جلب قائمة الكلمات المفتاحية المباعة اليوم فقط
@@ -207,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint("خطأ أثناء جلب البيانات: $e");
       if (mounted) _loadDummyData();
     }
-  }
+  }*/
   /*Future<void> _loadStats() async {
     if (!mounted) return;
     setState(() => isLoading = true);
@@ -950,24 +1004,24 @@ class _HomeScreenState extends State<HomeScreen> {
                               MaterialPageRoute(builder: (_) => const KeywordsScreen()));
                           _loadStats();
                         }),
-                        _buildMenuItem('تغذية الكروت', Icons.add_card_rounded,
+                        /*_buildMenuItem('تغذية الكروت', Icons.add_card_rounded,
                             const Color(0xFFF59E0B), cardBg, textColor, () async {
                           await Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const VouchersScreen()));
                           _loadStats();
-                        }),
+                        }),*/
                         _buildMenuItem('الأرشيف', Icons.mark_email_read_rounded,
                             const Color(0xFF06B6D4), cardBg, textColor, () async {
                           await Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const ArchiveScreen()));
                           _loadStats();
                         }),
-                        _buildMenuItem('المبيعات', Icons.insights_rounded,
+                        /*_buildMenuItem('المبيعات', Icons.insights_rounded,
                             const Color(0xFF6366F1), cardBg, textColor, () async {
                           await Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const SalesScreen()));
                           _loadStats();
-                        }),
+                        }),*/
                         _buildMenuItem('العمليات', Icons.pending_actions_rounded,
                             const Color(0xFFEC4899), cardBg, textColor, () async {
                           await Navigator.push(context,
@@ -988,12 +1042,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               MaterialPageRoute(builder: (_) => const BackupScreen()));
                           _loadStats();
                         }),
-                        _buildMenuItem('الإعدادات', Icons.settings_rounded,
+                        /*_buildMenuItem('الإعدادات', Icons.settings_rounded,
                             const Color(0xFF64748B), cardBg, textColor, () async {
                           await Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const SettingsScreen()));
                           _loadStats();
-                        }),
+                        }),*/
                       ],
                     ),
                     const SizedBox(height: 24),

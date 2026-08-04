@@ -498,7 +498,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         return value
     }
 }
-******************************************************
+//******************************************************
 /*package com.example.pr19
 
 import android.content.ContentValues

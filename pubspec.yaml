@@ -22,7 +22,8 @@ dependencies:
   # File & Path Utilities
   file_picker: ^8.0.0
   excel: ^4.0.0
-  syncfusion_flutter_pdf: ^26.1.35 # أو أي مكتبة قراءة نص من pdfurl_launcher: ^6.2.5
+  syncfusion_flutter_pdf: ^33.2.13 # 👈 تم تحديث الإصدار لتجنب التعارض مع intl
+  url_launcher: ^6.2.5              # 👈 تم فصل السطر بشكل صحيح
   path_provider: ^2.1.2
   path: ^1.8.3
 
@@ -35,7 +36,7 @@ dependencies:
   # Notifications & Telephony
   flutter_local_notifications: ^17.0.0
   flutter_notification_listener: ^1.4.0
-  another_telephony: ^0.4.0 # يمكن الاستغناء عنها إن كنت تعتمد كلياً على Native MethodChannel للإرسال
+  another_telephony: ^0.4.0
 
 dev_dependencies:
   flutter_test:

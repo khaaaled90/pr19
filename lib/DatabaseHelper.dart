@@ -262,6 +262,17 @@ class DatabaseHelper {
     if (oldVersion < 13) {
       await db.execute("ALTER TABLE $tableKeywords ADD COLUMN price REAL DEFAULT 0.0;");
       await db.execute("ALTER TABLE $tableReplyLog ADD COLUMN price REAL DEFAULT 0.0;");
+      
+      // 👈 إضافة إنشاء جدول المستثنين في حال الترقية
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $tableExceptedCustomers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          phone TEXT NOT NULL UNIQUE,
+          name TEXT,
+          notes TEXT,
+          created_at INTEGER NOT NULL
+        )
+      ''');    
     }
 
     await _createIndexes(db);

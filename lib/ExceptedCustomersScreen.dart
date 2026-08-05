@@ -30,22 +30,32 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
   }
 
   // ==========================================
-  // 1. جلب البيانات والتصفية
+  // 1. جلب البيانات والتصفية (مع حماية إيقاف التحميل)
   // ==========================================
   Future<void> _loadCustomers() async {
     setState(() => _isLoading = true);
-    final db = await _dbHelper.database;
-    final data = await db.query(
-      DatabaseHelper.tableExceptedCustomers,
-      orderBy: 'id DESC',
-    );
+    try {
+      final db = await _dbHelper.database;
+      final data = await db.query(
+        DatabaseHelper.tableExceptedCustomers,
+        orderBy: 'id DESC',
+      );
 
-    if (mounted) {
-      setState(() {
-        _allCustomers = data;
-        _isLoading = false;
-      });
-      _filterCustomers(_searchController.text);
+      if (mounted) {
+        setState(() {
+          _allCustomers = data;
+        });
+        _filterCustomers(_searchController.text);
+      }
+    } catch (e) {
+      debugPrint('Error loading excepted customers: $e');
+      if (mounted) {
+        _showSnackBar('حدث خطأ أثناء تحميل البيانات: $e', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -73,7 +83,7 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     final phoneController =
-        TextEditingController(text: isEdit ? customerData['phone'] : '');
+        TextEditingController(text: isEdit ? (customerData['phone'] ?? '') : '');
     final nameController =
         TextEditingController(text: isEdit ? (customerData['name'] ?? '') : '');
     final notesController =
@@ -112,7 +122,6 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 8),
-                // رقم الهاتف
                 TextField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
@@ -124,8 +133,6 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-
-                // الاسم (اختياري)
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
@@ -136,8 +143,6 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-
-                // سبب الاستثناء / ملاحظات
                 TextField(
                   controller: notesController,
                   maxLines: 2,
@@ -167,46 +172,57 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              
               onPressed: () async {
                 final phone = phoneController.text.trim();
                 final name = nameController.text.trim();
                 final notes = notesController.text.trim();
 
                 if (phone.isEmpty) {
-                  _showSnackBar('الرجاء إدخال رقم الهاتف', isError: true);
-                  return;
+                    _showSnackBar('الرجاء إدخال رقم الهاتف', isError: true);
+                    return;
                 }
 
-                final db = await _dbHelper.database;
                 try {
-                  if (isEdit) {
+                    if (isEdit) {
+                    final db = await _dbHelper.database;
                     await db.update(
-                      DatabaseHelper.tableExceptedCustomers,
-                      {
+                        DatabaseHelper.tableExceptedCustomers,
+                        {
                         'phone': phone,
                         'name': name,
                         'notes': notes,
-                      },
-                      where: 'id = ?',
-                      whereArgs: [customerData['id']],
+                        },
+                        where: 'id = ?',
+                        whereArgs: [customerData['id']],
                     );
-                    _showSnackBar('تم تعديل بيانات العميل بنجاح');
-                  } else {
-                    await db.insert(
-                      DatabaseHelper.tableExceptedCustomers,
-                      {
-                        'phone': phone,
-                        'name': name,
-                        'notes': notes,
-                        'created_at': DateTime.now().millisecondsSinceEpoch,
-                      },
+                    if (mounted) _showSnackBar('تم تعديل بيانات العميل بنجاح');
+                    } else {
+                    // 1. فحص هل الرقم موجود مسبقاً باستعمال الدالة الجاهزة
+                    final exists = await _dbHelper.isCustomerExcepted(phone);
+                    if (exists) {
+                        if (mounted) _showSnackBar('هذا الرقم موجود مسبقاً في القائمة', isError: true);
+                        return;
+                    }
+
+                    // 2. استخدام الدالة الجاهزة للحفظ بالصيغة الصحيحة (INTEGER)
+                    await _dbHelper.addExceptedCustomer(
+                        phone: phone,
+                        name: name.isEmpty ? null : name,
+                        notes: notes.isEmpty ? null : notes,
                     );
-                    _showSnackBar('تمت إضافة العميل إلى قائمة الاستثناء');
-                  }
-                  Navigator.pop(ctx);
-                  _loadCustomers();
+                    if (mounted) _showSnackBar('تمت إضافة العميل إلى قائمة الاستثناء');
+                    }
+
+                    if (mounted) {
+                    Navigator.pop(ctx);
+                    _loadCustomers();
+                    }
                 } catch (e) {
-                  _showSnackBar('هذا الرقم موجود مسبقاً في القائمة', isError: true);
+                    debugPrint('Error inserting/updating excepted customer: $e');
+                    if (mounted) {
+                    _showSnackBar('فشل عملية الحفظ: $e', isError: true);
+                    }
                 }
               },
             ),
@@ -234,7 +250,7 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
             ],
           ),
           content: Text(
-              'هل تريد إزالة العميل "${customer['name']?.isNotEmpty == true ? customer['name'] : customer['phone']}" وإعادة السماح بإرسال القسائم له؟'),
+              'هل تريد إزالة العميل "${customer['name']?.toString().isNotEmpty == true ? customer['name'] : customer['phone']}" وإعادة السماح بإرسال القسائم له؟'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -247,15 +263,21 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () async {
-                final db = await _dbHelper.database;
-                await db.delete(
-                  DatabaseHelper.tableExceptedCustomers,
-                  where: 'id = ?',
-                  whereArgs: [customer['id']],
-                );
-                Navigator.pop(ctx);
-                _showSnackBar('تم إزالة العميل من قائمة الاستثناء');
-                _loadCustomers();
+                try {
+                  final db = await _dbHelper.database;
+                  await db.delete(
+                    DatabaseHelper.tableExceptedCustomers,
+                    where: 'id = ?',
+                    whereArgs: [customer['id']],
+                  );
+                  if (mounted) {
+                    Navigator.pop(ctx);
+                    _showSnackBar('تم إزالة العميل من قائمة الاستثناء');
+                    _loadCustomers();
+                  }
+                } catch (e) {
+                  debugPrint('Delete error: $e');
+                }
               },
               child: const Text('حذف'),
             ),
@@ -357,7 +379,7 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 2. بطاقة توضيحية أعلى الشاشة
+                        // 2. بطاقة توضيحية
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -443,7 +465,7 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
                                         ),
                                       ),
                                       title: Text(
-                                        customer['name']?.isNotEmpty == true
+                                        customer['name']?.toString().isNotEmpty == true
                                             ? customer['name']
                                             : customer['phone'],
                                         style: const TextStyle(
@@ -454,7 +476,7 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
                                       subtitle: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          if (customer['name']?.isNotEmpty == true)
+                                          if (customer['name']?.toString().isNotEmpty == true)
                                             Text(
                                               customer['phone'],
                                               style: TextStyle(
@@ -462,7 +484,7 @@ class _ExceptedCustomersScreenState extends State<ExceptedCustomersScreen> {
                                                 fontSize: 13,
                                               ),
                                             ),
-                                          if (customer['notes']?.isNotEmpty == true)
+                                          if (customer['notes']?.toString().isNotEmpty == true)
                                             Padding(
                                               padding: const EdgeInsets.only(top: 2.0),
                                               child: Text(

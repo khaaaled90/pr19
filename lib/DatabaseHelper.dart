@@ -18,6 +18,7 @@ class DatabaseHelper {
   static const String tableCustomerVouchersCount = "customer_vouchers_count";
   static const String tableCustomers = "customers";
   static const String tableClientIdentifiers = "client_identifiers";
+  static const String tableExceptedCustomers = 'excepted_customers';
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -170,6 +171,16 @@ class DatabaseHelper {
         identifier TEXT NOT NULL UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (client_id) REFERENCES $tableCustomers (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE $tableExceptedCustomers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        phone TEXT NOT NULL UNIQUE,
+        name TEXT,
+        notes TEXT,
+        created_at INTEGER NOT NULL
       )
     ''');
 
@@ -720,12 +731,54 @@ class DatabaseHelper {
     return result;
   }
 
+  // التحقق هل الرقم مستثنى
+  Future<bool> isCustomerExcepted(String phone) async {
+    final db = await database;
+    final res = await db.query(
+      tableExceptedCustomers,
+      where: 'phone = ?',
+      whereArgs: [phone],
+      limit: 1,
+    );
+    return res.isNotEmpty;
+  }
+
+  // إضافة عميل لقائمة الاستثناءات
+  Future<int> addExceptedCustomer({
+    required String phone,
+    String? name,
+    String? notes,
+  }) async {
+    final db = await database;
+    return await db.insert(
+      tableExceptedCustomers,
+      {
+        'phone': phone,
+        'name': name,
+        'notes': notes,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // حذف عميل من قائمة الاستثناءات
+  Future<int> removeExceptedCustomer(String phone) async {
+    final db = await database;
+    return await db.delete(
+      tableExceptedCustomers,
+      where: 'phone = ?',
+      whereArgs: [phone],
+    );
+  }
+
   Future<bool> resolvePendingLog({
     required int logId,
     required String customerPhone,
     required String customerName,
     String? walletNumber,
     required String voucherCode,
+    double price = 0.0, // 👈 تم إضافة بارامتر السعر هنا
   }) async {
     final db = await database;
 
@@ -747,6 +800,7 @@ class DatabaseHelper {
         'sender_name': customerName,
         'status': 'sent_manual',
         'sent_number': voucherCode,
+        'price': price, // 👈 تم إضافة تحديث السعر هنا
       },
       where: 'id = ?',
       whereArgs: [logId],

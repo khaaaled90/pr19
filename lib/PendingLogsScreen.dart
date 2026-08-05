@@ -117,6 +117,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
               customerPhone: matchedPhone,
               customerName: matchedName,
               voucherCode: voucherCode,
+              price: (log['price'] as num?)?.toDouble() ?? 0.0, // 👈 إضافة السعر هنا
             );
 
             String? extractedBalance = _extractBalanceFromBody(messageBody);
@@ -311,6 +312,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                     customerPhone: phone,
                     customerName: name,
                     voucherCode: voucherCode,
+                    price: (pendingLog['price'] as num?)?.toDouble() ?? 0.0, // 👈 إضافة السعر هنا
                   );
 
                   // 4. إعداد وإرسال الـ SMS

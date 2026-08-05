@@ -12,6 +12,7 @@ import 'allowed_senders_screen.dart';
 import 'sales_screen.dart';
 import 'backup_screen.dart';
 import 'archive_screen.dart';
+import 'ExceptedCustomersScreen.dart';
 import 'service/native_service_controller.dart';
 
 
@@ -1019,9 +1020,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         /*_buildMenuItem('المبيعات', Icons.insights_rounded,
                             const Color(0xFF6366F1), cardBg, textColor, () async {
                           await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const SalesScreen()));
+                              MaterialPageRoute(builder: (_) => const ExceptedCustomersScreen()));
                           _loadStats();
-                        }),*/
+                        }), 
+                        */
+                        _buildMenuItem('الاستثنائات', Icons.person_off_rounded,
+                            const Color(0xFF6366F1), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const ExceptedCustomersScreen()));
+                          _loadStats();
+                        }),
                         _buildMenuItem('العمليات', Icons.pending_actions_rounded,
                             const Color(0xFFEC4899), cardBg, textColor, () async {
                           await Navigator.push(context,

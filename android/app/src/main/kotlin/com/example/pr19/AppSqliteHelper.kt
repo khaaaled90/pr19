@@ -140,7 +140,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
         createIndexes(db)
     }
-
+    
     fun getAllClientIdentifiers(): Map<String, String> {
         Log.e("CLIENT_CACHE", "========== getAllClientIdentifiers START ==========")
 
@@ -496,6 +496,52 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         }
         cursor.close()
         return value
+    }
+    fun resolvePendingLog(
+        logId: Long,
+        customerPhone: String,
+        customerName: String,
+        voucherCode: String,
+        price: Double = 0.0
+    ): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+        return try {
+            val poolValues = ContentValues().apply {
+                put("status", "used")
+                put("assigned_to", customerPhone)
+                put("assigned_at", System.currentTimeMillis())
+            }
+            db.update("numbers_pool", poolValues, "number_code = ?", arrayOf(voucherCode))
+
+            val logValues = ContentValues().apply {
+                put("sender", customerPhone)
+                put("sender_name", customerName)
+                put("status", "sent_manual")
+                put("sent_number", voucherCode)
+                put("price", price) // 👈 حفظ السعر
+            }
+            db.update("reply_log", logValues, "id = ?", arrayOf(logId.toString()))
+
+            db.setTransactionSuccessful()
+            true
+        } catch (e: Exception) {
+            Log.e("SQLite", "Error resolving pending log: ${e.message}")
+            false
+        } finally {
+            db.endTransaction()
+        }
+    }
+    
+    fun isSenderIgnored(phone: String): Boolean {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT 1 FROM excepted_customers WHERE phone = ? LIMIT 1",
+            arrayOf(phone)
+        )
+        val exists = cursor.count > 0
+        cursor.close()
+        return exists
     }
 }
 //******************************************************

@@ -134,6 +134,12 @@ object ProcessMessageProcessor {
             }
         }
 
+        // 👈 🎯 هنا موقع الإضافة بالضبط (بعد اكتمال البحث عن الرقم)
+        if (targetCustomerPhone.isNotBlank() && dbHelper.isSenderIgnored(targetCustomerPhone)) {
+            Log.i("PROCESSOR", "تم إهمال الرسالة: العميل $targetCustomerPhone موجود في قائمة الاستثناءات.")
+            return
+        }
+
         // ⭐ 6. فحص العميل المعلق (إذا لم يتعرف النظام على هاتف أو اسم)
         if (targetCustomerPhone.isNull_Or_Empty_Or_Invalid()) {
             val displayName = extractedName ?: "معلق (بحاجة لربط)"
@@ -334,6 +340,13 @@ object ProcessMessageProcessor {
 
         // 1. فحص تفعيل الخدمة من الكاش
         if (!AppCache.isServiceEnabled(dbHelper)) return
+
+        // 🎯 1.5. فحص قائمة العملاء المستثنين (إذا كان الرقم مستثنى يتم التجاهل فوراً)
+        val checkPhone = if (customerPhoneInput.isNotBlank()) customerPhoneInput else rawSender
+        if (dbHelper.isSenderIgnored(checkPhone)) {
+            Log.i("PROCESSOR", "تم إهمال الرسالة: الرقم $checkPhone موجود في قائمة العملاء المستثنين.")
+            return
+        }
 
         // 2. فحص المرسل المسموح به من الكاش
         val allowAllSenders = AppCache.isAllowAllSenders(dbHelper)
@@ -634,6 +647,8 @@ object ProcessMessageProcessor {
         return digitsOnly.length < 8
     }
 }
+
+//************************************/
 /*package com.example.pr19
 
 import android.content.Context

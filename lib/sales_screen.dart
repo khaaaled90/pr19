@@ -123,6 +123,21 @@ class _SalesScreenState extends State<SalesScreen> {
     } else {
       // اختيار "الكل" (0): جلب تاريخ أقدم حركة مسجلة في الأرشيف
       DateTime startDate;
+
+      if (archive.isNotEmpty) {
+        // البحث عن أصغر timestamp في الأرشيف لضمان الدقة
+        final int oldestTs = archive
+            .map((e) => (e['timestamp'] as num?)?.toInt() ?? 0)
+            .where((ts) => ts > 0)
+            .fold(DateTime.now().millisecondsSinceEpoch, (prev, element) => element < prev ? element : prev);
+            
+        final oldestDate = DateTime.fromMillisecondsSinceEpoch(oldestTs);
+        startDate = DateTime(oldestDate.year, oldestDate.month, oldestDate.day);
+      } else {
+        startDate = DateTime(now.year, now.month, now.day);
+      }
+      /*// اختيار "الكل" (0): جلب تاريخ أقدم حركة مسجلة في الأرشيف
+      DateTime startDate;
       
       if (archive.isNotEmpty) {
         // ✅ الاستفادة من archive.last لأن الترتيب تنازلي (DESC) فيكون الأخير هو الأقدم
@@ -132,7 +147,7 @@ class _SalesScreenState extends State<SalesScreen> {
       } else {
         startDate = DateTime(now.year, now.month, now.day);
       }
-
+      */
       // 1. حساب الفرق بالأيام بين أقدم حركة واليوم
       final DateTime endDate = DateTime(now.year, now.month, now.day);
       final int calculatedDays = endDate.difference(startDate).inDays + 1;

@@ -121,11 +121,11 @@ class _SalesScreenState extends State<SalesScreen> {
         daysList.add({'label': label, 'key': key});
       }
     } else {
-      // اختيار "الكل" (0): حساب جميع الأيام بين أول حركة واليوم
+      // اختيار "الكل" (0): جلب تاريخ أقدم حركة مسجلة في الأرشيف
       DateTime startDate;
       
       if (archive.isNotEmpty) {
-        // جلب تاريخ أول عملية (أقدم تاريخ)
+        // ✅ الاستفادة من archive.last لأن الترتيب تنازلي (DESC) فيكون الأخير هو الأقدم
         final int oldestTs = archive.last['timestamp'] ?? now.millisecondsSinceEpoch;
         final oldestDate = DateTime.fromMillisecondsSinceEpoch(oldestTs);
         startDate = DateTime(oldestDate.year, oldestDate.month, oldestDate.day);
@@ -133,10 +133,15 @@ class _SalesScreenState extends State<SalesScreen> {
         startDate = DateTime(now.year, now.month, now.day);
       }
 
-      // حساب الفرق بالأيام بين أقدم حركة واليوم
+      // 1. حساب الفرق بالأيام بين أقدم حركة واليوم
       final DateTime endDate = DateTime(now.year, now.month, now.day);
-      final int totalDays = endDate.difference(startDate).inDays + 1;
+      final int calculatedDays = endDate.difference(startDate).inDays + 1;
 
+      // 2. 🛡️ حد الأمان: يمنع توليد أكثر من 90 يوماً لحماية سلاسة الشاشة
+      const int maxDaysLimit = 90; // يمكنك تغيير الرقم إلى 60 أو 180 حسب رغبتك
+      final int totalDays = calculatedDays.clamp(1, maxDaysLimit);
+
+      // 3. التكرار بناءً على العدد الآمن
       for (int i = 0; i < totalDays; i++) {
         final d = endDate.subtract(Duration(days: i));
         final label = "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}";

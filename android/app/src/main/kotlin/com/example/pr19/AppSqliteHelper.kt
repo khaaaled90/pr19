@@ -10,7 +10,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     companion object {
         private const val DATABASE_NAME = "smsqaiddb.db"
-        private const val DATABASE_VERSION = 13 // ✅ رفع الإصدار إلى 13 لإضافة price
+        private const val DATABASE_VERSION = 14 // ✅ رفع الإصدار إلى 13 لإضافة price
 
         @Volatile
         private var instance: AppSqliteHelper? = null
@@ -135,6 +135,23 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 db?.execSQL("ALTER TABLE reply_log ADD COLUMN price REAL DEFAULT 0.0;")
             } catch (e: Exception) {
                 Log.e("SQLite", "Error upgrading v13: ${e.message}")
+            }
+        }
+
+        // ✅ الترقية للـ Version 14: إضافة جدول العملاء المستثنين
+        if (oldVersion < 14) {
+            try {
+                db?.execSQL("""
+                    CREATE TABLE IF NOT EXISTS excepted_customers (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        phone TEXT NOT NULL UNIQUE,
+                        name TEXT,
+                        notes TEXT,
+                        created_at INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            } catch (e: Exception) {
+                Log.e("SQLite", "Error upgrading v14: ${e.message}")
             }
         }
 
@@ -532,7 +549,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             db.endTransaction()
         }
     }
-    
+
     fun isSenderIgnored(phone: String): Boolean {
         val db = readableDatabase
         val cursor = db.rawQuery(

@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
-  static const int _databaseVersion = 13; // ✅ تم الرفع إلى 13 لدعم حقل price
+  static const int _databaseVersion = 14; // ✅ تم الرفع إلى 13 لدعم حقل price
   static const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/cache');
 
   static const String tableKeywords = "keywords";
@@ -263,7 +263,10 @@ class DatabaseHelper {
       await db.execute("ALTER TABLE $tableKeywords ADD COLUMN price REAL DEFAULT 0.0;");
       await db.execute("ALTER TABLE $tableReplyLog ADD COLUMN price REAL DEFAULT 0.0;");
       
-      // 👈 إضافة إنشاء جدول المستثنين في حال الترقية
+          
+    }
+
+    if (oldVersion < 14) {
       await db.execute('''
         CREATE TABLE IF NOT EXISTS $tableExceptedCustomers (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -272,7 +275,7 @@ class DatabaseHelper {
           notes TEXT,
           created_at INTEGER NOT NULL
         )
-      ''');    
+      ''');
     }
 
     await _createIndexes(db);

@@ -172,6 +172,50 @@ class _HomeScreenState extends State<HomeScreen> {
       final repliesCount = Sqflite.firstIntValue(
           await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ?? 0;
 
+      // 2. حساب إجمالي مبيعات اليوم مباشرة من SQL (مثل تقرير المبيعات)
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
+
+      final List<Map<String, dynamic>> salesResult = await dbInstance.rawQuery('''
+        SELECT COALESCE(SUM(price), 0.0) as total_sales
+        FROM reply_log
+        WHERE is_deleted = 0
+          AND status IN ('sent', 'sent_reward', 'sent_manual')
+          AND (timestamp BETWEEN ? AND ?)
+      ''', [startOfDay, endOfDay]);
+
+      // قراءة القيمة كـ double ثم تحويلها إلى num/int
+      final double totalSalesDouble = (salesResult.first['total_sales'] as num?)?.toDouble() ?? 0.0;
+
+      _processChartData(keywords, numbers, totalSalesDouble.toInt());
+
+      if (mounted) {
+        setState(() {
+          statReplies = repliesCount;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء جلب البيانات: $e");
+      if (mounted) _loadDummyData();
+    }
+  }
+  /*Future<void> _loadStats() async {
+    if (!mounted) return;
+    setState(() => isLoading = true);
+
+    try {
+      final db = DatabaseHelper.instance;
+      final dbInstance = await db.database;
+
+      final keywords = await db.getAllKeywords();
+      final numbers = await db.getAllNumbers();
+
+      // 1. حساب إجمالي الردود
+      final repliesCount = Sqflite.firstIntValue(
+          await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ?? 0;
+
       // 2. 🎯 جلب حقل price المالي لسجلات مبيعات اليوم من جدول reply_log
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
@@ -207,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint("خطأ أثناء جلب البيانات: $e");
       if (mounted) _loadDummyData();
     }
-  }
+  }*/
   /*Future<void> _loadStats() async {
     if (!mounted) return;
     setState(() => isLoading = true);

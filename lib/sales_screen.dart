@@ -121,6 +121,48 @@ class _SalesScreenState extends State<SalesScreen> {
         daysList.add({'label': label, 'key': key});
       }
     } else {
+      // اختيار "الكل" (0): توليد الأيام بناءً على الأيام الفعلية الموجودة في dataByDay
+      if (dataByDay.isNotEmpty) {
+        // ترتيب المفاتيح (YYYY-MM-DD) تنازلياً
+        final sortedKeys = dataByDay.keys.toList()..sort((a, b) => b.compareTo(a));
+        
+        // أقدم تاريخ موجود في البيانات
+        final oldestKeyParts = sortedKeys.last.split('-');
+        final startDate = DateTime(
+          int.parse(oldestKeyParts[0]),
+          int.parse(oldestKeyParts[1]),
+          int.parse(oldestKeyParts[2]),
+        );
+
+        final DateTime endDate = DateTime(now.year, now.month, now.day);
+        final int totalDays = endDate.difference(startDate).inDays + 1;
+
+        for (int i = 0; i < totalDays; i++) {
+          final d = endDate.subtract(Duration(days: i));
+          final label = "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}";
+          final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+          daysList.add({'label': label, 'key': key});
+        }
+      } else {
+        // في حال عدم وجود بيانات إطلاقاً
+        final label = "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}";
+        final key = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+        daysList.add({'label': label, 'key': key});
+      }
+    }
+    /*// 5. توليد الأيام للعرض
+    final List<Map<String, String>> daysList = [];
+    final now = DateTime.now();
+
+    if (_selectedDays > 0) {
+      // نطاق محدد (7 أيام، 30 يوم...)
+      for (int i = 0; i < _selectedDays; i++) {
+        final d = now.subtract(Duration(days: i));
+        final label = "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}";
+        final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+        daysList.add({'label': label, 'key': key});
+      }
+    } else {
       // اختيار "الكل" (0): جلب تاريخ أقدم حركة مسجلة في الأرشيف
       DateTime startDate;
 
@@ -136,6 +178,7 @@ class _SalesScreenState extends State<SalesScreen> {
       } else {
         startDate = DateTime(now.year, now.month, now.day);
       }
+      */
       /*// اختيار "الكل" (0): جلب تاريخ أقدم حركة مسجلة في الأرشيف
       DateTime startDate;
       

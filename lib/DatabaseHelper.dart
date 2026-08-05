@@ -262,8 +262,6 @@ class DatabaseHelper {
     if (oldVersion < 13) {
       await db.execute("ALTER TABLE $tableKeywords ADD COLUMN price REAL DEFAULT 0.0;");
       await db.execute("ALTER TABLE $tableReplyLog ADD COLUMN price REAL DEFAULT 0.0;");
-      
-          
     }
 
     if (oldVersion < 14) {

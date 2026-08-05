@@ -49,14 +49,14 @@ class _SalesScreenState extends State<SalesScreen> {
     if (cutoffTimestamp != null) {
       archive = await db.query(
         DatabaseHelper.tableReplyLog,
-        where: 'timestamp >= ? AND (is_deleted IS NULL OR is_deleted = 0)',
+        where: 'timestamp >= ? AND (is_deleted IS NULL OR is_deleted = 0) AND status IN (\'sent\', \'sent_reward\', \'sent_manual\')',
         whereArgs: [cutoffTimestamp],
         orderBy: 'timestamp DESC',
       );
     } else {
       archive = await db.query(
         DatabaseHelper.tableReplyLog,
-        where: 'is_deleted IS NULL OR is_deleted = 0',
+        where: 'is_deleted IS NULL OR is_deleted = 0 AND status IN (\'sent\', \'sent_reward\', \'sent_manual\')',
         orderBy: 'timestamp DESC',
       );
     }

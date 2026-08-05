@@ -355,8 +355,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ListTile(
                         leading: Icon(Icons.person, color: theme.colorScheme.primary),
                         title: const Text('الدعم الفني'),
-                        subtitle: const Text('773779585 (اضغط للنسخ)'),
-                        onTap: () => _copyToClipboard('773779585', 'رقم الدعم الفني'),
+                        subtitle: const Text('734542531 (اضغط للنسخ)'),
+                        onTap: () => _copyToClipboard('734542531', 'رقم الدعم الفني'),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8.0),
@@ -366,7 +366,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF25D366)),
-                                onPressed: () => _openWhatsApp('773779585'),
+                                onPressed: () => _openWhatsApp('734542531'),
                                 icon: const Icon(Icons.chat, color: Colors.white, size: 18),
                                 label: const Text('واتساب',
                                     style: TextStyle(color: Colors.white)),
@@ -377,7 +377,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF3498DB)),
-                                onPressed: () => _makePhoneCall('773779585'),
+                                onPressed: () => _makePhoneCall('734542531'),
                                 icon: const Icon(Icons.phone, color: Colors.white, size: 18),
                                 label: const Text('اتصال',
                                     style: TextStyle(color: Colors.white)),
@@ -896,8 +896,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ListTile(
                         leading: const Icon(Icons.person, color: Color(0xFF3498DB)),
                         title: const Text('الدعم الفني'),
-                        subtitle: const Text('773779585 (اضغط للنسخ)'),
-                        onTap: () => _copyToClipboard('773779585', 'رقم الدعم الفني'),
+                        subtitle: const Text('734542531 (اضغط للنسخ)'),
+                        onTap: () => _copyToClipboard('734542531', 'رقم الدعم الفني'),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8.0),
@@ -907,7 +907,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF25D366)),
-                                onPressed: () => _openWhatsApp('773779585'),
+                                onPressed: () => _openWhatsApp('734542531'),
                                 icon: const Icon(Icons.chat, color: Colors.white, size: 18),
                                 label: const Text('واتساب',
                                     style: TextStyle(color: Colors.white)),
@@ -918,7 +918,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF3498DB)),
-                                onPressed: () => _makePhoneCall('773779585'),
+                                onPressed: () => _makePhoneCall('734542531'),
                                 icon: const Icon(Icons.phone, color: Colors.white, size: 18),
                                 label: const Text('اتصال',
                                     style: TextStyle(color: Colors.white)),

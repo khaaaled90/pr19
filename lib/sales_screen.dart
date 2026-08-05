@@ -61,12 +61,11 @@ class _SalesScreenState extends State<SalesScreen> {
       );
     }
 
-    // 4. تجميع البيانات وحساب المبيعات بالسعر الحقيقي (r['price'])
+    // 4. تجميع البيانات وحساب المبيعات بالسعر الحقيقي
     final Set<String> foundKwNames = {};
     final Map<String, Map<String, int>> dataByDay = {};
-    final Map<String, double> priceMap = {}; // خريطة الاحتفاظ بسعر كل باقة
+    final Map<String, double> priceMap = {};
 
-    // حفظ أسعار الباقات المعروفة أولاً
     for (var k in allKeywords) {
       String name = k['keyword'].toString().trim();
       double p = (k['price'] as num?)?.toDouble() ?? 0.0;
@@ -79,7 +78,6 @@ class _SalesScreenState extends State<SalesScreen> {
 
       foundKwNames.add(kw);
 
-      // إذا وُجد سعر محدد في الأرشيف مباشرة نعتصم به، وإلا نستخدم سعر الباقة من الجدول
       if (!priceMap.containsKey(kw) || (row['price'] != null && (row['price'] as num) > 0)) {
         priceMap[kw] = (row['price'] as num?)?.toDouble() ?? priceMap[kw] ?? 0.0;
       }
@@ -108,7 +106,7 @@ class _SalesScreenState extends State<SalesScreen> {
       };
     }).toList();
 
-    // 5. توليد الأيام للعرض
+    // 5. توليد الأيام للعرض (تم الغاء الـ 90 يوم وتصحيح الهيكل)
     final List<Map<String, String>> daysList = [];
     final now = DateTime.now();
 
@@ -121,12 +119,10 @@ class _SalesScreenState extends State<SalesScreen> {
         daysList.add({'label': label, 'key': key});
       }
     } else {
-      // اختيار "الكل" (0): توليد الأيام بناءً على الأيام الفعلية الموجودة في dataByDay
+      // اختيار "الكل" (0): توليد جميع الأيام من أقدم حركة حقيقية
       if (dataByDay.isNotEmpty) {
-        // ترتيب المفاتيح (YYYY-MM-DD) تنازلياً
         final sortedKeys = dataByDay.keys.toList()..sort((a, b) => b.compareTo(a));
         
-        // أقدم تاريخ موجود في البيانات
         final oldestKeyParts = sortedKeys.last.split('-');
         final startDate = DateTime(
           int.parse(oldestKeyParts[0]),
@@ -144,85 +140,12 @@ class _SalesScreenState extends State<SalesScreen> {
           daysList.add({'label': label, 'key': key});
         }
       } else {
-        // في حال عدم وجود بيانات إطلاقاً
         final label = "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}";
         final key = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
         daysList.add({'label': label, 'key': key});
       }
     }
-    /*// 5. توليد الأيام للعرض
-    final List<Map<String, String>> daysList = [];
-    final now = DateTime.now();
 
-    if (_selectedDays > 0) {
-      // نطاق محدد (7 أيام، 30 يوم...)
-      for (int i = 0; i < _selectedDays; i++) {
-        final d = now.subtract(Duration(days: i));
-        final label = "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}";
-        final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-        daysList.add({'label': label, 'key': key});
-      }
-    } else {
-      // اختيار "الكل" (0): جلب تاريخ أقدم حركة مسجلة في الأرشيف
-      DateTime startDate;
-
-      if (archive.isNotEmpty) {
-        // البحث عن أصغر timestamp في الأرشيف لضمان الدقة
-        final int oldestTs = archive
-            .map((e) => (e['timestamp'] as num?)?.toInt() ?? 0)
-            .where((ts) => ts > 0)
-            .fold(DateTime.now().millisecondsSinceEpoch, (prev, element) => element < prev ? element : prev);
-            
-        final oldestDate = DateTime.fromMillisecondsSinceEpoch(oldestTs);
-        startDate = DateTime(oldestDate.year, oldestDate.month, oldestDate.day);
-      } else {
-        startDate = DateTime(now.year, now.month, now.day);
-      }
-      */
-      /*// اختيار "الكل" (0): جلب تاريخ أقدم حركة مسجلة في الأرشيف
-      DateTime startDate;
-      
-      if (archive.isNotEmpty) {
-        // ✅ الاستفادة من archive.last لأن الترتيب تنازلي (DESC) فيكون الأخير هو الأقدم
-        final int oldestTs = archive.last['timestamp'] ?? now.millisecondsSinceEpoch;
-        final oldestDate = DateTime.fromMillisecondsSinceEpoch(oldestTs);
-        startDate = DateTime(oldestDate.year, oldestDate.month, oldestDate.day);
-      } else {
-        startDate = DateTime(now.year, now.month, now.day);
-      }
-      */
-      // 1. حساب الفرق بالأيام بين أقدم حركة واليوم
-      final DateTime endDate = DateTime(now.year, now.month, now.day);
-      final int calculatedDays = endDate.difference(startDate).inDays + 1;
-
-      // 2. 🛡️ حد الأمان: يمنع توليد أكثر من 90 يوماً لحماية سلاسة الشاشة
-      const int maxDaysLimit = 90; // يمكنك تغيير الرقم إلى 60 أو 180 حسب رغبتك
-      final int totalDays = calculatedDays.clamp(1, maxDaysLimit);
-
-      // 3. التكرار بناءً على العدد الآمن
-      for (int i = 0; i < totalDays; i++) {
-        final d = endDate.subtract(Duration(days: i));
-        final label = "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}";
-        final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-        daysList.add({'label': label, 'key': key});
-      }
-    }
-    /*// 5. توليد الأيام للعرض
-    final List<Map<String, String>> daysList = [];
-    final int totalDaysToGenerate = _selectedDays > 0
-        ? _selectedDays
-        : (dataByDay.keys.isNotEmpty ? dataByDay.keys.length : 7);
-
-    final now = DateTime.now();
-    for (int i = 0; i < totalDaysToGenerate; i++) {
-      final d = now.subtract(Duration(days: i));
-      final label =
-          "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}";
-      final key =
-          "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-      daysList.add({'label': label, 'key': key});
-    }
-    */
     // 6. حساب المجاميع اليومية والكلية
     int cardsSum = 0;
     double amountSum = 0.0;
@@ -279,7 +202,7 @@ class _SalesScreenState extends State<SalesScreen> {
       _isLoading = false;
     });
   }
-
+  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

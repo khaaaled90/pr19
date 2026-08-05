@@ -56,7 +56,7 @@ class _SalesScreenState extends State<SalesScreen> {
     } else {
       archive = await db.query(
         DatabaseHelper.tableReplyLog,
-        where: 'is_deleted IS NULL OR is_deleted = 0 AND status IN (\'sent\', \'sent_reward\', \'sent_manual\')',
+        where: '(is_deleted IS NULL OR is_deleted = 0) AND status IN (\'sent\', \'sent_reward\', \'sent_manual\')',
         orderBy: 'timestamp DESC',
       );
     }

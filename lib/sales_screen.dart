@@ -110,6 +110,42 @@ class _SalesScreenState extends State<SalesScreen> {
 
     // 5. توليد الأيام للعرض
     final List<Map<String, String>> daysList = [];
+    final now = DateTime.now();
+
+    if (_selectedDays > 0) {
+      // نطاق محدد (7 أيام، 30 يوم...)
+      for (int i = 0; i < _selectedDays; i++) {
+        final d = now.subtract(Duration(days: i));
+        final label = "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}";
+        final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+        daysList.add({'label': label, 'key': key});
+      }
+    } else {
+      // اختيار "الكل" (0): حساب جميع الأيام بين أول حركة واليوم
+      DateTime startDate;
+      
+      if (archive.isNotEmpty) {
+        // جلب تاريخ أول عملية (أقدم تاريخ)
+        final int oldestTs = archive.last['timestamp'] ?? now.millisecondsSinceEpoch;
+        final oldestDate = DateTime.fromMillisecondsSinceEpoch(oldestTs);
+        startDate = DateTime(oldestDate.year, oldestDate.month, oldestDate.day);
+      } else {
+        startDate = DateTime(now.year, now.month, now.day);
+      }
+
+      // حساب الفرق بالأيام بين أقدم حركة واليوم
+      final DateTime endDate = DateTime(now.year, now.month, now.day);
+      final int totalDays = endDate.difference(startDate).inDays + 1;
+
+      for (int i = 0; i < totalDays; i++) {
+        final d = endDate.subtract(Duration(days: i));
+        final label = "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}";
+        final key = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+        daysList.add({'label': label, 'key': key});
+      }
+    }
+    /*// 5. توليد الأيام للعرض
+    final List<Map<String, String>> daysList = [];
     final int totalDaysToGenerate = _selectedDays > 0
         ? _selectedDays
         : (dataByDay.keys.isNotEmpty ? dataByDay.keys.length : 7);
@@ -123,7 +159,7 @@ class _SalesScreenState extends State<SalesScreen> {
           "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
       daysList.add({'label': label, 'key': key});
     }
-
+    */
     // 6. حساب المجاميع اليومية والكلية
     int cardsSum = 0;
     double amountSum = 0.0;

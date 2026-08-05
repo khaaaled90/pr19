@@ -171,7 +171,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // 1. حساب إجمالي الردود
       final repliesCount = Sqflite.firstIntValue(
           await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ?? 0;
-
       // 2. حساب إجمالي مبيعات اليوم مباشرة من SQL (مثل تقرير المبيعات)
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;

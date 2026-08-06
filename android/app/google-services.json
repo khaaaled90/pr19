@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "188407086789",
+    "project_id": "voucherapplicense",
+    "storage_bucket": "voucherapplicense.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:188407086789:android:fdd3c2cc8fa39c3771baac",
+        "android_client_info": {
+          "package_name": "com.example.pr19"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChyVy2dHNnbz_BR7JWL-Zm3801a9v51Ik"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

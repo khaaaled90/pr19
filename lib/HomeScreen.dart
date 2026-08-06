@@ -135,11 +135,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _notificationEnabled = true;
 
   // 🟢 أضف هذه المتغيرات مع بقية متغيرات الحالة في الأعلى
-  /*bool isTrial = true;
+  bool isTrial = true;
   String deviceId = '';
   int remainingDays = 0;
   int remainingVouchers = 0;
-  String licenseType = 'تجريبي';*/
+  String licenseType = 'تجريبي';
   
   int statReplies = 0;
   int totalAvailable = 0;
@@ -171,6 +171,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final db = DatabaseHelper.instance;
       final dbInstance = await db.database;
+
+      // 🟢 أضف هذا السطر هنا ليتم تحديث بيانات الترخيص عند كل تنشيط
+      await _loadLicenseInfo(db);
 
       final keywords = await db.getAllKeywords();
       final numbers = await db.getAllNumbers();
@@ -560,6 +563,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 🟢 1. كارت تفاصيل الترخيص في البداية
+                    _buildLicenseCard(cardBg, textColor, isDark),
                     // 🌟 بطاقة حالة النظام العصرية (طراز محفظة رقمية)
                     Row(
                       children: [
@@ -1160,6 +1165,122 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildLicenseCard(Color cardBg, Color textColor, bool isDark) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isTrial 
+              ? Colors.amber.shade700.withOpacity(0.4) 
+              : Colors.blue.shade700.withOpacity(0.4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    isTrial ? Icons.timer_outlined : Icons.verified_user_rounded,
+                    color: isTrial ? Colors.amber.shade800 : Colors.blueAccent,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'معرف الجهاز: $deviceId',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isTrial 
+                      ? Colors.amber.withOpacity(0.15) 
+                      : Colors.green.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isTrial ? 'نسخة تجريبية' : 'ترخيص: $licenseType',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isTrial ? Colors.amber.shade900 : Colors.green.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (isTrial) ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      'الأيام المتبقية: ',
+                      style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.7)),
+                    ),
+                    Text(
+                      '$remainingDays يوم',
+                      style: const TextStyle(
+                        fontSize: 12, 
+                        fontWeight: FontWeight.bold, 
+                        color: Colors.redAccent
+                      ),
+                    ),
+                  ],
+                ),
+                Container(height: 14, width: 1, color: Colors.grey.withOpacity(0.3)),
+                Row(
+                  children: [
+                    const Icon(Icons.confirmation_number_outlined, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      'القسائم المتبقية: ',
+                      style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.7)),
+                    ),
+                    Text(
+                      '$remainingVouchers كرت',
+                      style: const TextStyle(
+                        fontSize: 12, 
+                        fontWeight: FontWeight.bold, 
+                        color: Color(0xFF10B981)
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildQuickStatCard(String title, String value, IconData icon, Color color, Color bg, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
@@ -1389,6 +1510,32 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
       return result ?? true;
     } catch (e) {
       return false;
+    }
+  }
+
+  // 🟢 دالة قراءة بيانات الترخيص والقسائم المتبقية
+  Future<void> _loadLicenseInfo(DatabaseHelper db) async {
+    try {
+      final devId = await db.getSetting('device_id', 'غير معروف');
+      final type = await db.getSetting('license_type', 'trial');
+      final daysStr = await db.getSetting('remaining_days', '0');
+
+      final dbInstance = await db.database;
+      final availVouchers = Sqflite.firstIntValue(
+        await dbInstance.rawQuery("SELECT COUNT(*) FROM numbers_pool WHERE status = 'available'")
+      ) ?? 0;
+
+      if (mounted) {
+        setState(() {
+          deviceId = devId;
+          isTrial = (type == 'trial');
+          licenseType = isTrial ? 'تجريبي' : (type == 'lifetime' ? 'دائم' : 'مدفوع');
+          remainingDays = int.tryParse(daysStr) ?? 0;
+          remainingVouchers = availVouchers;
+        });
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء قراءة بيانات الترخيص: $e");
     }
   }
 

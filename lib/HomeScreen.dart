@@ -173,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final dbInstance = await db.database;
 
       // 🟢 أضف هذا السطر هنا ليتم تحديث بيانات الترخيص عند كل تنشيط
-      await _loadLicenseInfo(db);
+      await _loadLicenseInfo();
 
       final keywords = await db.getAllKeywords();
       final numbers = await db.getAllNumbers();
@@ -211,208 +211,32 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _loadLicenseInfo(DatabaseHelper db) async {
+  Future<void> _loadLicenseInfo() async { // 👈 تم حذف المعامل db
     try {
-      final devId = await db.getSetting('device_id', 'غير معروف');
-      final type = await db.getSetting('license_type', 'trial');
-      final daysStr = await db.getSetting('remaining_days', '0');
-
-      final dbInstance = await db.database;
-      final availVouchers = Sqflite.firstIntValue(
-        await dbInstance.rawQuery("SELECT COUNT(*) FROM numbers_pool WHERE status = 'available'")
-      ) ?? 0;
+      // القراءة المباشرة من SecureStorageHelper باستخدام الدالة الجديدة
+      final info = await SecureStorageHelper.getLicenseDetailsForUI();
 
       if (mounted) {
         setState(() {
-          deviceId = devId;
-          isTrial = (type == 'trial');
-          licenseType = isTrial ? 'تجريبي' : (type == 'lifetime' ? 'دائم' : 'مدفوع');
-          remainingDays = int.tryParse(daysStr) ?? 0;
-          remainingVouchers = availVouchers;
+          deviceId = info['deviceId'];
+          isTrial = info['isTrial'];
+          
+          // تسمية نوع الترخيص بالعربية
+          final String rawType = info['planType'];
+          licenseType = isTrial 
+              ? 'تجريبي' 
+              : (rawType == 'lifetime' ? 'دائم' : 'مدفوع');
+              
+          remainingDays = info['remainingDays'];
+          
+          // القسائم/الرسائل المتبقية للترخيص (أو إظهار -1 إن كان غيراً محدود)
+          remainingVouchers = info['remainingVouchers'];
         });
       }
     } catch (e) {
-      debugPrint("خطأ أثناء قراءة بيانات الترخيص: $e");
+      debugPrint("خطأ أثناء قراءة بيانات الترخيص من SecureStorage: $e");
     }
   }
-
-  /*Future<void> _loadStats() async {
-    if (!mounted) return;
-    setState(() => isLoading = true);
-
-    try {
-      final db = DatabaseHelper.instance;
-      final dbInstance = await db.database;
-
-      final keywords = await db.getAllKeywords();
-      final numbers = await db.getAllNumbers();
-
-      // 1. حساب إجمالي الردود
-      final repliesCount = Sqflite.firstIntValue(
-          await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ?? 0;
-
-      // 2. 🎯 جلب حقل price المالي لسجلات مبيعات اليوم من جدول reply_log
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
-
-      final List<Map<String, dynamic>> todayLogs = await dbInstance.rawQuery('''
-        SELECT price 
-        FROM reply_log 
-        WHERE is_deleted = 0 
-          AND (status = 'sent' OR status = 'sent_reward')
-          AND (timestamp BETWEEN ? AND ?)
-      ''', [startOfDay, endOfDay]);
-
-      // 3. 🎯 حساب المجموع المالي بالريال مباشرة من حقل price
-      int todayTotalAmount = 0;
-
-      for (var log in todayLogs) {
-        // قراءة السعر مباشرة وتحويله لعدد صحيح أماناً
-        int price = int.tryParse(log['price']?.toString() ?? '0') ?? 0;
-        todayTotalAmount += price; // تجميع المبالغ المالية مباشرة
-      }
-
-      // 4. معالجة البيانات وتمرير المبلغ الإجمالي
-      _processChartData(keywords, numbers, todayTotalAmount);
-
-      if (mounted) {
-        setState(() {
-          statReplies = repliesCount;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("خطأ أثناء جلب البيانات: $e");
-      if (mounted) _loadDummyData();
-    }
-  }*/
-  /*Future<void> _loadStats() async {
-    if (!mounted) return;
-    setState(() => isLoading = true);
-
-    try {
-      final db = DatabaseHelper.instance;
-      final dbInstance = await db.database;
-
-      final keywords = await db.getAllKeywords();
-      final numbers = await db.getAllNumbers();
-
-      // 1. حساب إجمالي الردود
-      final repliesCount = Sqflite.firstIntValue(
-            await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ?? 0;
-
-      // 2. 🎯 جلب قائمة الكلمات المفتاحية المباعة اليوم فقط
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
-
-      final List<Map<String, dynamic>> todayLogs = await dbInstance.rawQuery('''
-        SELECT matched_keyword 
-        FROM reply_log 
-        WHERE is_deleted = 0 
-          AND (status = 'sent' OR status = 'sent_reward')
-          AND (timestamp BETWEEN ? AND ?)
-      ''', [startOfDay, endOfDay]);
-
-      // 3. 🎯 حساب المجموع المالي بالريال
-      int todayTotalAmount = 0;
-
-      for (var log in todayLogs) {
-        String kw = log['matched_keyword'] ?? '';
-        
-        // استخراج كافة الأرقام من اسم الباقة (مثلاً: "باقة 200" يُستخرج منها 200)
-        String priceStr = kw.replaceAll(RegExp(r'[^0-9]'), '');
-        int price = int.tryParse(priceStr) ?? 0;
-
-        todayTotalAmount += price; // تجميع المبالغ المالية (200 + 200 + 200 + 100 + 250 + 250 = 1200)
-      }
-
-      // 4. معالجة البيانات وتمرير المبلغ الإجمالي
-      _processChartData(keywords, numbers, todayTotalAmount);
-
-      if (mounted) {
-        setState(() {
-          statReplies = repliesCount;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("خطأ أثناء جلب البيانات: $e");
-      if (mounted) _loadDummyData();
-    }
-  }*/
-  /*Future<void> _loadStats() async {
-    if (!mounted) return;
-    setState(() => isLoading = true);
-
-    try {
-      final db = DatabaseHelper.instance;
-      final dbInstance = await db.database;
-
-      final keywords = await db.getAllKeywords();
-      final numbers = await db.getAllNumbers();
-
-      // 1. حساب إجمالي الردود في جدول reply_log
-      final repliesCount = Sqflite.firstIntValue(
-            await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log WHERE is_deleted = 0')) ??
-        0;
-
-      // 2. 🎯 حساب مبيعات اليوم من جدول reply_log عبر الـ timestamp
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
-
-      final todaySales = Sqflite.firstIntValue(
-            await dbInstance.rawQuery('''
-              SELECT COUNT(*) FROM reply_log 
-              WHERE is_deleted = 0 
-                AND (status = 'sent' OR status = 'sent_reward')
-                AND (timestamp BETWEEN ? AND ?)
-            ''', [startOfDay, endOfDay])) ?? 0;
-
-      // 3. معالجة البيانات وتمرير مبيعات اليوم
-      _processChartData(keywords, numbers, todaySales);
-
-      if (mounted) {
-        setState(() {
-          statReplies = repliesCount;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("خطأ أثناء جلب البيانات: $e");
-      if (mounted) _loadDummyData();
-    }
-  }*/
-  /*Future<void> _loadStats() async {
-    if (!mounted) return;
-    setState(() => isLoading = true);
-
-    try {
-      final db = DatabaseHelper.instance;
-      final dbInstance = await db.database;
-
-      final keywords = await db.getAllKeywords();
-      final numbers = await db.getAllNumbers();
-
-      final repliesCount = Sqflite.firstIntValue(
-              await dbInstance.rawQuery('SELECT COUNT(*) FROM reply_log')) ??
-          0;
-
-      _processChartData(keywords, numbers);
-
-      if (mounted) {
-        setState(() {
-          statReplies = repliesCount;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("خطأ أثناء جلب البيانات: $e");
-      if (mounted) _loadDummyData();
-    }
-  }*/
 
   void _loadDummyData() {
     setState(() {
@@ -471,43 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-  /*void _processChartData(
-    List<Map<String, dynamic>> keywords, 
-    List<Map<String, dynamic>> numbers
-    ) {
-    List<_CategoryStatData> availTemp = [];
-    List<_CategoryStatData> usedTemp = [];
-
-    int colorIndex = 0;
-    int availSum = 0;
-    int usedSum = 0;
-
-    for (var kw in keywords) {
-      int kwId = kw['id'];
-      String kwName = kw['keyword'] ?? 'فئة $kwId';
-      Color color = categoryColors[colorIndex % categoryColors.length];
-
-      int availCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'available').length;
-      int usedCount = numbers.where((n) => n['keyword_id'] == kwId && n['status'] == 'used').length;
-
-      if (availCount > 0) availTemp.add(_CategoryStatData(kwName, availCount, color));
-      if (usedCount > 0) usedTemp.add(_CategoryStatData(kwName, usedCount, color));
-
-      availSum += availCount;
-      usedSum += usedCount;
-      colorIndex++;
-    }
-
-    if (mounted) {
-      setState(() {
-        availableCategoriesData = availTemp;
-        usedCategoriesData = usedTemp;
-        totalAvailable = availSum;
-        totalUsed = usedSum;
-      });
-    }
-  }*/
-
+  
   void _openManualSendDialog() {
     showModalBottomSheet(
       context: context,
@@ -560,25 +348,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      /*appBar: AppBar(
-        centerTitle: false,
-        title: const Text(
-          'نظام البيع الآلي',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _loadStats,
-            tooltip: 'تحديث البيانات',
-          ),
-          IconButton(
-            icon: const Icon(Icons.power_settings_new_rounded),
-            onPressed: () => SystemNavigator.pop(),
-            tooltip: 'خروج',
-          ),
-        ],
-      ),*/
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -683,43 +452,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    /*Row(
-                      children: [
-                        Expanded(
-                          child: _buildToggleControl(
-                            title: '🤖 الرد الآلي',
-                            value: _serviceEnabled,
-                            isDark: isDark,
-                            cardBg: cardBg,
-                            textColor: textColor,
-                            onChanged: (val) async {
-                              setState(() => _serviceEnabled = val);
-                              await DatabaseHelper.instance.updateSetting(
-                                  'service_enabled', val ? 'true' : 'false');
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildToggleControl(
-                            title: '🔔 الإشعارات',
-                            value: _notificationEnabled,
-                            isDark: isDark,
-                            cardBg: cardBg,
-                            textColor: textColor,
-                            onChanged: (val) async {
-                              setState(() => _notificationEnabled = val);
-                              await DatabaseHelper.instance.updateSetting(
-                                  'enable_notification', val ? 'true' : 'false');
-                              if (val) {
-                                await NativeServiceController
-                                    .requestNotificationListenerPermission();
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),*/
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
@@ -832,186 +564,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     ),
-                    /*Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: cardBg,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 1. رأس الكارت: حالة الخادم والإحصائيات
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981).withOpacity(0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.bolt_rounded,
-                                    color: Color(0xFF10B981), size: 24),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          _serviceEnabled ? 'خادم الرسائل نشط' : 'خادم الرسائل متوقف',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: _serviceEnabled
-                                                ? const Color(0xFF10B981)
-                                                : Colors.redAccent,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'الردود: $statReplies | إجمالي الكروت: ${totalAvailable + totalUsed}',
-                                      style: TextStyle(fontSize: 12, color: subTextColor),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8.0),
-                            child: Divider(height: 1),
-                          ),
-
-                          // 2. التحكم السريع بالخدمات (الرد الآلي والإشعارات)
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            title: Text(
-                              '🤖 الرد الآلي',
-                              style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
-                            ),
-                            subtitle: Text(
-                              'تفعيل المعالجة التلقائية للرسائل الواردة',
-                              style: TextStyle(fontSize: 11, color: subTextColor),
-                            ),
-                            value: _serviceEnabled,
-                            activeColor: const Color(0xFF10B981),
-                            onChanged: (val) async {
-                              setState(() => _serviceEnabled = val);
-                              await DatabaseHelper.instance.updateSetting('service_enabled', val ? 'true' : 'false');
-                            },
-                          ),
-
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            title: Text(
-                              '🔔 قراءة الإشعارات',
-                              style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
-                            ),
-                            subtitle: Text(
-                              'استلام الإشعارات من البنوك والمحافظ',
-                              style: TextStyle(fontSize: 11, color: subTextColor),
-                            ),
-                            value: _notificationEnabled,
-                            activeColor: const Color(0xFF10B981),
-                            onChanged: (val) async {
-                              setState(() => _notificationEnabled = val);
-                              await DatabaseHelper.instance.updateSetting('enable_notification', val ? 'true' : 'false');
-                              if (val) {
-                                await NativeServiceController.requestNotificationListenerPermission();
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),*/
-                    /*Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: cardBg,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withOpacity(0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.bolt_rounded,
-                                color: Color(0xFF10B981), size: 28),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text('خادم الرسائل نشط',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                            color: textColor)),
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF10B981),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'الردود: $statReplies | إجمالي الكروت: ${totalAvailable + totalUsed}',
-                                  style: TextStyle(fontSize: 12, color: subTextColor),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),*/
+                    
                     const SizedBox(height: 16),
 
                     // 📊 الإحصائيات السريعة

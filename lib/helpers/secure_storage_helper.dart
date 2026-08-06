@@ -45,6 +45,39 @@ class SecureStorageHelper {
     }
   }
 
+  /// 7. جلب بيانات الترخيص جاهزة للعرض في الواجهة (Dashboard)
+  static Future<Map<String, dynamic>> getLicenseDetailsForUI() async {
+    final deviceId = await _storage.read(key: _keyDeviceId) ?? 'غير معروف';
+    final planType = await _storage.read(key: _keyPlanType) ?? 'trial';
+    final expiryStr = await _storage.read(key: _keyExpiryDate);
+    final limitStr = await _storage.read(key: _keyVouchersLimit);
+    final usedStr = await _storage.read(key: _keyVouchersUsed);
+
+    // حساب الأيام المتبقية
+    int remainingDays = 0;
+    if (expiryStr != null) {
+        int expiryMs = int.tryParse(expiryStr) ?? 0;
+        int nowMs = DateTime.now().millisecondsSinceEpoch;
+        if (expiryMs > nowMs) {
+        remainingDays = ((expiryMs - nowMs) / (1000 * 60 * 60 * 24)).ceil();
+        }
+    }
+
+    // حساب القسائم / الرسائل المتبقية
+    int limit = int.tryParse(limitStr ?? '-1') ?? -1;
+    int used = int.tryParse(usedStr ?? '0') ?? 0;
+    
+    // إذا كان الحد -1 يعبر عن غير محدود (دائم/غير محدود)
+    int remainingVouchers = (limit == -1) ? -1 : (limit - used).clamp(0, limit);
+
+    return {
+        'deviceId': deviceId,
+        'planType': planType,
+        'remainingDays': remainingDays,
+        'remainingVouchers': remainingVouchers,
+        'isTrial': planType == 'trial',
+    };
+  }
   /// 2. زيادة عداد القسائم المستهلكة بمقدار 1 عند كل عملية بيع/طباعة
   static Future<void> incrementVouchersUsed() async {
     String? usedStr = await _storage.read(key: _keyVouchersUsed);

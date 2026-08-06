@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import java.util.concurrent.Executors
 
+
 object ProcessMessageProcessor {
 
     private val backgroundExecutor = Executors.newSingleThreadExecutor()
@@ -204,7 +205,13 @@ object ProcessMessageProcessor {
             )
             Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
 
+            // إنشاء كائن التخزين
+            val secureStorage = NativeSecureStorage(context)
+
+
             if (isSent) {
+                // زيادة العداد بمقدار 1 ووضع علم المزامنة تلقائياً
+                secureStorage.incrementVouchersUsed()
                 // أرشفة القسيمة الأساسية مع السعر
                 dbHelper.addToArchive(
                     sender = destinationPhone,
@@ -257,6 +264,7 @@ object ProcessMessageProcessor {
                             )
 
                             if (isRewardSent) {
+                                secureStorage.incrementVouchersUsed()
                                 // 🎯 أرشفة كارت الهدية بالاسم والسعر الخواص به (مثلاً: فئة 002 وسعرها)
                                 dbHelper.addToArchive(
                                     sender = destinationPhone,
@@ -295,6 +303,7 @@ object ProcessMessageProcessor {
                             )
 
                             if (isRewardSent) {
+                                secureStorage.incrementVouchersUsed()
                                 // هدايا العروض تُحسب بقيمة 0.0 في الأرشيف
                                 dbHelper.addToArchive(
                                     sender = destinationPhone,
@@ -468,8 +477,13 @@ object ProcessMessageProcessor {
                 message = fullMessage
             )
             Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
+            // إنشاء كائن التخزين
+            val secureStorage = NativeSecureStorage(context)
 
             if (isSent) {
+                // زيادة العداد بمقدار 1 ووضع علم المزامنة تلقائياً
+                secureStorage.incrementVouchersUsed()
+
                 // أرشفة القسيمة الأساسية
                 dbHelper.addToArchive(
                     sender = destinationPhone,
@@ -514,6 +528,7 @@ object ProcessMessageProcessor {
                             )
 
                             if (isRewardSent) {
+                                secureStorage.incrementVouchersUsed()
                                 dbHelper.addToArchive(
                                     sender = destinationPhone,
                                     senderName = null,
@@ -567,8 +582,12 @@ object ProcessMessageProcessor {
             )
             Log.e("UPDATE_CUSTOMER", "isSent=$isSent")
 
-            // ⭐ 8. الأرشفة وتحديث البيانات
+            // إنشاء كائن التخزين
+            val secureStorage = NativeSecureStorage(context)
+
             if (isSent) {
+                // زيادة العداد بمقدار 1 ووضع علم المزامنة تلقائياً
+                secureStorage.incrementVouchersUsed()
                 dbHelper.addToArchive(
                     sender = destinationPhone,
                     senderName = null,
@@ -760,7 +779,12 @@ object ProcessMessageProcessor {
             )
 
             // ⭐ الأرشفة وتحديث البيانات
+            // إنشاء كائن التخزين
+            val secureStorage = NativeSecureStorage(context)
+
             if (isSent) {
+                // زيادة العداد بمقدار 1 ووضع علم المزامنة تلقائياً
+                secureStorage.incrementVouchersUsed()
                 dbHelper.addToArchive(
                     sender = destinationPhone,
                     senderName = null,

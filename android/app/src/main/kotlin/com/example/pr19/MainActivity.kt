@@ -174,8 +174,23 @@ class MainActivity: FlutterActivity() {
 
                 if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
                     try {
-                        sendNativeSms(phone, message)
-                        result.success(true)
+
+                        val secureStorage = NativeSecureStorage(this)
+
+                    // 1. التحقق من الحد قبل المحاولة
+                    if (secureStorage.isLimitReached()) {
+                        result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null)
+                        return@MethodCallHandler
+                    }
+                        val isSent = sendNativeSms(phone, message)
+                        if (isSent) {
+                            // 🟢 المكان الأفضل: الزيادة المباشرة في التخزين المشفر من أندرويد
+                            secureStorage.incrementVouchersUsed()
+                            result.success(true)
+                        } else {
+                            result.success(false)
+                        }
+                        //result.success(true)
                     } catch (e: Exception) {
                         result.error("SMS_FAILED", "فشل إرسال الرسالة: ${e.localizedMessage}", null)
                     }

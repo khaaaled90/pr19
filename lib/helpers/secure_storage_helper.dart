@@ -1,7 +1,13 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorageHelper {
-  static const _storage = FlutterSecureStorage();
+    // 🌟 إجبار المكتبة على استخدام EncryptedSharedPreferences
+  static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
+  //static const _storage = FlutterSecureStorage();
 
   // المفاتيح المخصصة لحفظ البيانات المشفرة
   static const String _keyDeviceId = 'device_id';

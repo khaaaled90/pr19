@@ -159,6 +159,16 @@ class MainActivity: FlutterActivity() {
                     }
                 }
 
+                "disableLicense" -> {
+                    LicenseManager.stopAllBackgroundWork(applicationContext)
+                    result.success(true)
+                }
+
+                "enableLicense" -> {
+                    LicenseManager.enableBackgroundWork(applicationContext)
+                    result.success(true)
+                }
+
                 else -> {
                     result.notImplemented()
                 }

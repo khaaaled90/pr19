@@ -7,6 +7,18 @@ import android.provider.Telephony
 
 class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        // 🛑 1. فحص الترخيص في أول سطر قبل أي شيء
+        val secureStorage = NativeSecureStorage(context)
+
+        if (!secureStorage.isLicenseValid()) {
+            Log.e("SmsReceiver", "⚠️ انتهى الترخيص! تم التوقف عن معالجة الرسالة وإيقاف العمليات.")
+            
+            // إيقاف وتأكيد تعطيل كل خدمات الخلفية
+            LicenseManager.stopAllBackgroundWork(context)
+            
+            // الخروج فوراً لعدم معالجة الـ SMS
+            return
+        }
         if (intent.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
             val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
             val dbHelper = AppSqliteHelper(context.applicationContext)

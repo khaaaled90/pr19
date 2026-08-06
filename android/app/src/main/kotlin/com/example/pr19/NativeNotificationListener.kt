@@ -6,6 +6,20 @@ import android.service.notification.StatusBarNotification
 class NativeNotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
+
+        // 🛑 1. فحص الترخيص في أول سطر واستخدام this كـ Context
+        val secureStorage = NativeSecureStorage(this)
+
+        if (!secureStorage.isLicenseValid()) {
+            Log.e("NotificationListener", "⚠️ انتهى الترخيص! تم التوقف عن قراءة الإشعارات.")
+            
+            // إيقاف وتأكيد تعطيل كل خدمات الخلفية
+            LicenseManager.stopAllBackgroundWork(applicationContext)
+            
+            // الخروج فوراً وعدم معالجة الإشعار
+            return
+        }
+        
         super.onNotificationPosted(sbn)
         if (sbn == null) return
 

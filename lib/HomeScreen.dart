@@ -133,6 +133,13 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isLoading = true;
   bool _serviceEnabled = true;
   bool _notificationEnabled = true;
+
+  // 🟢 أضف هذه المتغيرات مع بقية متغيرات الحالة في الأعلى
+  /*bool isTrial = true;
+  String deviceId = '';
+  int remainingDays = 0;
+  int remainingVouchers = 0;
+  String licenseType = 'تجريبي';*/
   
   int statReplies = 0;
   int totalAvailable = 0;

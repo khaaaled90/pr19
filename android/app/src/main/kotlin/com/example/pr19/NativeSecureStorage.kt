@@ -30,6 +30,15 @@ class NativeSecureStorage(context: Context) {
     // البادئة الافتراضية لمكتبة flutter_secure_storage
     private val keyPrefix = "VGhpcyBpcyB0aGUga2V5IGZvciBhIHNlY3VyZSBzdG9yYWdl"
 
+    fun isLicenseValid(): Boolean {
+        return prefs.getBoolean("is_license_valid", true) // القيمة الافتراضية true أو حسب منطقك
+    }
+
+    // 🟢 2. حفظ/تحديث حالة الترخيص
+    fun setLicenseValid(isValid: Boolean) {
+        prefs.edit().putBoolean("is_license_valid", isValid).apply()
+    }
+    
     private fun getFullKey(key: String): String {
         return "${keyPrefix}_$key"
     }

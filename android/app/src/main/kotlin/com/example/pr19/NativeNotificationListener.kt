@@ -2,6 +2,7 @@ package com.example.pr19
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import android.util.Log // 👈 أضف هذا الاستيراد
 
 class NativeNotificationListener : NotificationListenerService() {
 

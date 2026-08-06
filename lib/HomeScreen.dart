@@ -210,6 +210,32 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) _loadDummyData();
     }
   }
+
+  Future<void> _loadLicenseInfo(DatabaseHelper db) async {
+    try {
+      final devId = await db.getSetting('device_id', 'غير معروف');
+      final type = await db.getSetting('license_type', 'trial');
+      final daysStr = await db.getSetting('remaining_days', '0');
+
+      final dbInstance = await db.database;
+      final availVouchers = Sqflite.firstIntValue(
+        await dbInstance.rawQuery("SELECT COUNT(*) FROM numbers_pool WHERE status = 'available'")
+      ) ?? 0;
+
+      if (mounted) {
+        setState(() {
+          deviceId = devId;
+          isTrial = (type == 'trial');
+          licenseType = isTrial ? 'تجريبي' : (type == 'lifetime' ? 'دائم' : 'مدفوع');
+          remainingDays = int.tryParse(daysStr) ?? 0;
+          remainingVouchers = availVouchers;
+        });
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء قراءة بيانات الترخيص: $e");
+    }
+  }
+
   /*Future<void> _loadStats() async {
     if (!mounted) return;
     setState(() => isLoading = true);
@@ -1514,31 +1540,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
   }
 
   // 🟢 دالة قراءة بيانات الترخيص والقسائم المتبقية
-  Future<void> _loadLicenseInfo(DatabaseHelper db) async {
-    try {
-      final devId = await db.getSetting('device_id', 'غير معروف');
-      final type = await db.getSetting('license_type', 'trial');
-      final daysStr = await db.getSetting('remaining_days', '0');
-
-      final dbInstance = await db.database;
-      final availVouchers = Sqflite.firstIntValue(
-        await dbInstance.rawQuery("SELECT COUNT(*) FROM numbers_pool WHERE status = 'available'")
-      ) ?? 0;
-
-      if (mounted) {
-        setState(() {
-          deviceId = devId;
-          isTrial = (type == 'trial');
-          licenseType = isTrial ? 'تجريبي' : (type == 'lifetime' ? 'دائم' : 'مدفوع');
-          remainingDays = int.tryParse(daysStr) ?? 0;
-          remainingVouchers = availVouchers;
-        });
-      }
-    } catch (e) {
-      debugPrint("خطأ أثناء قراءة بيانات الترخيص: $e");
-    }
-  }
-
+  
   Future<void> _sendCard() async {
     
     String phone = _phoneController.text.trim();

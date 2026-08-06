@@ -180,7 +180,7 @@ class MainActivity: FlutterActivity() {
                     // 1. التحقق من الحد قبل المحاولة
                     if (secureStorage.isLimitReached()) {
                         result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null)
-                        return@MethodCallHandler
+                        return@setMethodCallHandler
                     }
                         val isSent = sendNativeSms(phone, message)
                         if (isSent) {
@@ -205,7 +205,7 @@ class MainActivity: FlutterActivity() {
     }
 
     // دالة إرسال الـ SMS عبر نظام أندرويد (مُعدّلة ومُستقرّة لجميع الإصدارات بما فيها Android 12+)
-    private fun sendNativeSms(phone: String, message: String) {
+    /*private fun sendNativeSms(phone: String, message: String) {
         val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             this.getSystemService(SmsManager::class.java)
         } else {
@@ -219,6 +219,28 @@ class MainActivity: FlutterActivity() {
             smsManager.sendMultipartTextMessage(phone, null, parts, null, null)
         } else {
             smsManager.sendTextMessage(phone, null, message, null, null)
+        }
+    }*/
+
+    private fun sendNativeSms(phone: String, message: String): Boolean {
+        return try {
+            val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                this.getSystemService(SmsManager::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                SmsManager.getDefault()
+            }
+
+            val parts = smsManager.divideMessage(message)
+            if (parts.size > 1) {
+                smsManager.sendMultipartTextMessage(phone, null, parts, null, null)
+            } else {
+                smsManager.sendTextMessage(phone, null, message, null, null)
+            }
+            true
+        } catch (e: Exception) {
+            Log.e("SMS_SEND", "Failed to send SMS: ${e.message}", e)
+            false
         }
     }
 

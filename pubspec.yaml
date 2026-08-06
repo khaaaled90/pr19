@@ -38,6 +38,21 @@ dependencies:
   flutter_notification_listener: ^1.4.0
   another_telephony: ^0.4.0
 
+  # 1. لجلب معلومات الجهاز وحساب Device ID
+  device_info_plus: ^10.1.0
+  crypto: ^3.0.3
+
+  # 2. للتخزين المحلي المشفر لحماية الترخيص محلياً
+  flutter_secure_storage: ^9.0.0
+
+  # 3. للتشفير وفك تشفير الأكواد (AES)
+  encrypt: ^5.0.3
+
+  # 4. للاتصال والتزامن مع Firebase
+  firebase_core: ^3.0.0
+  cloud_firestore: ^5.0.0
+  connectivity_plus: ^6.0.0
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -5,6 +5,323 @@ import '../helpers/sync_manager.dart';
 class RegistrationScreen extends StatefulWidget {
   final VoidCallback onRegistrationComplete;
 
+  const RegistrationScreen({super.key, required this.onRegistrationComplete});
+
+  @override
+  State<RegistrationScreen> createState() => _RegistrationScreenState();
+}
+
+class _RegistrationScreenState extends State<RegistrationScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _networkController = TextEditingController();
+
+  String _deviceId = '';
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeviceId();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _networkController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadDeviceId() async {
+    String id = await DeviceUtils.getDeviceId();
+    if (mounted) setState(() => _deviceId = id);
+  }
+
+  Future<void> _submitRegistration() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    await SyncManager.registerTrialOnline(
+      clientName: _nameController.text.trim(),
+      phone: _phoneController.text.trim(),
+      networkName: _networkController.text.trim(),
+      trialDays: 10,
+      trialVouchersLimit: 200,
+    );
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      widget.onRegistrationComplete();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgMain = theme.scaffoldBackgroundColor;
+    final cardBg = theme.cardColor;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subTextColor = isDark ? Colors.white60 : Colors.black54;
+    final primaryColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0EA5E9);
+
+    return Scaffold(
+      backgroundColor: bgMain,
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Column(
+          children: [
+            Text(
+              'تسجيل الخدمة',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            SizedBox(height: 2),
+            Text(
+              'تفعيل الفترة التجريبية المجانية',
+              style: TextStyle(fontSize: 11, color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 🌟 بطاقة الترحيب العصرية بالتدرج
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF0369A1), const Color(0xFF0F766E)]
+                        : [const Color(0xFF0EA5E9), const Color(0xFF0D9488)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.app_registration_rounded,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+ crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'أهلاً بك معنا! 👋',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'أدخل بياناتك لبدء الفترة التجريبية (10 أيام / 200 قسيمة).',
+                            style: TextStyle(fontSize: 12, color: Colors.white70, height: 1.3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 📝 كارت مدخلات البيانات
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'بيانات الحساب',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _nameController,
+                      style: TextStyle(color: textColor),
+                      decoration: _buildInputDecoration(
+                        label: 'اسم العميل / المالِك',
+                        icon: Icons.person_outline_rounded,
+                        isDark: isDark,
+                      ),
+                      validator: (v) => v!.trim().isEmpty ? 'يرجى إدخال الاسم' : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: TextStyle(color: textColor),
+                      decoration: _buildInputDecoration(
+                        label: 'رقم الهاتف',
+                        icon: Icons.phone_android_rounded,
+                        isDark: isDark,
+                      ),
+                      validator: (v) => v!.trim().isEmpty ? 'يرجى إدخال رقم الهاتف' : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _networkController,
+                      style: TextStyle(color: textColor),
+                      decoration: _buildInputDecoration(
+                        label: 'اسم الشبكة / الخدمة (مثل: شبكة المازن)',
+                        icon: Icons.wifi_rounded,
+                        isDark: isDark,
+                      ),
+                      validator: (v) => v!.trim().isEmpty ? 'يرجى إدخال اسم الشبكة' : null,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 🆔 كارت معرف الجهاز
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.important_devices_rounded, size: 20, color: subTextColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          'معرف الجهاز:',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: subTextColor),
+                        ),
+                      ],
+                    ),
+                    SelectableText(
+                      _deviceId.isEmpty ? 'جاري الجلب...' : _deviceId,
+                      style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 🚀 زر البدء
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitRegistration,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'بدء استخدام الفترة التجريبية',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({
+    required String label,
+    required IconData icon,
+    required bool isDark,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54),
+      prefixIcon: Icon(icon, size: 20, color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0EA5E9)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      filled: true,
+      fillColor: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black12),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black12),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0EA5E9), width: 1.5),
+      ),
+    );
+  }
+}
+
+/*import 'package:flutter/material.dart';
+import '../helpers/device_utils.dart';
+import '../helpers/sync_manager.dart';
+
+class RegistrationScreen extends StatefulWidget {
+  final VoidCallback onRegistrationComplete;
+
   const RegistrationScreen({super.key, required onRegistrationComplete})
       : onRegistrationComplete = onRegistrationComplete;
 
@@ -130,4 +447,4 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       ),
     );
   }
-}
+}*/

@@ -23,6 +23,21 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
+        db?.execSQL("""        
+            CREATE TABLE keywords (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                keyword TEXT NOT NULL UNIQUE,
+                description TEXT,
+                price REAL DEFAULT 0.0,
+                is_active INTEGER DEFAULT 1,
+                is_offer INTEGER DEFAULT 0,
+                target_count INTEGER DEFAULT 0,
+                reward_keyword_id INTEGER,
+                reward_qty INTEGER DEFAULT 1,
+                created_at INTEGER,
+                FOREIGN KEY(reward_keyword_id) REFERENCES $tableKeywords(id)
+            )
+        """);
         db?.execSQL("""
             CREATE TABLE IF NOT EXISTS customers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -401,24 +416,28 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     // ✅ تم تعديل الاستعلام وقراءة حقل price
     fun getAllActiveKeywords(): List<Map<String, Any>> {
-        val db = readableDatabase
-        val cursor = db.rawQuery("SELECT id, keyword, is_offer, target_count, reward_keyword_id, reward_qty, price FROM keywords WHERE is_active = 1", null)
         val list = mutableListOf<Map<String, Any>>()
-        while (cursor.moveToNext()) {
-            val priceIdx = cursor.getColumnIndex("price")
-            val priceVal = if (priceIdx != -1) cursor.getDouble(priceIdx) else 0.0
+        try {
+            val db = readableDatabase
+            val cursor = db.rawQuery("SELECT id, keyword, is_offer, target_count, reward_keyword_id, reward_qty, price FROM keywords WHERE is_active = 1", null)
+            while (cursor.moveToNext()) {
+                val priceIdx = cursor.getColumnIndex("price")
+                val priceVal = if (priceIdx != -1) cursor.getDouble(priceIdx) else 0.0
 
-            list.add(mapOf(
-                "id" to cursor.getLong(cursor.getColumnIndexOrThrow("id")),
-                "keyword" to cursor.getString(cursor.getColumnIndexOrThrow("keyword")),
-                "is_offer" to cursor.getInt(cursor.getColumnIndexOrThrow("is_offer")),
-                "target_count" to cursor.getInt(cursor.getColumnIndexOrThrow("target_count")),
-                "reward_keyword_id" to cursor.getLong(cursor.getColumnIndexOrThrow("reward_keyword_id")),
-                "reward_qty" to cursor.getInt(cursor.getColumnIndexOrThrow("reward_qty")),
-                "price" to priceVal // 👈 السعر
-            ))
+                list.add(mapOf(
+                    "id" to cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                    "keyword" to cursor.getString(cursor.getColumnIndexOrThrow("keyword")),
+                    "is_offer" to cursor.getInt(cursor.getColumnIndexOrThrow("is_offer")),
+                    "target_count" to cursor.getInt(cursor.getColumnIndexOrThrow("target_count")),
+                    "reward_keyword_id" to cursor.getLong(cursor.getColumnIndexOrThrow("reward_keyword_id")),
+                    "reward_qty" to cursor.getInt(cursor.getColumnIndexOrThrow("reward_qty")),
+                    "price" to priceVal // 👈 السعر
+                ))
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            Log.e("AppSqliteHelper", "⚠️ تعذر قراءة keywords في التهيئة المبدئية: ${e.message}")
         }
-        cursor.close()
         return list
     }
 

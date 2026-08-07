@@ -43,6 +43,13 @@ jobs:
       # Packages
       - name: Install Dependencies
         run: flutter pub get
+      
+      # 🟢 أضف هذه الخطوة لتوليد الأيقونات على سيرفر GitHub تلقائياً
+      - name: Generate Launcher Icons
+        run: dart run flutter_launcher_icons
+
+      - name: Build APK
+        run: flutter build apk --release --build-number=214
 
       # 🔑 1. تفكيك ملف الـ Keystore من GitHub Secrets وخزنه في مجلد android/app
       - name: Decode Keystore

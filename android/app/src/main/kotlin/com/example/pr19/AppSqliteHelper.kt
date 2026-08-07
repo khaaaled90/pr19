@@ -35,9 +35,10 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 reward_keyword_id INTEGER,
                 reward_qty INTEGER DEFAULT 1,
                 created_at INTEGER,
-                FOREIGN KEY(reward_keyword_id) REFERENCES $tableKeywords(id)
+                FOREIGN KEY(reward_keyword_id) REFERENCES keywords(id)
             )
         """);
+    
         db?.execSQL("""
             CREATE TABLE IF NOT EXISTS customers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -414,12 +415,55 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         return allowed
     }
 
+    fun getAllActiveKeywords(): List<Map<String, Any?>> {
+        val list = mutableListOf<Map<String, Any?>>()
+        try {
+            val db = readableDatabase
+            val cursor = db.rawQuery(
+                "SELECT id, keyword, is_offer, target_count, reward_keyword_id, reward_qty, price FROM keywords WHERE is_active = 1", 
+                null
+            )
+            
+            // 🟢 استخدام .use لتأمين إغلاق الـ cursor تلقائياً
+            cursor.use { c ->
+                val idIdx = c.getColumnIndexOrThrow("id")
+                val keywordIdx = c.getColumnIndexOrThrow("keyword")
+                val isOfferIdx = c.getColumnIndexOrThrow("is_offer")
+                val targetCountIdx = c.getColumnIndexOrThrow("target_count")
+                val rewardKeywordIdIdx = c.getColumnIndexOrThrow("reward_keyword_id")
+                val rewardQtyIdx = c.getColumnIndexOrThrow("reward_qty")
+                val priceIdx = c.getColumnIndex("price")
+
+                while (c.moveToNext()) {
+                    val priceVal = if (priceIdx != -1 && !c.isNull(priceIdx)) c.getDouble(priceIdx) else 0.0
+                    
+                    // 🟢 قراءة reward_keyword_id مع التحقق من قيم NULL
+                    val rewardKeywordId = if (!c.isNull(rewardKeywordIdIdx)) c.getLong(rewardKeywordIdIdx) else null
+
+                    list.add(mapOf(
+                        "id" to c.getLong(idIdx),
+                        "keyword" to c.getString(keywordIdx),
+                        "is_offer" to c.getInt(isOfferIdx),
+                        "target_count" to c.getInt(targetCountIdx),
+                        "reward_keyword_id" to rewardKeywordId,
+                        "reward_qty" to c.getInt(rewardQtyIdx),
+                        "price" to priceVal
+                    ))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("AppSqliteHelper", "⚠️ تعذر قراءة keywords في التهيئة المبدئية: ${e.message}")
+        }
+        return list
+    }
+
     // ✅ تم تعديل الاستعلام وقراءة حقل price
-    fun getAllActiveKeywords(): List<Map<String, Any>> {
+    /*fun getAllActiveKeywords(): List<Map<String, Any>> {
         val list = mutableListOf<Map<String, Any>>()
         try {
             val db = readableDatabase
             val cursor = db.rawQuery("SELECT id, keyword, is_offer, target_count, reward_keyword_id, reward_qty, price FROM keywords WHERE is_active = 1", null)
+            
             while (cursor.moveToNext()) {
                 val priceIdx = cursor.getColumnIndex("price")
                 val priceVal = if (priceIdx != -1) cursor.getDouble(priceIdx) else 0.0
@@ -439,7 +483,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             Log.e("AppSqliteHelper", "⚠️ تعذر قراءة keywords في التهيئة المبدئية: ${e.message}")
         }
         return list
-    }
+    }*/
 
     fun findCustomerPhoneByIdentifier(textContent: String): String? {
         val db = readableDatabase

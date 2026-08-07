@@ -23,7 +23,128 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
-        db?.execSQL("""        
+
+        Future<void> _onCreate(Database db, int version) async {
+        db?.execSQL("""
+            CREATE TABLE keywords (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                keyword TEXT NOT NULL UNIQUE,
+                description TEXT,
+                price REAL DEFAULT 0.0,
+                is_active INTEGER DEFAULT 1,
+                is_offer INTEGER DEFAULT 0,
+                target_count INTEGER DEFAULT 0,
+                reward_keyword_id INTEGER,
+                reward_qty INTEGER DEFAULT 1,
+                created_at INTEGER,
+                FOREIGN KEY(reward_keyword_id) REFERENCES keywords(id)
+            )
+        """);
+
+        db?.execSQL("""
+            CREATE TABLE numbers_pool (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                keyword_id INTEGER NOT NULL,
+                number_code TEXT NOT NULL UNIQUE,
+                status TEXT DEFAULT 'available',
+                assigned_to TEXT,
+                assigned_at INTEGER,
+                FOREIGN KEY(keyword_id) REFERENCES numbers_pool(id) ON DELETE CASCADE
+            )
+        """);
+
+        db?.execSQL("""
+            CREATE TABLE allowed_senders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender TEXT NOT NULL UNIQUE,
+                name TEXT,
+                sender_type TEXT DEFAULT 'phone',
+                is_active INTEGER DEFAULT 1,
+                created_at INTEGER
+            )
+        """);
+
+        db?.execSQL("""
+            CREATE TABLE reply_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender TEXT,
+                sender_name TEXT,
+                received_message TEXT,
+                matched_keyword TEXT,
+                sent_number TEXT,
+                price REAL DEFAULT 0.0,
+                source TEXT DEFAULT 'Noti',
+                extra_data TEXT,
+                status TEXT,
+                timestamp INTEGER,
+                is_deleted INTEGER DEFAULT 0
+            )
+        """);
+
+        db?.execSQL("""
+            CREATE TABLE settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                setting_key TEXT NOT NULL UNIQUE,
+                setting_value TEXT,
+                category TEXT DEFAULT 'general'
+            )
+        """);
+
+        db?.execSQL("""
+            CREATE TABLE offers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                offer_keyword_id INTEGER NOT NULL,
+                linked_keyword_id INTEGER NOT NULL,
+                is_active INTEGER DEFAULT 1,
+                FOREIGN KEY(offer_keyword_id) REFERENCES keywords(id),
+                FOREIGN KEY(linked_keyword_id) REFERENCES keywords(id)
+            )
+        """);
+
+        db?.execSQL("""
+            CREATE TABLE customer_vouchers_count (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_phone TEXT NOT NULL,
+                keyword_id INTEGER NOT NULL,
+                received_count INTEGER DEFAULT 0,
+                last_updated INTEGER,
+                FOREIGN KEY(keyword_id) REFERENCES keywords(id) ON DELETE CASCADE,
+                UNIQUE(customer_phone, keyword_id)
+            )
+        """);
+
+        db?.execSQL("""
+            CREATE TABLE customers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT NOT NULL UNIQUE,
+                name TEXT,
+                wallet_number TEXT,
+                last_balance TEXT,
+                created_at INTEGER
+            )
+        """);
+
+        db?.execSQL("""
+            CREATE TABLE IF NOT EXISTS client_identifiers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                identifier TEXT NOT NULL UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES customers (id) ON DELETE CASCADE
+            )
+        """);
+
+        db?.execSQL("""
+            CREATE TABLE excepted_customers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT NOT NULL UNIQUE,
+                name TEXT,
+                notes TEXT,
+                created_at INTEGER NOT NULL
+            )
+        """);
+        
+        /*db?.execSQL("""        
             CREATE TABLE keywords (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 keyword TEXT NOT NULL UNIQUE,
@@ -68,7 +189,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 identifier TEXT NOT NULL UNIQUE,
                 FOREIGN KEY(client_id) REFERENCES customers(id) ON DELETE CASCADE
             )
-        """)
+        """)*/
         createIndexes(db)
     }
 

@@ -1,5 +1,5 @@
 name: pr19
-description: "A new Flutter project for notification tracking and SMS automation."
+description: "CardPay - Automated Wallet & Voucher Distribution App"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -64,6 +64,8 @@ flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/app_icon.png"
+  app_name: "CardPay"
+  
   min_sdk_android: 21 # أجهزة أندرويد المعززة
 
 flutter:

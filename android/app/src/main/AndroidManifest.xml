@@ -23,7 +23,7 @@
 
     <application
         android:name="${applicationName}"
-        android:label="pr19"
+        android:label="CardPay"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
 

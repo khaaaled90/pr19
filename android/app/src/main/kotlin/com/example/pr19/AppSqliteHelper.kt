@@ -77,7 +77,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 setting_value TEXT,
                 category TEXT DEFAULT 'general'
             )
-        """);
+        """)
         
 
         createIndexes(db)

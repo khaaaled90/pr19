@@ -80,14 +80,14 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         """)
 
         db?.execSQL("""
-            CREATE TABLE $tableNumbersPool (
+            CREATE TABLE numbers_pool (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 keyword_id INTEGER NOT NULL,
                 number_code TEXT NOT NULL UNIQUE,
                 status TEXT DEFAULT 'available',
                 assigned_to TEXT,
                 assigned_at INTEGER,
-                FOREIGN KEY(keyword_id) REFERENCES $tableKeywords(id) ON DELETE CASCADE
+                FOREIGN KEY(keyword_id) REFERENCES keywords(id) ON DELETE CASCADE
             )
         """)
 

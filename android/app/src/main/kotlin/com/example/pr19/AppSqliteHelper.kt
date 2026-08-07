@@ -23,9 +23,6 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
-
-        Future<void> _onCreate(Database db, int version) async {
-        
         
         db?.execSQL("""        
             CREATE TABLE keywords (
@@ -82,6 +79,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             )
         """);
         
+
         createIndexes(db)
     }
 

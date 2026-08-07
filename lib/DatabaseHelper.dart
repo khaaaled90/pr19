@@ -204,6 +204,12 @@ class DatabaseHelper {
     batch.insert(tableSettings, {'setting_key': 'allow_all_senders', 'setting_value': 'false', 'category': 'security'}, conflictAlgorithm: ConflictAlgorithm.ignore);
     batch.insert(tableAllowedSenders, {'sender': 'Jaib', 'name': 'Jaib', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
     batch.insert(tableAllowedSenders, {'sender': 'com.ahd.jaib', 'name': 'Jaib إشعارات', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableAllowedSenders, {'sender': 'ONE Cash', 'name': 'ONE Cash', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableAllowedSenders, {'sender': 'com.one.onecustomer', 'name': 'ONECash إشعارات', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableAllowedSenders, {'sender': 'Jawali', 'name': 'Jawali', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableAllowedSenders, {'sender': 'com.ama.wecashmobileapp', 'name': 'Jawali إشعارات', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
+
+
 
     await batch.commit(noResult: true);
   }

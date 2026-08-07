@@ -16,6 +16,124 @@ class NativeSecureStorage(context: Context) {
 
             EncryptedSharedPreferences.create(
                 context,
+                "FlutterEncryptedStorage", // اسم ملف التخزين لـ flutter_secure_storage
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            Log.e("NativeSecureStorage", "❌ فشل فتح EncryptedSharedPreferences: ${e.message}")
+            null
+        }
+    }
+
+    private val keyPrefix = "VGhpcyBpcyB0aGUga2V5IGZvciBhIHNlY3VyZSBzdG9yYWdl"
+
+    /**
+     * دالة ذكية لمطابقة المفاتيح:
+     * تبحث أولاً برمز المفتاح المباشر (Direct Key)، 
+     * وإذا لم تجده تبحث بالمفتاح مع البادئة (Prefixed Key)
+     */
+    private fun getStringValue(key: String, defaultValue: String): String {
+        val prefs = sharedPreferences ?: return defaultValue
+        
+        // 1. تجربة قراءة المفتاح المباشر
+        if (prefs.contains(key)) {
+            val directValue = prefs.getString(key, null)
+            if (directValue != null) return directValue
+        }
+
+        // 2. تجربة قراءة المفتاح مع البادئة
+        val prefixedKey = "${keyPrefix}_$key"
+        if (prefs.contains(prefixedKey)) {
+            val prefixedValue = prefs.getString(prefixedKey, null)
+            if (prefixedValue != null) return prefixedValue
+        }
+
+        return defaultValue
+    }
+
+    /**
+     * دالة ذكية لكتابة المفاتيح:
+     * تحدّث المفتاح الموجود حالياً سواء كان ببادئة أو بدون، 
+     * وإذا لم يكن موجوداً تحفظه بالمفتاح المباشر.
+     */
+    private fun putStringValue(key: String, value: String) {
+        val prefs = sharedPreferences ?: return
+        val editor = prefs.edit()
+
+        val prefixedKey = "${keyPrefix}_$key"
+
+        if (prefs.contains(prefixedKey)) {
+            editor.putString(prefixedKey, value)
+        } else {
+            editor.putString(key, value)
+        }
+        
+        editor.apply()
+    }
+
+    // 🟢 1. التحقق من صلاحية الترخيص
+    fun isLicenseValid(): Boolean {
+        val rawValue = getStringValue("is_license_valid", "true")
+        return rawValue.toBooleanStrictOrNull() ?: true
+    }
+
+    // 🟢 2. حفظ/تحديث حالة الترخيص
+    fun setLicenseValid(isValid: Boolean) {
+        putStringValue("is_license_valid", isValid.toString())
+        Log.d("NativeSecureStorage", "✅ تم تحديث حالة الترخيص إلى: $isValid")
+    }
+
+    // 🟢 3. قراءة عدد القسائم المستهلكة
+    fun getVouchersUsed(): Int {
+        val rawValue = getStringValue("vouchers_used", "0")
+        return rawValue.toIntOrNull() ?: 0
+    }
+
+    // 🟢 4. قراءة حد القسائم المتاحة
+    fun getVouchersLimit(): Int {
+        val rawValue = getStringValue("vouchers_limit", "-1")
+        return rawValue.toIntOrNull() ?: -1
+    }
+
+    // 🟢 5. زيادة العداد بمقدار 1 من Kotlin مباشرة
+    fun incrementVouchersUsed() {
+        val current = getVouchersUsed()
+        val next = current + 1
+
+        putStringValue("vouchers_used", next.toString())
+        putStringValue("needs_sync", "true")
+
+        Log.d("NativeSecureStorage", "✅ تم تحديث العداد من Kotlin إلى: $next")
+    }
+
+    // 🟢 6. التحقق من وصول الحد المسموح
+    fun isLimitReached(): Boolean {
+        val limit = getVouchersLimit()
+        if (limit == -1) return false
+        val used = getVouchersUsed()
+        return used >= limit
+    }
+}
+/*package com.example.pr19
+
+import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+
+class NativeSecureStorage(context: Context) {
+
+    private val sharedPreferences: SharedPreferences? by lazy {
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            EncryptedSharedPreferences.create(
+                context,
                 "FlutterEncryptedStorage", // اسم ملف التخزين الافتراضي لـ flutter_secure_storage
                 masterKey,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
@@ -85,7 +203,7 @@ class NativeSecureStorage(context: Context) {
         val used = getVouchersUsed()
         return used >= limit
     }
-}
+}*/
 
 /*package com.example.pr19 // استبدل بـ package التطبيق لديك
 

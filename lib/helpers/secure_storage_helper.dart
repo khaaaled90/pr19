@@ -5,6 +5,8 @@ class SecureStorageHelper {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(
       encryptedSharedPreferences: true,
+      sharedPreferencesName: 'FlutterEncryptedStorage', // ضمان القراءة من نفس الملف المحدد في Kotlin
+      preferencesKeyPrefix: 'VGhpcyBpcyB0aGUga2V5IGZvciBhIHNlY3VyZSBzdG9yYWdl', // تثبيت البادئة
     ),
   );
   //static const _storage = FlutterSecureStorage();

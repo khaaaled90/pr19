@@ -22,7 +22,272 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         }
     }
 
+    override fun onConfigure(db: SQLiteDatabase?) {
+        super.onConfigure(db)
+        db?.setForeignKeyConstraintsEnabled(true)
+    }
+
     override fun onCreate(db: SQLiteDatabase?) {
+        // 1. إنشاء جدول الكلمات المفتاحية
+        db?.execSQL("""
+            CREATE TABLE keywords (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                keyword TEXT NOT NULL UNIQUE,
+                description TEXT,
+                price REAL DEFAULT 0.0,
+                is_active INTEGER DEFAULT 1,
+                is_offer INTEGER DEFAULT 0,
+                target_count INTEGER DEFAULT 0,
+                reward_keyword_id INTEGER,
+                reward_qty INTEGER DEFAULT 1,
+                created_at INTEGER,
+                FOREIGN KEY(reward_keyword_id) REFERENCES keywords(id)
+            )
+        """)
+
+        // 2. إنشاء جدول مخزون الأرقام/الكروت
+        db?.execSQL("""
+            CREATE TABLE numbers_pool (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                keyword_id INTEGER NOT NULL,
+                number_code TEXT NOT NULL UNIQUE,
+                status TEXT DEFAULT 'available',
+                assigned_to TEXT,
+                assigned_at INTEGER,
+                FOREIGN KEY(keyword_id) REFERENCES keywords(id) ON DELETE CASCADE
+            )
+        """)
+
+        // 3. إنشاء جدول المرسلون المسموح بهم (كان مفقوداً في Kotlin)
+        db?.execSQL("""
+            CREATE TABLE allowed_senders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender TEXT NOT NULL UNIQUE,
+                name TEXT,
+                sender_type TEXT DEFAULT 'phone',
+                is_active INTEGER DEFAULT 1,
+                created_at INTEGER
+            )
+        """)
+
+        // 4. إنشاء جدول سجل الردود
+        db?.execSQL("""
+            CREATE TABLE reply_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender TEXT,
+                sender_name TEXT,
+                received_message TEXT,
+                matched_keyword TEXT,
+                sent_number TEXT,
+                price REAL DEFAULT 0.0,
+                source TEXT DEFAULT 'Noti',
+                extra_data TEXT,
+                status TEXT,
+                timestamp INTEGER,
+                is_deleted INTEGER DEFAULT 0
+            )
+        """)
+
+        // 5. إنشاء جدول الإعدادات
+        db?.execSQL("""
+            CREATE TABLE settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                setting_key TEXT NOT NULL UNIQUE,
+                setting_value TEXT,
+                category TEXT DEFAULT 'general'
+            )
+        """)
+
+        // 6. إنشاء جدول العروض
+        db?.execSQL("""
+            CREATE TABLE offers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                offer_keyword_id INTEGER NOT NULL,
+                linked_keyword_id INTEGER NOT NULL,
+                is_active INTEGER DEFAULT 1,
+                FOREIGN KEY(offer_keyword_id) REFERENCES keywords(id),
+                FOREIGN KEY(linked_keyword_id) REFERENCES keywords(id)
+            )
+        """)
+
+        // 7. إنشاء جدول عداد قسائم العملاء
+        db?.execSQL("""
+            CREATE TABLE IF NOT EXISTS customer_vouchers_count (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_phone TEXT NOT NULL,
+                keyword_id INTEGER NOT NULL,
+                received_count INTEGER DEFAULT 0,
+                last_updated INTEGER,
+                FOREIGN KEY(keyword_id) REFERENCES keywords(id) ON DELETE CASCADE,
+                UNIQUE(customer_phone, keyword_id)
+            )
+        """)
+
+        // 8. إنشاء جدول العملاء
+        db?.execSQL("""
+            CREATE TABLE IF NOT EXISTS customers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT NOT NULL UNIQUE,
+                name TEXT,
+                wallet_number TEXT,
+                last_balance TEXT,
+                created_at INTEGER
+            )
+        """)
+
+        // 9. إنشاء جدول المعرفات الفرعية للعميل
+        db?.execSQL("""
+            CREATE TABLE IF NOT EXISTS client_identifiers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                identifier TEXT NOT NULL UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES customers (id) ON DELETE CASCADE
+            )
+        """)
+
+        // 10. إنشاء جدول العملاء المستثنين
+        db?.execSQL("""
+            CREATE TABLE IF NOT EXISTS excepted_customers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT NOT NULL UNIQUE,
+                name TEXT,
+                notes TEXT,
+                created_at INTEGER NOT NULL
+            )
+        """)
+
+        // إنشاء الفهارس
+        createIndexes(db)
+
+        // إدخال البيانات والإعدادات الافتراضية
+        insertDefaultSettings(db)
+    }
+
+    private fun createIndexes(db: SQLiteDatabase?) {
+        try {
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_customers_phone_wallet ON customers(phone, wallet_number)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_numbers_pool_kw_status ON numbers_pool(keyword_id, status)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_keywords_active ON keywords(is_active)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_allowed_senders ON allowed_senders(is_active, sender)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_identifier ON client_identifiers(identifier)")
+        } catch (e: Exception) {
+            Log.e("SQLite", "Error creating indexes: ${e.message}")
+        }
+    }
+
+    private fun insertDefaultSettings(db: SQLiteDatabase?) {
+        db?.beginTransaction()
+        try {
+            // إدخال الإعدادات الافتراضية (مع تجنب التكرار في حال الوجود)
+            db?.execSQL("INSERT OR IGNORE INTO settings (setting_key, setting_value, category) VALUES ('offers_enabled', 'true', 'general')")
+            db?.execSQL("INSERT OR IGNORE INTO settings (setting_key, setting_value, category) VALUES ('service_enabled', 'true', 'general')")
+            db?.execSQL("INSERT OR IGNORE INTO settings (setting_key, setting_value, category) VALUES ('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ', 'general')")
+            db?.execSQL("INSERT OR IGNORE INTO settings (setting_key, setting_value, category) VALUES ('allow_all_senders', 'false', 'security')")
+
+            // إدخال تطبيقات المحافظ والرسائل المسموحة تلقائياً
+            db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('Jaib', 'Jaib', 'name', 1)")
+            db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('com.ahd.jaib', 'Jaib إشعارات', 'name', 1)")
+            db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('ONE Cash', 'ONE Cash', 'name', 1)")
+            db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('com.one.onecustomer', 'ONECash إشعارات', 'name', 1)")
+            db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('Jawali', 'Jawali', 'name', 1)")
+            db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('com.ama.wecashmobileapp', 'Jawali إشعارات', 'name', 1)")
+
+            db?.setTransactionSuccessful()
+        } catch (e: Exception) {
+            Log.e("SQLite", "Error inserting default settings: ${e.message}")
+        } finally {
+            db?.endTransaction()
+        }
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        db?.beginTransaction()
+        try {
+            // ✅ الترقية للنسخة 8: إضافة حقول الجوائز وإنشاء جدول عداد القسائم
+            if (oldVersion < 8) {
+                try { db?.execSQL("ALTER TABLE keywords ADD COLUMN target_count INTEGER DEFAULT 0;") } catch (e: Exception) {}
+                try { db?.execSQL("ALTER TABLE keywords ADD COLUMN reward_keyword_id INTEGER;") } catch (e: Exception) {}
+                try { db?.execSQL("ALTER TABLE keywords ADD COLUMN reward_qty INTEGER DEFAULT 1;") } catch (e: Exception) {}
+
+                db?.execSQL("""
+                    CREATE TABLE IF NOT EXISTS customer_vouchers_count (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        customer_phone TEXT NOT NULL,
+                        keyword_id INTEGER NOT NULL,
+                        received_count INTEGER DEFAULT 0,
+                        last_updated INTEGER,
+                        FOREIGN KEY(keyword_id) REFERENCES keywords(id) ON DELETE CASCADE,
+                        UNIQUE(customer_phone, keyword_id)
+                    )
+                """)
+            }
+
+            // ✅ الترقية للنسخة 9: إنشاء جدول العملاء
+            if (oldVersion < 9) {
+                db?.execSQL("""
+                    CREATE TABLE IF NOT EXISTS customers (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        phone TEXT NOT NULL UNIQUE,
+                        name TEXT,
+                        created_at INTEGER
+                    )
+                """)
+            }
+
+            // ✅ الترقية للنسخة 10: إضافة رقم المحفظة
+            if (oldVersion < 10) {
+                try { db?.execSQL("ALTER TABLE customers ADD COLUMN wallet_number TEXT;") } catch (e: Exception) {}
+            }
+
+            // ✅ الترقية للنسخة 11: إضافة الرصيد الأخير
+            if (oldVersion < 11) {
+                try { db?.execSQL("ALTER TABLE customers ADD COLUMN last_balance TEXT;") } catch (e: Exception) {}
+            }
+
+            // ✅ الترقية للنسخة 12: إنشاء جدول معرفات العميل المطابق لـ Dart (client_id وليس client_phone)
+            if (oldVersion < 12) {
+                db?.execSQL("""
+                    CREATE TABLE IF NOT EXISTS client_identifiers (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        client_id INTEGER NOT NULL,
+                        identifier TEXT NOT NULL UNIQUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (client_id) REFERENCES customers (id) ON DELETE CASCADE
+                    )
+                """)
+            }
+
+            // ✅ الترقية للنسخة 13: إضافة سعر الفئة ومبلغ السجل
+            if (oldVersion < 13) {
+                try { db?.execSQL("ALTER TABLE keywords ADD COLUMN price REAL DEFAULT 0.0;") } catch (e: Exception) {}
+                try { db?.execSQL("ALTER TABLE reply_log ADD COLUMN price REAL DEFAULT 0.0;") } catch (e: Exception) {}
+            }
+
+            // ✅ الترقية للنسخة 14: إضافة جدول العملاء المستثنين
+            if (oldVersion < 14) {
+                db?.execSQL("""
+                    CREATE TABLE IF NOT EXISTS excepted_customers (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        phone TEXT NOT NULL UNIQUE,
+                        name TEXT,
+                        notes TEXT,
+                        created_at INTEGER NOT NULL
+                    )
+                """)
+            }
+
+            // إعادة إنشاء/تأكيد الفهارس لجميع الجداول
+            createIndexes(db)
+
+            db?.setTransactionSuccessful()
+        } catch (e: Exception) {
+            Log.e("SQLite", "Error upgrading database from v$oldVersion to v$newVersion: ${e.message}")
+        } finally {
+            db?.endTransaction()
+        }
+    }
+    /*override fun onCreate(db: SQLiteDatabase?) {
         
         db?.execSQL("""        
             CREATE TABLE keywords (
@@ -92,9 +357,9 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         """)
 
         createIndexes(db)
-    }
+    }*/
 
-    private fun createIndexes(db: SQLiteDatabase?) {
+    /*private fun createIndexes(db: SQLiteDatabase?) {
         try {
             db?.execSQL("CREATE INDEX IF NOT EXISTS idx_customers_phone_wallet ON customers(phone, wallet_number)")
             db?.execSQL("CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)")
@@ -105,9 +370,9 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         } catch (e: Exception) {
             Log.e("SQLite", "Error creating indexes: ${e.message}")
         }
-    }
+    }*/
 
-    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+    /*override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 8) {
             try {
                 db?.execSQL("ALTER TABLE keywords ADD COLUMN target_count INTEGER DEFAULT 0")
@@ -194,7 +459,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         }
 
         createIndexes(db)
-    }
+    }*/
     
     fun getAllClientIdentifiers(): Map<String, String> {
         Log.e("CLIENT_CACHE", "========== getAllClientIdentifiers START ==========")

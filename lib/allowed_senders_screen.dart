@@ -374,12 +374,12 @@ class _AllowedSendersScreenState extends State<AllowedSendersScreen> {
           centerTitle: true,
           elevation: 0,
         ),
-        floatingActionButton: FloatingActionButton.extended(
+        /*floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _showSenderDialog(),
           icon: const Icon(Icons.add_rounded),
           label: const Text('إضافة جهة',
               style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
+        ),*/
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
@@ -585,7 +585,7 @@ class _AllowedSendersScreenState extends State<AllowedSendersScreen> {
                                           ],
                                         ),
                                       ),
-                                      trailing: Row(
+                                      /*trailing: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
@@ -607,7 +607,7 @@ class _AllowedSendersScreenState extends State<AllowedSendersScreen> {
                                                 _showDeleteDialog(sender),
                                           ),
                                         ],
-                                      ),
+                                      ),*/
                                     ),
                                   );
                                 },

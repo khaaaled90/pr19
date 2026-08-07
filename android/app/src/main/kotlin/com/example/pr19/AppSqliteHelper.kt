@@ -78,7 +78,18 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 category TEXT DEFAULT 'general'
             )
         """)
-        
+
+        db?.execSQL("""
+            CREATE TABLE $tableNumbersPool (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                keyword_id INTEGER NOT NULL,
+                number_code TEXT NOT NULL UNIQUE,
+                status TEXT DEFAULT 'available',
+                assigned_to TEXT,
+                assigned_at INTEGER,
+                FOREIGN KEY(keyword_id) REFERENCES $tableKeywords(id) ON DELETE CASCADE
+            )
+        """)
 
         createIndexes(db)
     }

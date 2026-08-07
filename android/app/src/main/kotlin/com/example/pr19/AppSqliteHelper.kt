@@ -73,6 +73,15 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 FOREIGN KEY(client_id) REFERENCES customers(id) ON DELETE CASCADE
             )
         """)
+        db?.execSQL("""
+            CREATE TABLE settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                setting_key TEXT NOT NULL UNIQUE,
+                setting_value TEXT,
+                category TEXT DEFAULT 'general'
+            )
+        """);
+        
         createIndexes(db)
     }
 

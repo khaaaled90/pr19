@@ -63,8 +63,29 @@ object AppCache {
             Log.e("CLIENT_CACHE", "✅ تم تحميل ${clientIdentifiers?.size ?: 0} عميل ومعرف إلى الكاش بنجاح!")
         }
     }
-        
+
     fun getClientIdentifiers(dbHelper: AppSqliteHelper): Map<String, String> {
+        Log.e("CLIENT_CACHE", ">>> ENTER getClientIdentifiers()")
+
+        return clientIdentifiers ?: synchronized(this) {
+            Log.e("CLIENT_CACHE", ">>> clientIdentifiers = $clientIdentifiers")
+
+            clientIdentifiers ?: run {
+                val rawMap = dbHelper.getAllClientIdentifiers()
+                val normalizedMap = mutableMapOf<String, String>()
+                rawMap.forEach { (key, phone) ->
+                    val cleanKey = normalizeText(key)
+                    if (cleanKey.isNotEmpty() && phone.isNotEmpty()) {
+                        normalizedMap[cleanKey] = phone
+                    }
+                }
+                Log.e("CLIENT_CACHE", ">>> Loaded ${normalizedMap.size} identifiers")
+                normalizedMap.also { clientIdentifiers = it }
+            }
+        }
+    }
+
+    /*fun getClientIdentifiers(dbHelper: AppSqliteHelper): Map<String, String> {
 
         Log.e("CLIENT_CACHE", ">>> ENTER getClientIdentifiers()")
 
@@ -79,13 +100,15 @@ object AppCache {
                 clientIdentifiers = it
             }
         }
-    }
-    /*// ✅ 2. جلب جميع المعرفات من قاعدة البيانات عند أول طلب
+    }*/
+    /*
+    // ✅ 2. جلب جميع المعرفات من قاعدة البيانات عند أول طلب
     fun getClientIdentifiers(dbHelper: AppSqliteHelper): Map<String, String> {
         return clientIdentifiers ?: synchronized(this) {
             clientIdentifiers ?: dbHelper.getAllClientIdentifiers().also { clientIdentifiers = it }
         }
-    }*/
+    }
+    */
 
     // ✅ 3. دالة سريعة للبحث عن رقم العميل بواسطة المعرف/الاسم
     fun findPhoneByIdentifier(dbHelper: AppSqliteHelper, rawIdentifier: String): String? {
@@ -169,16 +192,24 @@ object AppCache {
 import android.content.Context
 
 object AppCache {
-    @Volatile private var cachedKeywords: List<Map<String, Any>>? = null
+    // 🟢 1. غيّر Any إلى Any?
+    @Volatile private var cachedKeywords: List<Map<String, Any?>>? = null
+    //@Volatile private var cachedKeywords: List<Map<String, Any>>? = null
     @Volatile private var serviceEnabled: Boolean? = null
     @Volatile private var allowAllSenders: Boolean? = null
     @Volatile private var defaultReply: String? = null
 
-    fun getKeywords(dbHelper: AppSqliteHelper): List<Map<String, Any>> {
+    // 🟢 2. غيّر Any إلى Any? في نوع الإرجاع
+    fun getKeywords(dbHelper: AppSqliteHelper): List<Map<String, Any?>> {
         return cachedKeywords ?: synchronized(this) {
             cachedKeywords ?: dbHelper.getAllActiveKeywords().also { cachedKeywords = it }
         }
     }
+    /*fun getKeywords(dbHelper: AppSqliteHelper): List<Map<String, Any>> {
+        return cachedKeywords ?: synchronized(this) {
+            cachedKeywords ?: dbHelper.getAllActiveKeywords().also { cachedKeywords = it }
+        }
+    }*/
 
     fun isServiceEnabled(dbHelper: AppSqliteHelper): Boolean {
         return serviceEnabled ?: synchronized(this) {

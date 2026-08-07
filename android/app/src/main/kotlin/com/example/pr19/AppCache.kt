@@ -4,9 +4,8 @@ import android.content.Context
 import android.util.Log
 
 object AppCache {
-    // 🟢 1. غيّر Any إلى Any?
-    @Volatile private var cachedKeywords: List<Map<String, Any?>>? = null
-    //@Volatile private var cachedKeywords: List<Map<String, Any>>? = null
+    
+    @Volatile private var cachedKeywords: List<Map<String, Any>>? = null
     @Volatile private var serviceEnabled: Boolean? = null
     @Volatile private var allowAllSenders: Boolean? = null
     @Volatile private var defaultReply: String? = null
@@ -14,17 +13,11 @@ object AppCache {
     // ✅ 1. خريطة المعرفات: المفتاح هو المعرف/الاسم المفحوص، والقيمة هي رقم الهاتف
     @Volatile private var clientIdentifiers: Map<String, String>? = null
 
-    // 🟢 2. غيّر Any إلى Any? في نوع الإرجاع
-    fun getKeywords(dbHelper: AppSqliteHelper): List<Map<String, Any?>> {
+    fun getKeywords(dbHelper: AppSqliteHelper): List<Map<String, Any>> {
         return cachedKeywords ?: synchronized(this) {
             cachedKeywords ?: dbHelper.getAllActiveKeywords().also { cachedKeywords = it }
         }
     }
-    /*fun getKeywords(dbHelper: AppSqliteHelper): List<Map<String, Any>> {
-        return cachedKeywords ?: synchronized(this) {
-            cachedKeywords ?: dbHelper.getAllActiveKeywords().also { cachedKeywords = it }
-        }
-    }*/
 
     fun isServiceEnabled(dbHelper: AppSqliteHelper): Boolean {
         return serviceEnabled ?: synchronized(this) {

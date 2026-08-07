@@ -415,7 +415,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         return allowed
     }
 
-    fun getAllActiveKeywords(): List<Map<String, Any?>> {
+    /*fun getAllActiveKeywords(): List<Map<String, Any?>> {
         val list = mutableListOf<Map<String, Any?>>()
         try {
             val db = readableDatabase
@@ -455,10 +455,10 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             Log.e("AppSqliteHelper", "⚠️ تعذر قراءة keywords في التهيئة المبدئية: ${e.message}")
         }
         return list
-    }
+    }*/
 
     // ✅ تم تعديل الاستعلام وقراءة حقل price
-    /*fun getAllActiveKeywords(): List<Map<String, Any>> {
+    fun getAllActiveKeywords(): List<Map<String, Any>> {
         val list = mutableListOf<Map<String, Any>>()
         try {
             val db = readableDatabase
@@ -483,7 +483,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             Log.e("AppSqliteHelper", "⚠️ تعذر قراءة keywords في التهيئة المبدئية: ${e.message}")
         }
         return list
-    }*/
+    }
 
     fun findCustomerPhoneByIdentifier(textContent: String): String? {
         val db = readableDatabase

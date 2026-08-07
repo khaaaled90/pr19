@@ -239,8 +239,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _loadDummyData() {
+    if (!mounted) return;
     setState(() {
-      statReplies = 42;
+      statReplies = 0;
+      availableCategoriesData = [];
+      usedCategoriesData = [];
+      totalAvailable = 0;
+      totalUsed = 0;
+      isLoading = false; // 👈 مهم جداً لإيقاف مؤشر التحميل
+    });
+    /*setState(() {
+      statReplies = 0;
       availableCategoriesData = [
         _CategoryStatData('باقة 100', 50, categoryColors[0]),
         _CategoryStatData('باقة 200', 30, categoryColors[1]),
@@ -254,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
       totalAvailable = availableCategoriesData.fold(0, (s, i) => s + i.count);
       totalUsed = usedCategoriesData.fold(0, (s, i) => s + i.count);
       isLoading = false;
-    });
+    });*/
   }
 
   void _processChartData(

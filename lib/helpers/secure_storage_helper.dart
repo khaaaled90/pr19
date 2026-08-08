@@ -155,13 +155,36 @@ class SecureStorageHelper {
     };
   }
   /// 1.ب حفظ بيانات الترخيص من Map مباشرة (قادمة من الفايربيس أو SyncManager)
-  static Future<void> saveLicenseDataFromMap(Map<String, dynamic> data) async {
+  /*static Future<void> saveLicenseDataFromMap(Map<String, dynamic> data) async {
     await saveLicenseData(
       deviceId: data['deviceId']?.toString() ?? '',
       planType: data['planType']?.toString() ?? 'trial',
       expiryDateMs: int.tryParse(data['expiryDate']?.toString() ?? '0') ?? 0,
       vouchersLimit: int.tryParse(data['vouchersLimit']?.toString() ?? '-1') ?? -1,
       vouchersUsed: int.tryParse(data['vouchersUsed']?.toString() ?? '0') ?? 0,
+      needsSync: data['needsSync'] == true || data['needsSync'] == 'true',
+      appliedKey: data['appliedKey']?.toString(),
+    );
+  }*/
+  static Future<void> saveLicenseDataFromMap(Map<String, dynamic> data) async {
+    // 1. قراءة القيم الآتية من فيربيس
+    int rawLimit = int.tryParse(data['vouchersLimit']?.toString() ?? '-1') ?? -1;
+    int rawUsed = int.tryParse(data['vouchersUsed']?.toString() ?? '0') ?? 0;
+
+    // 2. حساب المتبقي الفعلي (إذا لم تكن الخطة غير محدودة -1)
+    int calculatedLimit = rawLimit;
+    if (rawLimit > -1) {
+      calculatedLimit = rawLimit - rawUsed;
+      if (calculatedLimit < 0) calculatedLimit = 0; // حماية من القيم السالبة
+    }
+
+    // 3. التمرير للدالة الحافظة
+    await saveLicenseData(
+      deviceId: data['deviceId']?.toString() ?? '',
+      planType: data['planType']?.toString() ?? 'trial',
+      expiryDateMs: int.tryParse(data['expiryDate']?.toString() ?? '0') ?? 0,
+      vouchersLimit: calculatedLimit, // هنا سينتقل الرقم 199
+      vouchersUsed: 0, // تصفير المستهلك المحلي لأن الحد أصبح يتضمن المتبقي فقط
       needsSync: data['needsSync'] == true || data['needsSync'] == 'true',
       appliedKey: data['appliedKey']?.toString(),
     );

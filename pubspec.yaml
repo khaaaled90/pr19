@@ -29,7 +29,7 @@ dependencies:
 
   # Permissions & System
   permission_handler: ^11.3.0
-  intent_plus: ^0.2.1 # لتوجيه المستخدم لإعدادات الوصول للإشعارات والتشغيل التلقائي
+  intent_plus: ^0.1.0
 
   # Database
   sqflite: ^2.3.0

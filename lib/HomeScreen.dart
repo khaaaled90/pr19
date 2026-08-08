@@ -826,11 +826,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         // 🎯 إضافة الزر العائم المطفي/المعطل
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            _openManualSendDialog();
-            // الكود الذي يعمل عند الضغط
-          },
-          backgroundColor: Theme.of(context).primaryColor, // أو لون آخر من اختيارك
+          onPressed: _openManualSendDialog, // تمرير مباشر بدون () وبدون أقواس دالة
+          backgroundColor: Theme.of(context).primaryColor,
           elevation: 4,
           icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
           label: const Text(
@@ -842,7 +839,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         )
-
     );
   }
 

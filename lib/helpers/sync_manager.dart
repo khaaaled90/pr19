@@ -34,6 +34,185 @@ class SyncManager {
           int vouchersLimit = data['vouchers_limit'] ?? -1;
           String planType = data['plan_type'] ?? 'trial';
 
+          // 🟢 الإصلاح هنا: قراءة القيم المستهلكة المجلوبة من الفايربيس مباشرة
+          // بدلاً من الاعتماد على التخزين المحلي الممسوح!
+          int vouchersUsedFromServer = int.tryParse(
+            data['vouchers_used']?.toString() ?? (data['vouchersUsed']?.toString() ?? '0')
+          ) ?? 0;
+
+          // 🚨 1. إذا كان التفعيل معطلاً من السيرفر مباشرة (is_active == false)
+          if (!isActive) {
+            await SecureStorageHelper.saveLicenseData(
+              deviceId: deviceId,
+              planType: planType,
+              expiryDateMs: 0, // تصفير التاريخ لضمان التوقف
+              vouchersLimit: vouchersLimit,
+              vouchersUsed: vouchersUsedFromServer,
+              needsSync: false,
+            );
+
+            await _stopNativeBackgroundServices();
+
+            return {
+              'isValid': false,
+              'reason': 'تم تعطيل الترخيص من قبل المسؤول'
+            };
+          }
+
+          // ج) تحديث الذاكرة المحلية المشفرة بالبيانات الحقيقية المجلوبة من السيرفر
+          await SecureStorageHelper.saveLicenseData(
+            deviceId: deviceId,
+            planType: planType,
+            expiryDateMs: expiryDateMs,
+            vouchersLimit: vouchersLimit,
+            vouchersUsed: vouchersUsedFromServer, // 👈 سيتم حفظ الرقم 3 المجلوب من الفايربيس
+            needsSync: false,
+          );
+
+          // د) فحص الصلاحية فوراً بعد التحديث
+          Map<String, dynamic> localResult =
+              await SecureStorageHelper.checkLocalLicenseValid();
+
+          if (localResult['isValid'] == false) {
+            await _stopNativeBackgroundServices();
+          } else {
+            await _enableNativeBackgroundServices();
+          }
+
+          return localResult;
+        }
+      } catch (e) {
+        // في حال حدوث خطأ في الاتصال بالـ Firestore، نتحول تلقائياً للفحص المحلي
+      }
+    }
+
+    // 2. إذا كان الجهاز Offline أو فشل الاتصال: الاعتماد الكلي على الذاكرة المحلية المشفرة
+    Map<String, dynamic> offlineResult =
+        await SecureStorageHelper.checkLocalLicenseValid();
+
+    if (offlineResult['isValid'] == false) {
+      await _stopNativeBackgroundServices();
+    }
+
+    return offlineResult;
+  }
+
+  /// 🛑 إيقاف خدمات الخلفية و SmsReceiver في نظام أندرويد
+  static Future<void> _stopNativeBackgroundServices() async {
+    try {
+      await _controlChannel.invokeMethod('disableLicense');
+    } catch (e) {
+      print("خطأ أثناء إرسال أمر إيقاف الخلفية للـ Native: $e");
+    }
+  }
+
+  /// 🟢 إعادة تفعيل خدمات الخلفية في نظام أندرويد
+  static Future<void> _enableNativeBackgroundServices() async {
+    try {
+      await _controlChannel.invokeMethod('enableLicense');
+    } catch (e) {
+      print("خطأ أثناء إرسال أمر تفعيل الخلفية للـ Native: $e");
+    }
+  }
+
+  /// 2. رفع التفعيل الأوفلاين للفايربيس (Auto Sync Pending Activations)
+  static Future<void> _uploadPendingOfflineActivation(String deviceId) async {
+    bool needsSync = await SecureStorageHelper.checkIfNeedsSync();
+    if (!needsSync) return;
+
+    var localData = await SecureStorageHelper.getLocalLicenseData();
+    if (localData['expiryDate'] == null) return;
+
+    await _firestore.collection('licenses').doc(deviceId).set({
+      'device_id': deviceId,
+      'plan_type': localData['planType'],
+      'expiry_date': int.parse(localData['expiryDate']!),
+      'vouchers_limit': int.parse(localData['vouchersLimit'] ?? '-1'),
+      'is_active': true,
+      'last_activation_key': localData['appliedKey'],
+      'activated_offline_at': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await SecureStorageHelper.clearSyncFlag();
+  }
+
+  /// 3. تسجيل بيانات التجربة لأول مرة على Firebase عند فتح التطبيق أول مرة
+  static Future<void> registerTrialOnline({
+    required String clientName,
+    required String phone,
+    required String networkName,
+    required int trialDays,
+    required int trialVouchersLimit,
+  }) async {
+    String deviceId = await DeviceUtils.getDeviceId();
+    DateTime now = DateTime.now();
+    DateTime expiryDate = now.add(Duration(days: trialDays));
+
+    await SecureStorageHelper.saveLicenseData(
+      deviceId: deviceId,
+      planType: 'trial',
+      expiryDateMs: expiryDate.millisecondsSinceEpoch,
+      vouchersLimit: trialVouchersLimit,
+      vouchersUsed: 0,
+      needsSync: true,
+    );
+
+    try {
+      await _firestore.collection('licenses').doc(deviceId).set({
+        'device_id': deviceId,
+        'client_name': clientName,
+        'phone': phone,
+        'network_name': networkName,
+        'plan_type': 'trial',
+        'is_active': true,
+        'expiry_date': expiryDate.millisecondsSinceEpoch,
+        'vouchers_limit': trialVouchersLimit,
+        'vouchers_used': 0, // تعيين 0 للمستخدم الجديد تماماً
+        'created_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      await SecureStorageHelper.clearSyncFlag();
+    } catch (e) {
+      // سيتكفل تابع _uploadPendingOfflineActivation برفعها لاحقاً عند الاتصال
+    }
+  }
+}
+/*import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/services.dart';
+import 'device_utils.dart';
+import 'secure_storage_helper.dart';
+
+class SyncManager {
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const MethodChannel _controlChannel =
+      MethodChannel('com.example.pr19/native_control');
+
+  /// 1. التحقق الشامل من الترخيص (Firebase Online + Local Offline Failover)
+  static Future<Map<String, dynamic>> checkAndSyncLicense() async {
+    String deviceId = await DeviceUtils.getDeviceId();
+
+    // فحص الاتصال بالإنترنت
+    var connectivity = await Connectivity().checkConnectivity();
+    bool isOnline = !connectivity.contains(ConnectivityResult.none);
+
+    if (isOnline) {
+      try {
+        // أ) محاولة رفع التفعيل الأوفلاين إن وجد كود معلق
+        await _uploadPendingOfflineActivation(deviceId);
+
+        // ب) جلب بيانات الترخيص الحالية المحدثة من Firebase
+        DocumentSnapshot doc =
+            await _firestore.collection('licenses').doc(deviceId).get();
+
+        if (doc.exists && doc.data() != null) {
+          var data = doc.data() as Map<String, dynamic>;
+
+          bool isActive = data['is_active'] ?? false;
+          int expiryDateMs = data['expiry_date'] ?? 0;
+          int vouchersLimit = data['vouchers_limit'] ?? -1;
+          String planType = data['plan_type'] ?? 'trial';
+
           // جلب عدد القسائم المستخدمة محلياً أو من السيرفر
           var localData = await SecureStorageHelper.getLocalLicenseData();
           int vouchersUsed =
@@ -178,7 +357,7 @@ class SyncManager {
       // سيتكفل تابع _uploadPendingOfflineActivation برفعها لاحقاً عند الاتصال
     }
   }
-}
+}*/
 /*import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'device_utils.dart';

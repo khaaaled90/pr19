@@ -825,28 +825,20 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
         // 🎯 إضافة الزر العائم المطفي/المعطل
-        floatingActionButton: Opacity(
-          opacity: 0.45, // إعطاء مظهر التجميد/التعطيل بلمسة خفيفة
-          child: FloatingActionButton.extended(
-            onPressed: () {
-              // رسالة تنبيه للمستخدم تفيد بأن الميزة معطلة
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('خاصية الإرسال اليدوي معطلة حالياً'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            backgroundColor: Colors.grey.shade700,
-            elevation: 1,
-            icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-            label: const Text(
-              'إرسال يدوي (معطل)',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            _openManualSendDialog();
+            // الكود الذي يعمل عند الضغط
+          },
+          backgroundColor: Theme.of(context).primaryColor, // أو لون آخر من اختيارك
+          elevation: 4,
+          icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+          label: const Text(
+            'إرسال يدوي',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
             ),
           ),
         )

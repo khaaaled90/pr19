@@ -66,8 +66,12 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/app_icon.png"
   app_name: "CardPay"
-
+  
   min_sdk_android: 21 # أجهزة أندرويد المعززة
+  
+  # 🎯 أهم خطوة لإصلاح أيقونة شاشة الإعدادات في أندرويد
+  adaptive_icon_background: "#assets/background.png" # أو مسار صورة خلفية: "assets/background.png"
+  adaptive_icon_foreground: "assets/icon_foreground.png" # الصورة الأمامية للأيقونة
 
 flutter:
   uses-material-design: true

@@ -26,6 +26,7 @@
         android:name="${applicationName}"
         android:label="CardPay"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="true">
 
         <!-- Activity الرئيسي لـ Flutter -->

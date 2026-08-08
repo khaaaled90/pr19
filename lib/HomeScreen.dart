@@ -16,10 +16,128 @@ import 'ExceptedCustomersScreen.dart';
 import 'service/native_service_controller.dart';
 import 'helpers/secure_storage_helper.dart';
 
+
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
 const MethodChannel _nativeControlChannel = MethodChannel('com.example.pr19/native_control');
 
 class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentIndex = 0;
+
+  // عدادات لإجبار الشاشات على التحديث عند النقر على التبويب
+  int _vouchersRefreshKey = 0;
+  int _salesRefreshKey = 0;
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+
+      // عند الانتقال لتبويب الكروت (1)، نغير المفتاح لإعادة تشغيل initState داخل الشاشة وتحديث البيانات
+      if (index == 1) {
+        _vouchersRefreshKey++;
+      }
+      // عند الانتقال لتبويب التقارير/المبيعات (2)، نغير المفتاح لنفس الغرض
+      else if (index == 2) {
+        _salesRefreshKey++;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = theme.cardColor;
+
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          const HomeScreen(),
+          // استخدام ValueKey يربط المفتاح بالعداد، مما يحفز التحديث التلقائي فور التنقل
+          VouchersScreen(key: ValueKey('vouchers_$_vouchersRefreshKey')),
+          SalesScreen(key: ValueKey('sales_$_salesRefreshKey')),
+          const SettingsScreen(),
+          const ContactTabScreen(),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
+              _buildNavItem(Icons.confirmation_number_rounded, 'الكروت', 1),
+              _buildNavItem(Icons.donut_small_rounded, 'التقارير', 2),
+              _buildNavItem(Icons.tune_rounded, 'الإعدادات', 3),
+              _buildNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final bool isActive = _currentIndex == index;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final activeColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A);
+    final inactiveColor = isDark ? Colors.white38 : Colors.black38;
+
+    return InkWell(
+      // استدعاء دالة التنقل والتحديث عند الضغط
+      onTap: () => _onTabTapped(index),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: isActive
+            ? BoxDecoration(
+                color: activeColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(16),
+              )
+            : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: isActive ? activeColor : inactiveColor, size: 22),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                color: isActive ? activeColor : inactiveColor,
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+/*class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
 
   @override
@@ -119,7 +237,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     );
   }
-}
+}*/
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);

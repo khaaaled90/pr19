@@ -16,6 +16,753 @@ class VouchersScreen extends StatefulWidget {
 class _VouchersScreenState extends State<VouchersScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
+  List<Map<String, dynamic>> _keywords = [];
+  List<Map<String, dynamic>> _allNumbers = [];
+  List<Map<String, dynamic>> _archiveList = [];
+
+  String _currentFilter = 'available'; 
+  String _selectedKeywordId = 'all';
+  String? _selectedUsedKeyword;
+
+  final TextEditingController _numbersController = TextEditingController();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _numbersController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    final keywordsData = await _dbHelper.getAllKeywords();
+    final numbersData = await _dbHelper.getAllNumbers();
+
+    final db = await _dbHelper.database;
+    final archiveData = await db.query(
+      DatabaseHelper.tableReplyLog,
+      where: 'is_deleted = 0 OR is_deleted IS NULL',
+      orderBy: 'timestamp DESC',
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _keywords = keywordsData;
+      _allNumbers = numbersData;
+      _archiveList = archiveData;
+      _isLoading = false;
+    });
+
+    _refreshEditorText();
+  }
+
+  void _refreshEditorText() {
+    if (_selectedKeywordId == 'all') {
+      _numbersController.text = '';
+      return;
+    }
+
+    final kwId = int.tryParse(_selectedKeywordId);
+    if (kwId == null) return;
+
+    if (_currentFilter == 'available') {
+      final availableCodes = _allNumbers
+          .where((n) => n['keyword_id'] == kwId && n['status'] == 'available')
+          .map((n) => n['number_code'].toString())
+          .toList();
+      _numbersController.text = availableCodes.join('\n');
+    } else {
+      final usedCodes = _allNumbers
+          .where((n) => n['keyword_id'] == kwId && n['status'] == 'used')
+          .map((n) => n['number_code'].toString())
+          .toList();
+      _numbersController.text = usedCodes.join('\n');
+    }
+  }
+
+  Future<void> _pickAndReadFile() async {
+    if (_selectedKeywordId == 'all') {
+      _showSnackBar('❌ يرجى اختيار باقة أولاً قبل قراءة الملف', isError: true);
+      return;
+    }
+
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['txt', 'csv', 'xlsx', 'xls', 'pdf'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final filePath = result.files.single.path!;
+        final extension = filePath.split('.').last.toLowerCase();
+
+        List<String> extractedCodes = [];
+
+        if (extension == 'xlsx' || extension == 'xls') {
+          extractedCodes = await _parseExcelFile(filePath);
+        } else if (extension == 'pdf') {
+          extractedCodes = await _parsePdfFile(filePath);
+        } else {
+          File file = File(filePath);
+          String content = await file.readAsString();
+          extractedCodes = content
+              .split(RegExp(r'\r?\n'))
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+
+        if (extractedCodes.isEmpty) {
+          _showSnackBar('⚠️ لم يتم العثور على أرقام أو أكواد كروت داخل الملف', isError: true);
+          return;
+        }
+
+        setState(() {
+          String currentText = _numbersController.text.trim();
+          String newAdded = extractedCodes.join('\n');
+          if (currentText.isNotEmpty) {
+            _numbersController.text = '$currentText\n$newAdded';
+          } else {
+            _numbersController.text = newAdded;
+          }
+        });
+
+        _showSnackBar('✅ تمت قراءة واستخراج (${extractedCodes.length}) كرت من الملف');
+      }
+    } catch (e) {
+      _showSnackBar('❌ فشل في قراءة الملف: $e', isError: true);
+    }
+  }
+
+  Future<List<String>> _parseExcelFile(String path) async {
+    final bytes = File(path).readAsBytesSync();
+    final excel = Excel.decodeBytes(bytes);
+    List<String> codes = [];
+
+    for (var table in excel.tables.keys) {
+      for (var row in excel.tables[table]!.rows) {
+        for (var cell in row) {
+          if (cell != null && cell.value != null) {
+            String val = cell.value.toString().trim();
+            if (val.isNotEmpty && !val.contains(RegExp(r'[^\w\d-]'))) {
+              codes.add(val);
+            }
+          }
+        }
+      }
+    }
+    return codes;
+  }
+
+  Future<List<String>> _parsePdfFile(String path) async {
+    final PdfDocument document = PdfDocument(inputBytes: File(path).readAsBytesSync());
+    String text = PdfTextExtractor(document).extractText();
+    document.dispose();
+
+    final matches = RegExp(r'[A-Za-z0-9]{4,30}').allMatches(text);
+    return matches.map((m) => m.group(0)!..trim()).toList();
+  }
+
+  Future<void> _saveNumbers() async {
+    if (_selectedKeywordId == 'all' || _currentFilter != 'available') {
+      _showSnackBar('❌ اختر باقة متاحة للتعديل والحفظ', isError: true);
+      return;
+    }
+
+    final kwId = int.tryParse(_selectedKeywordId);
+    if (kwId == null) return;
+
+    List<String> lines = _numbersController.text
+        .split(RegExp(r'\r?\n'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    final currentAvailable = _allNumbers
+        .where((n) => n['keyword_id'] == kwId && n['status'] == 'available')
+        .toList();
+
+    final currentCodes = currentAvailable.map((n) => n['number_code'].toString()).toSet();
+    final newCodes = lines.toSet();
+
+    final toAdd = newCodes.difference(currentCodes);
+    final toDelete = currentAvailable
+        .where((n) => !newCodes.contains(n['number_code'].toString()))
+        .toList();
+
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      for (var item in toDelete) {
+        await txn.delete(
+          DatabaseHelper.tableNumbersPool,
+          where: 'id = ?',
+          whereArgs: [item['id']],
+        );
+      }
+      for (var code in toAdd) {
+        await txn.insert(
+          DatabaseHelper.tableNumbersPool,
+          {
+            'keyword_id': kwId,
+            'number_code': code,
+            'status': 'available',
+          },
+        );
+      }
+    });
+
+    _showSnackBar('✅ تم الحفظ: +${toAdd.length} أرقام مضافة، -${toDelete.length} أرقام محذوفة');
+    await _loadData();
+  }
+
+  Future<void> _deleteUsedCard(int archiveId) async {
+    final bool? confirm = await _showConfirmDialog('حذف الكرت', 'هل تريد حذف هذا الكرت من الأرشيف؟');
+    if (confirm != true) return;
+
+    final db = await _dbHelper.database;
+    await db.update(
+      DatabaseHelper.tableReplyLog,
+      {'is_deleted': 1},
+      where: 'id = ?',
+      whereArgs: [archiveId],
+    );
+
+    _showSnackBar('✅ تم الحذف من الأرشيف');
+    _loadData();
+  }
+
+  Future<void> _deleteAllUsed() async {
+    final bool? confirm = await _showConfirmDialog('⚠️ حذف الكل', 'هل أنت تأكد من حذف جميع الكروت المستخدمة من الأرشيف؟');
+    if (confirm != true) return;
+
+    final db = await _dbHelper.database;
+    await db.update(
+      DatabaseHelper.tableReplyLog,
+      {'is_deleted': 1},
+      where: 'sent_number IS NOT NULL AND sent_number != ""',
+    );
+
+    _showSnackBar('✅ تم حذف الأرشيف بالكامل');
+    _loadData();
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: isError ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<bool?> _showConfirmDialog(String title, String content) {
+    final theme = Theme.of(context);
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: theme.cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Text(content, style: const TextStyle(fontSize: 13)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('تأكيد', style: TextStyle(color: Colors.white, fontSize: 13)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = theme.cardColor;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          centerTitle: true,
+          title: const Text(
+            'تغذية وإدارة الكروت',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+              onPressed: _loadData,
+            )
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _loadData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildFilterRow(isDark, cardBg, textColor),
+                          const SizedBox(height: 14),
+                          if (_currentFilter == 'available')
+                            _buildKeywordAndToolsRow(isDark, cardBg, textColor),
+                          const SizedBox(height: 14),
+                          if (_currentFilter == 'available')
+                            _buildEditorSection(isDark, cardBg, textColor)
+                          else
+                            _buildUsedCardsSection(isDark, cardBg, textColor),
+                          const SizedBox(height: 16),
+                          _buildFooterStats(isDark, cardBg, textColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildFilterRow(bool isDark, Color cardBg, Color textColor) {
+    final activeColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A);
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                setState(() => _currentFilter = 'available');
+                _refreshEditorText();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _currentFilter == 'available' ? activeColor.withOpacity(0.12) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.inventory_2_rounded,
+                      size: 18,
+                      color: _currentFilter == 'available' ? activeColor : Colors.grey,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'الكروت المتاحة',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: _currentFilter == 'available' ? FontWeight.bold : FontWeight.w500,
+                        color: _currentFilter == 'available' ? activeColor : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                setState(() => _currentFilter = 'used');
+                _refreshEditorText();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _currentFilter == 'used' ? activeColor.withOpacity(0.12) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.history_rounded,
+                      size: 18,
+                      color: _currentFilter == 'used' ? activeColor : Colors.grey,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'الكروت المستخدمة',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: _currentFilter == 'used' ? FontWeight.bold : FontWeight.w500,
+                        color: _currentFilter == 'used' ? activeColor : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKeywordAndToolsRow(bool isDark, Color cardBg, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+      ),
+      child: Column(
+        children: [
+          DropdownButtonFormField<String>(
+            value: _selectedKeywordId,
+            dropdownColor: cardBg,
+            decoration: InputDecoration(
+              labelText: 'الباقة المستهدفة',
+              prefixIcon: const Icon(Icons.vpn_key_rounded, size: 20),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            items: [
+              const DropdownMenuItem(value: 'all', child: Text('اختر باقة للبدء...')),
+              ..._keywords.map((k) {
+                return DropdownMenuItem(
+                  value: k['id'].toString(),
+                  child: Text('${k['keyword']}'),
+                );
+              }).toList(),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                setState(() => _selectedKeywordId = val);
+                _refreshEditorText();
+              }
+            },
+          ),
+          if (_selectedKeywordId != 'all') ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.note_add_rounded, size: 18),
+                label: const Text('استيراد أكواد من ملف (Excel / PDF / TXT)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: _pickAndReadFile,
+              ),
+            ),
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditorSection(bool isDark, Color cardBg, Color textColor) {
+    bool isAllSelected = _selectedKeywordId == 'all';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isAllSelected ? 'رجاء تحديد الباقة أولاً' : 'الأكواد والكروت (رمز في كل سطر)',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _numbersController,
+            enabled: !isAllSelected,
+            maxLines: 9,
+            textDirection: TextDirection.ltr,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A),
+            ),
+            decoration: InputDecoration(
+              hintText: isAllSelected ? 'حدد باقة لتتمكن من إضافة وحفظ الكروت' : '1000123456\n1000123457\n1000123458',
+              hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+              filled: true,
+              fillColor: isDark ? Colors.black26 : const Color(0xFFF8FAFC),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (!isAllSelected)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.check_circle_rounded, size: 20),
+                label: const Text('حفظ التغييرات والقسائم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: _saveNumbers,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsedCardsSection(bool isDark, Color cardBg, Color textColor) {
+    Map<String, List<Map<String, dynamic>>> groupedUsed = {};
+    for (var item in _archiveList) {
+      String kw = item['matched_keyword']?.toString() ?? 'غير معروف';
+      if (kw.isEmpty) kw = 'غير معروف';
+      groupedUsed.putIfAbsent(kw, () => []).add(item);
+    }
+
+    if (groupedUsed.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(30),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Center(
+          child: Text('لا توجد كروت مستخدمة مسبقاً', style: TextStyle(color: Colors.grey, fontSize: 13)),
+        ),
+      );
+    }
+
+    if (_selectedUsedKeyword == null || !groupedUsed.containsKey(_selectedUsedKeyword)) {
+      _selectedUsedKeyword = groupedUsed.keys.first;
+    }
+
+    List<Map<String, dynamic>> currentUsedList = groupedUsed[_selectedUsedKeyword] ?? [];
+
+    return Column(
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: groupedUsed.keys.map((kw) {
+              bool isActive = _selectedUsedKeyword == kw;
+              int count = groupedUsed[kw]?.length ?? 0;
+              return Padding(
+                padding: const EdgeInsets.only(left: 6.0),
+                child: ChoiceChip(
+                  label: Text('$kw ($count)'),
+                  selected: isActive,
+                  selectedColor: const Color(0xFF0EA5E9),
+                  backgroundColor: cardBg,
+                  labelStyle: TextStyle(
+                    color: isActive ? Colors.white : textColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                  onSelected: (selected) {
+                    if (selected) setState(() => _selectedUsedKeyword = kw);
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: currentUsedList.length,
+          itemBuilder: (ctx, idx) {
+            final item = currentUsedList[idx];
+            final dt = DateTime.fromMillisecondsSinceEpoch(item['timestamp'] ?? 0);
+            final dateStr = intl.DateFormat('yyyy-MM-dd HH:mm').format(dt);
+            final String senderName = (item['sender_name'] != null && item['sender_name'].toString().isNotEmpty)
+                ? item['sender_name'].toString()
+                : (item['sender'] ?? '-').toString();
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.black26 : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      item['sent_number'] ?? '-',
+                      textDirection: TextDirection.ltr,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('📅 $dateStr', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        const SizedBox(height: 2),
+                        Text('👤 $senderName',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 20),
+                    onPressed: () => _deleteUsedCard(item['id']),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.delete_sweep_rounded, size: 18),
+            label: const Text('تفريغ الكروت المستخدمة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFEF4444),
+              side: const BorderSide(color: Color(0xFFEF4444)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onPressed: _deleteAllUsed,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFooterStats(bool isDark, Color cardBg, Color textColor) {
+    int totalCount = 0;
+    int availCount = 0;
+    int usedCount = 0;
+
+    if (_selectedKeywordId != 'all') {
+      final kwId = int.tryParse(_selectedKeywordId);
+      final filtered = _allNumbers.where((n) => n['keyword_id'] == kwId).toList();
+      availCount = filtered.where((n) => n['status'] == 'available').length;
+      usedCount = filtered.where((n) => n['status'] == 'used').length;
+      totalCount = availCount + usedCount;
+    } else {
+      totalCount = _allNumbers.length;
+      availCount = _allNumbers.where((n) => n['status'] == 'available').length;
+      usedCount = _allNumbers.where((n) => n['status'] == 'used').length;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatBox('الإجمالي', '$totalCount', const Color(0xFF0EA5E9), textColor),
+          _buildStatBox('المتاحة', '$availCount', const Color(0xFF10B981), textColor),
+          _buildStatBox('المستخدمة', '$usedCount', const Color(0xFFF59E0B), textColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatBox(String label, String value, Color color, Color textColor) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 11, color: textColor.withOpacity(0.6))),
+      ],
+    );
+  }
+}
+
+//**************************** */
+/*import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart' as intl;
+import 'package:excel/excel.dart' hide Border;
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'DatabaseHelper.dart';
+
+class VouchersScreen extends StatefulWidget {
+  const VouchersScreen({Key? key}) : super(key: key);
+
+  @override
+  State<VouchersScreen> createState() => _VouchersScreenState();
+}
+
+class _VouchersScreenState extends State<VouchersScreen> {
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+
   // البيانات والمجموعات
   List<Map<String, dynamic>> _keywords = [];
   List<Map<String, dynamic>> _allNumbers = [];
@@ -186,120 +933,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
     return matches.map((m) => m.group(0)!..trim()).toList();
   }
 
-  // ==========================================
-  // 3. إضافة أرقام بتسلسل تلقائي (Range Generator)
-  // ==========================================
-  /*void _showRangeGeneratorDialog() {
-    if (_selectedKeywordId == 'all') {
-      _showSnackBar('❌ يرجى اختيار باقة أولاً لتوليد النطاق', isError: true);
-      return;
-    }
-
-    final startController = TextEditingController();
-    final endController = TextEditingController();
-    final prefixController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: AlertDialog(
-            backgroundColor: theme.cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text('🔢 توليد كروت متسلسلة',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: prefixController,
-                    decoration: InputDecoration(
-                      labelText: 'بادئة الكرت (اختياري مثل: VIP-)',
-                      labelStyle: const TextStyle(fontSize: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: startController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'بداية التسلسل (مثال: 1001)',
-                      labelStyle: const TextStyle(fontSize: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: endController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'نهاية التسلسل (مثال: 1050)',
-                      labelStyle: const TextStyle(fontSize: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF27AE60),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () {
-                  final int? start = int.tryParse(startController.text.trim());
-                  final int? end = int.tryParse(endController.text.trim());
-                  final prefix = prefixController.text.trim();
-
-                  if (start == null || end == null || start > end) {
-                    _showSnackBar('❌ يرجى إدخال نطاق أرقام صحيح', isError: true);
-                    return;
-                  }
-
-                  final List<String> generated = [];
-                  final int padLen = startController.text.trim().length;
-
-                  for (int i = start; i <= end; i++) {
-                    final numStr = i.toString().padLeft(padLen, '0');
-                    generated.add('$prefix$numStr');
-                  }
-
-                  setState(() {
-                    String currentText = _numbersController.text.trim();
-                    String newAdded = generated.join('\n');
-                    if (currentText.isNotEmpty) {
-                      _numbersController.text = '$currentText\n$newAdded';
-                    } else {
-                      _numbersController.text = newAdded;
-                    }
-                  });
-
-                  Navigator.pop(ctx);
-                  _showSnackBar('✅ تم توليد (${generated.length}) كرت بنجاح');
-                },
-                child: const Text('توليد وإضافة', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }*/
-
+  
   // ==========================================
   // 4. حفظ الأرقام والمزامنة مع قاعدة البيانات
   // ==========================================
@@ -944,7 +1578,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
       ],
     );
   }
-}
+}*/
 /*import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';

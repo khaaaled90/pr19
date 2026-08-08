@@ -231,14 +231,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           activeColor: const Color(0xFF27AE60),
                           onChanged: (v) => setState(() => _archiveEnabled = v),
                         ),
-                        const Divider(height: 1),
+                        /*const Divider(height: 1),
                         SwitchListTile(
                           title: const Text('🎁 العروض والمكافآت',
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                           value: _offersEnabled,
                           activeColor: const Color(0xFF27AE60),
                           onChanged: (v) => setState(() => _offersEnabled = v),
-                        ),
+                        ),*/
                       ],
                     ),
                   ),

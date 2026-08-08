@@ -167,7 +167,7 @@ class SecureStorageHelper {
     );
   }*/
   /// 1.ب حفظ بيانات الترخيص من Map مباشرة (قادمة من الفايربيس أو SyncManager)
-  static Future<void> saveLicenseDataFromMap(Map<String, dynamic> data) async {
+  /*static Future<void> saveLicenseDataFromMap(Map<String, dynamic> data) async {
     // 1. قراءة القيم الآتية من فايربيس كما هي
     int rawLimit = int.tryParse(data['vouchersLimit']?.toString() ?? (data['vouchers_limit']?.toString() ?? '-1')) ?? -1;
     int rawUsed = int.tryParse(data['vouchersUsed']?.toString() ?? (data['vouchers_used']?.toString() ?? '0')) ?? 0;
@@ -181,6 +181,35 @@ class SecureStorageHelper {
       vouchersUsed: rawUsed,   // يحفظ 1 كما هي من فايربيس
       needsSync: data['needsSync'] == true || data['needsSync'] == 'true',
       appliedKey: data['appliedKey']?.toString(),
+    );
+  }*/
+  /// 1.ب حفظ بيانات الترخيص من Map مباشرة (مطبقة مع حقول Firestore)
+  static Future<void> saveLicenseDataFromMap(Map<String, dynamic> data) async {
+    // 1. قراءة القيم بنفس أسماء حقول Firestore تماماً (snake_case)
+    int rawLimit = int.tryParse(
+      data['vouchers_limit']?.toString() ?? (data['vouchersLimit']?.toString() ?? '-1')
+    ) ?? -1;
+
+    int rawUsed = int.tryParse(
+      data['vouchers_used']?.toString() ?? (data['vouchersUsed']?.toString() ?? '0')
+    ) ?? 0;
+
+    int expiryMs = int.tryParse(
+      data['expiry_date']?.toString() ?? (data['expiryDate']?.toString() ?? '0')
+    ) ?? 0;
+
+    String deviceId = data['device_id']?.toString() ?? (data['deviceId']?.toString() ?? '');
+    String planType = data['plan_type']?.toString() ?? (data['planType']?.toString() ?? 'trial');
+
+    // 2. الحفظ المباشر في التخزين الآمن
+    await saveLicenseData(
+      deviceId: deviceId,
+      planType: planType,
+      expiryDateMs: expiryMs,
+      vouchersLimit: rawLimit, // سيقرأ 200 من الفايربيس
+      vouchersUsed: rawUsed,   // سيقرأ 3 من الفايربيس
+      needsSync: data['needsSync'] == true || data['needsSync'] == 'true',
+      appliedKey: data['last_activation_key']?.toString() ?? data['appliedKey']?.toString(),
     );
   }
 }

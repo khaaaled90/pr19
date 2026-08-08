@@ -150,8 +150,73 @@ class _MainControllerState extends State<MainController> {
     // 2. بعد الأذونات -> عرض الشاشة الموجهة (التسجيل / الرئيسية / القفل)
     return _currentScreen;
   }
-
   Future<void> _checkAppLicenseStatus() async {
+    // 1. فحص الترخيص المحلي المخزن أولاً (يعمل أوفلاين بنجاح)
+    var localCheck = await SecureStorageHelper.checkLocalLicenseValid();
+
+    // 🟢 إذا كان الجهاز مسجلاً ولديه ترخيص محلي صالح
+    if (localCheck['isValid'] == true) {
+      if (!mounted) return;
+      setState(() {
+        _currentScreen = const MainNavigationScreen();
+      });
+
+      // إجراء مزامنة خلفية هادئة إن توفر إنترنت لاحقاً
+      _hasInternetConnection().then((hasNet) {
+        if (hasNet) SyncManager.checkAndSyncLicense();
+      });
+      return;
+    }
+
+    // 2. إذا لم يوجد ترخيص محلي valid (جهاز جديد / تم مسح البيانات / انتهت الصلاحية)
+    bool hasNetwork = await _hasInternetConnection();
+
+    // 🌐 لا يوجد إنترنت والجهاز ليس لديه ترخيص محلي -> شاشة التسجيل
+    if (!hasNetwork) {
+      if (!mounted) return;
+      setState(() {
+        _currentScreen = RegistrationScreen(
+          onRegistrationComplete: _checkAppLicenseStatus,
+        );
+      });
+      return;
+    }
+
+    // 🔄 3. توفر إنترنت + عدم وجود ترخيص محلي -> استعلام وتنزيل من الفايربيس
+    var validation = await SyncManager.checkAndSyncLicense();
+
+    // إذا تم العثور على وثيقة الجهاز في الفايربيس
+    if (validation['isValid'] == true) {
+      // 💾 حفظ البيانات المجلوبة محلياً للتأكد من عملها أوفلاين في المرات القادمة
+      if (validation['licenseData'] != null) {
+        await SecureStorageHelper.saveLicenseDataFromMap(
+          validation['licenseData'] as Map<String, dynamic>,
+        );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _currentScreen = const MainNavigationScreen();
+      });
+    } else if (validation['reason'] == 'EXPIRED' || validation['reason'] == 'LIMIT_REACHED') {
+      if (!mounted) return;
+      setState(() {
+        _currentScreen = LicenseLockScreen(
+          lockReason: validation['reason'] ?? 'EXPIRED',
+          onUnlocked: _checkAppLicenseStatus,
+        );
+      });
+    } else {
+      // الجهاز غير مسجل إطلاقاً على الفايربيس
+      if (!mounted) return;
+      setState(() {
+        _currentScreen = RegistrationScreen(
+          onRegistrationComplete: _checkAppLicenseStatus,
+        );
+      });
+    }
+  }
+  /*Future<void> _checkAppLicenseStatus() async {
     bool hasNetwork = await _hasInternetConnection();
 
     // 🌐 إذا لم يوجد إنترنت -> التوجه فوراً لشاشة التسجيل
@@ -201,7 +266,7 @@ class _MainControllerState extends State<MainController> {
         );
       });
     }
-  }
+  }*/
 
   Future<bool> _hasInternetConnection() async {
     try {

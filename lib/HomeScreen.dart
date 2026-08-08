@@ -1235,8 +1235,74 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
   }
 
   // 🟢 دالة قراءة بيانات الترخيص والقسائم المتبقية
-  
   Future<void> _sendCard() async {
+    String phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      _showMessage('⚠️ الرجاء إدخال رقم الجوال', isError: true);
+      return;
+    }
+
+    if (availableVoucher == null || selectedKeywordId == null) {
+      _showMessage('⚠️ لا يوجد كرت متاح للإرسال', isError: true);
+      return;
+    }
+
+    var matchedKw = keywords.firstWhere(
+      (k) => k['id'] == selectedKeywordId,
+      orElse: () => <String, dynamic>{},
+    );
+    String kwName = matchedKw['keyword'] ?? 'يدوي';
+    
+    // استخراج سعر الباقة/الكلمة المفتاحية
+    double cardPrice = (matchedKw['price'] as num?)?.toDouble() ?? 0.0;
+
+    await triggerManagerAlertNative(selectedKeywordId!, kwName);
+    setState(() => isSending = true);
+
+    try {
+      final dbHelper = DatabaseHelper.instance;
+      var usedVoucher = await dbHelper.getAndUseVoucher(selectedKeywordId!, phone);
+
+      if (usedVoucher != null) {
+        String cardCode = usedVoucher['number_code'];
+        await dbHelper.saveOrUpdateCustomer(phone);
+        String footerMsg = await dbHelper.getSetting('footer_message', '');
+        String fullMessage = cardCode + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+
+        bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);
+
+        // حفظ العملية محلياً مع السعر وتغيير الحالة إلى sent_manual
+        int logId = await dbHelper.addToArchive(
+          sender: 'إرسال يدوي',
+          senderName: phone,
+          receivedMessage: fullMessage,
+          matchedKeyword: kwName,
+          sentNumber: cardCode,
+          price: cardPrice,
+          status: sentStatus ? 'sent_manual' : 'failed',
+        );
+
+        if (sentStatus) {
+          // رفع السجل إلى الفايربيس (قم بفك التعليق وتعديل اسم الدالة إذا لزم الأمر)
+          // await FirebaseService.uploadReplyLog(logId);
+
+          _showMessage('✅ تم إرسال الكرت إلى $phone بنجاح');
+          widget.onSentSuccess();
+          if (mounted) Navigator.pop(context);
+        } else {
+          _showMessage('⚠️ تم استهلاك الكرت ولكن فشل إرسال الـ SMS', isError: true);
+        }
+      } else {
+        _showMessage('❌ فشل تعيين الكرت', isError: true);
+      }
+    } catch (e) {
+      _showMessage('⚠️ خطأ في معالجة العملية: $e', isError: true);
+    }
+
+    if (mounted) setState(() => isSending = false);
+  }  
+  
+  /*Future<void> _sendCard() async {
     
     String phone = _phoneController.text.trim();
     if (phone.isEmpty) {
@@ -1302,7 +1368,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     }
 
     if (mounted) setState(() => isSending = false);
-  }
+  }*/
 
   /// دالة تنبيه الـ Native لمتابعة مخزون الكروت
   Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {

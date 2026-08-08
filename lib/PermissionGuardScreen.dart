@@ -42,6 +42,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindi
   }
 
   Future<void> _checkAllPermissions() async {
+    final bool isNotifGranted = await _nativeChannel.invokeMethod('isNotificationListenerGranted') ?? false;
+    final bool isAutoGranted = await _nativeChannel.invokeMethod('isAutoStartGranted') ?? false;
     // 1. فحص أذونات الـ SMS
     final smsStatus = await Permission.sms.status;
     
@@ -80,8 +82,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindi
   }
 
   // 2. توجيه لإعدادات وصول الإشعارات
-  Future<void> _openNotificationListenerSettings() async {
+  /*Future<void> _openNotificationListenerSettings() async {
     await _channel.invokeMethod('openNotificationListenerSettings');
+  }*/
+  Future<void> _openNotificationListenerSettings() async {
+    await _nativeChannel.invokeMethod('openNotificationListenerSettings');
+    // إعادة التحقق عند عودة المستخدم للشاشة
+    Future.delayed(const Duration(seconds: 1), _checkPermissions);
   }
 
   // 3. طلب استثناء البطارية
@@ -92,7 +99,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindi
 
   // 4. توجيه لإعدادات التشغيل التلقائي ومعلومات التطبيق
   Future<void> _openAutoStartSettings() async {
-    await _channel.invokeMethod('openAutoStartSettings');
+    //await _channel.invokeMethod('openAutoStartSettings');
+    await _nativeChannel.invokeMethod('openAutoStartSettings');
+    // إعادة التحقق عند عودة المستخدم للشاشة
+    Future.delayed(const Duration(seconds: 1), _checkPermissions);
   }
 
   @override
@@ -132,6 +142,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindi
                 onTap: _openNotificationListenerSettings,
               ),
 
+              /*_buildPermissionCard(
+                title: "2. خدمة قراءة الإشعارات والرد عليها",
+                subtitle: "تفعيل الوصول لخدمة Wallet Notification Listener",
+                isGranted: _notificationListenerGranted,
+                onTap: _openNotificationListenerSettings,
+              ),*/
+
               _buildPermissionCard(
                 title: "3. استثناء قيود تحسين البطارية",
                 subtitle: "منع النظام من إيقاف الخدمة عند خمول الشاشة",
@@ -142,9 +159,16 @@ class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindi
               _buildPermissionCard(
                 title: "4. السماح بالتشغيل التلقائي (Auto-Start)",
                 subtitle: "تفعيل البدء التلقائي وإتاحة العمل بدون قيود من إعدادات النظام",
-                isGranted: false, // زر توجيه مستمر لإعدادات الجهاز
+                isGranted: _autoStartGranted,
                 onTap: _openAutoStartSettings,
               ),
+
+              /*_buildPermissionCard(
+                title: "4. السماح بالتشغيل التلقائي (Auto-Start)",
+                subtitle: "تفعيل البدء التلقائي وإتاحة العمل بدون قيود من إعدادات النظام",
+                isGranted: false, // زر توجيه مستمر لإعدادات الجهاز
+                onTap: _openAutoStartSettings,
+              ),*/
 
               const Spacer(),
 

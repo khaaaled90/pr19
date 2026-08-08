@@ -67,8 +67,25 @@ class MainActivity: FlutterActivity() {
                 }
 
                 // التحقق من حالة إذن الإشعارات
-                "isNotificationListenerGranted" -> {
+                /*"isNotificationListenerGranted" -> {
                     result.success(isNotificationServiceEnabled())
+                }*/
+
+                "isNotificationListenerGranted" -> {
+                    val packageName = packageName
+                    val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+                    val isGranted = flat != null && flat.contains(packageName)
+                    result.success(isGranted)
+                }
+                "openNotificationListenerSettings" -> {
+                    try {
+                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
                 }
 
                 // طلب استثناء البطارية (Doze Mode Bypass)
@@ -83,7 +100,8 @@ class MainActivity: FlutterActivity() {
                 }
 
                 // 🎯 فتح إعدادات التشغيل التلقائي / معلومات التطبيق (Auto-Start / App Info)
-                "openAutoStartSettings" -> {
+                
+                /*"openAutoStartSettings" -> {
                     try {
                         val intent = Intent().apply {
                             action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
@@ -96,6 +114,56 @@ class MainActivity: FlutterActivity() {
                         Log.e("PERMISSIONS", "Error opening auto start settings: ${e.message}", e)
                         result.error("ERR", e.message, null)
                     }
+                }*/
+
+                "isAutoStartGranted" -> {
+                    // فحص هل التطبيق مستثنى من تحسينات البطارية (Battery Optimization)
+                    val pm = getSystemService(POWER_SERVICE) as PowerManager
+                    val isIgnoring = pm.isIgnoringBatteryOptimizations(packageName)
+                    result.success(isIgnoring)
+                }
+                "openAutoStartSettings" -> {
+                    var opened = false
+                    val packageName = packageName
+
+                    // 1. محاولة فتح قائمة Auto-Start الخاصة بـ Xiaomi / Oppo / Vivo
+                    val autoStartIntents = arrayOf(
+                        Intent().setComponent(ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")),
+                        Intent().setComponent(ComponentName("com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity")),
+                        Intent().setComponent(ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")),
+                        Intent().setComponent(ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")),
+                        Intent().setComponent(ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"))
+                    )
+
+                    for (intent in autoStartIntents) {
+                        try {
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            opened = true
+                            break
+                        } catch (e: Exception) {
+                            // تجربة الشاشة التالية إن لم تكن الواجهة متوفرة
+                        }
+                    }
+
+                    // 2. إذا لم ينجح، افتح صفحة استثناء البطارية القياسية لأندرويد
+                    if (!opened) {
+                        try {
+                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                data = Uri.parse("package:$packageName")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            // fallback لشاشة إعدادات التطبيق العامة
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.parse("package:$packageName")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
+                        }
+                    }
+                    result.success(true)
                 }
 
                 // تفريغ الذاكرة المؤقتة (Clear AppCache) عند التعديل في Flutter

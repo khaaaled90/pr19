@@ -1272,7 +1272,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
         bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);
 
         // حفظ العملية محلياً مع السعر وتغيير الحالة إلى sent_manual
-        int logId = await dbHelper.addToArchive(
+        bool isArchived = await dbHelper.addToArchive(
           sender: 'إرسال يدوي',
           senderName: phone,
           receivedMessage: fullMessage,

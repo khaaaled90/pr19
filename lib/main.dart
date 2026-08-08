@@ -11,7 +11,7 @@ import 'helpers/secure_storage_helper.dart';
 import 'helpers/sync_manager.dart';
 import 'screens/registration_screen.dart';
 import 'screens/license_lock_screen.dart';
-
+import 'PermissionGuardScreen.dart';
 import 'DatabaseHelper.dart';
 import 'HomeScreen.dart';
 import 'NotificationHelper.dart';
@@ -19,6 +19,182 @@ import 'NotificationListener.dart';
 import 'SmsReceiver.dart';
 
 const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/native_control');
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await _initializeServices();
+
+  try {
+    await _nativeChannel.invokeMethod('warmupCache');
+    debugPrint("تم إرسال أمر إحماء الكاش بنجاح");
+  } catch (e) {
+    debugPrint("خطأ أثناء استدعاء الكاش: $e");
+  }
+
+  runApp(const MyApp());
+}
+
+Future<void> _initializeServices() async {
+  try {
+    // ⚡ تهيئة Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    await DatabaseHelper.instance.database;
+    await NotificationHelper.init();
+    SmsReceiver.initializeSmsListener();
+    await NotificationListenerManager.startListening();
+  } catch (e) {
+    debugPrint("⚠️ خطأ أثناء تهيئة خدمات الخلفية: $e");
+  }
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // الشاشة المبدئية أثناء فحص حالة الترخيص
+  Widget _currentScreen = const Scaffold(
+    body: Center(child: CircularProgressIndicator()),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAppLicenseStatus();
+  }
+
+  Future<void> _checkAppLicenseStatus() async {
+    // 1. إجراء عملية الفحص والمزامنة مباشرة عبر السيرفر/الفايربيس بواسطة رقم الهاردوير
+    var validation = await SyncManager.checkAndSyncLicense();
+
+    // 2. تعبئة وتحديث التخزين الآمن محلياً ببيانات الفايربيس المسترجعة (إن وجدت)
+    if (validation['licenseData'] != null) {
+      await SecureStorageHelper.saveLicenseData(validation['licenseData']);
+    }
+
+    // 3. إذا كان الجهاز غير مسجل إطلاقاً لا على السيرفر ولا محلياً -> شاشة التسجيل
+    if (validation['reason'] == 'NOT_REGISTERED' || validation['reason'] == 'NO_LICENSE') {
+      setState(() {
+        _currentScreen = RegistrationScreen(
+          onRegistrationComplete: _checkAppLicenseStatus,
+        );
+      });
+      return;
+    }
+
+    // 4. إذا كان الترخيص صالحاً -> ننتقل إلى متحكم الأذونات MainController
+    if (validation['isValid'] == true) {
+      setState(() {
+        _currentScreen = const MainController();
+      });
+    } else {
+      // 5. إذا انتهت الأيام أو كمية القسائم التجريبية/الاشتراك -> شاشة القفل والتفعيل
+      setState(() {
+        _currentScreen = LicenseLockScreen(
+          lockReason: validation['reason'] ?? 'EXPIRED',
+          onUnlocked: _checkAppLicenseStatus,
+        );
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'كرت شبكة',
+      debugShowCheckedModeBanner: false,
+
+      // 🌍 إعدادات اللغة العربية
+      locale: const Locale('ar', ''),
+      supportedLocales: const [Locale('ar', '')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
+      // 🎯 التكيف التلقائي مع نظام الهاتف (Dark / Light)
+      themeMode: ThemeMode.system,
+
+      // ☀️ الثيم الفاتح (Light Theme)
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        primaryColor: const Color(0xFF0284C7),
+        scaffoldBackgroundColor: const Color(0xFFF2F4F8),
+        cardColor: Colors.white,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0284C7),
+          brightness: Brightness.light,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0284C7),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        fontFamily: 'Cairo',
+      ),
+
+      // 🌙 الثيم الداكن (Dark Theme)
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        primaryColor: const Color(0xFF0D9488),
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        cardColor: const Color(0xFF1E293B),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0D9488),
+          brightness: Brightness.dark,
+          surface: const Color(0xFF1E293B),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1E293B),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        fontFamily: 'Cairo',
+      ),
+
+      // 🎯 عرض الشاشة الديناميكية الموجهة حسب حالة الترخيص
+      home: _currentScreen,
+    );
+  }
+}
+
+/// 🛡️ متحكم الأذونات: يختبر الأذونات أولاً، وعند منحها يفتح الشاشة الرئيسية للتطبيق
+class MainController extends StatefulWidget {
+  const MainController({Key? key}) : super(key: key);
+
+  @override
+  State<MainController> createState() => _MainControllerState();
+}
+
+class _MainControllerState extends State<MainController> {
+  bool _hasAllPermissions = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_hasAllPermissions) {
+      return PermissionsScreen(
+        onAllPermissionsGranted: () {
+          setState(() {
+            _hasAllPermissions = true;
+          });
+        },
+      );
+    }
+
+    // الواجهة الرئيسية للتطبيق بعد التأكد من الترخيص والأذونات
+    return const MainNavigationScreen(); 
+  }
+}
+/*const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/native_control');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -163,7 +339,7 @@ class _MyAppState extends State<MyApp> {
       home: _currentScreen,
     );
   }
-}
+}*/
 /*import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

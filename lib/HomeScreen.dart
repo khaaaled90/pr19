@@ -797,8 +797,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               MaterialPageRoute(builder: (_) => const PendingLogsScreen()));
                           _loadStats();
                         }),
-                        _buildMenuItem('إرسال يدوي', Icons.send_rounded,
-                            const Color(0xFFEF4444), cardBg, textColor, _openManualSendDialog),
+                        //_buildMenuItem('إرسال يدوي', Icons.send_rounded,
+                            //const Color(0xFFEF4444), cardBg, textColor, _openManualSendDialog),
                         _buildMenuItem('الحسابات', Icons.account_balance_rounded,
                             const Color(0xFF10B981), cardBg, textColor, () async {
                           await Navigator.push(context,
@@ -824,6 +824,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+        // 🎯 إضافة الزر العائم المطفي/المعطل
+        floatingActionButton: Opacity(
+          opacity: 0.45, // إعطاء مظهر التجميد/التعطيل بلمسة خفيفة
+          child: FloatingActionButton.extended(
+            onPressed: () {
+              // رسالة تنبيه للمستخدم تفيد بأن الميزة معطلة
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('خاصية الإرسال اليدوي معطلة حالياً'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            backgroundColor: Colors.grey.shade700,
+            elevation: 1,
+            icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+            label: const Text(
+              'إرسال يدوي (معطل)',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        )
+
     );
   }
 

@@ -29,6 +29,7 @@ dependencies:
 
   # Permissions & System
   permission_handler: ^11.3.0
+  intent_plus: ^0.2.1 # لتوجيه المستخدم لإعدادات الوصول للإشعارات والتشغيل التلقائي
 
   # Database
   sqflite: ^2.3.0
@@ -65,7 +66,7 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/app_icon.png"
   app_name: "CardPay"
-  
+
   min_sdk_android: 21 # أجهزة أندرويد المعززة
 
 flutter:

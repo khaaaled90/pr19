@@ -212,6 +212,20 @@ object ProcessMessageProcessor {
             if (isSent) {
                 // زيادة العداد بمقدار 1 ووضع علم المزامنة تلقائياً
                 secureStorage.incrementVouchersUsed()
+                // 2. إطلاق أوان المزامنة مع شرط وجود شبكة إتصال
+                val constraints = androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build()
+
+                val syncWorkRequest = androidx.work.OneTimeWorkRequestBuilder<SyncWorker>()
+                    .setConstraints(constraints)
+                    .build()
+
+                androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
+                    "firebase_vouchers_sync",
+                    androidx.work.ExistingWorkPolicy.REPLACE,
+                    syncWorkRequest
+                )
                 // أرشفة القسيمة الأساسية مع السعر
                 dbHelper.addToArchive(
                     sender = destinationPhone,
@@ -265,6 +279,20 @@ object ProcessMessageProcessor {
 
                             if (isRewardSent) {
                                 secureStorage.incrementVouchersUsed()
+                                // 2. إطلاق أوان المزامنة مع شرط وجود شبكة إتصال
+                                val constraints = androidx.work.Constraints.Builder()
+                                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                                    .build()
+
+                                val syncWorkRequest = androidx.work.OneTimeWorkRequestBuilder<SyncWorker>()
+                                    .setConstraints(constraints)
+                                    .build()
+
+                                androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
+                                    "firebase_vouchers_sync",
+                                    androidx.work.ExistingWorkPolicy.REPLACE,
+                                    syncWorkRequest
+                                )
                                 // 🎯 أرشفة كارت الهدية بالاسم والسعر الخواص به (مثلاً: فئة 002 وسعرها)
                                 dbHelper.addToArchive(
                                     sender = destinationPhone,
@@ -304,6 +332,20 @@ object ProcessMessageProcessor {
 
                             if (isRewardSent) {
                                 secureStorage.incrementVouchersUsed()
+                                // 2. إطلاق أوان المزامنة مع شرط وجود شبكة إتصال
+                                val constraints = androidx.work.Constraints.Builder()
+                                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                                    .build()
+
+                                val syncWorkRequest = androidx.work.OneTimeWorkRequestBuilder<SyncWorker>()
+                                    .setConstraints(constraints)
+                                    .build()
+
+                                androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
+                                    "firebase_vouchers_sync",
+                                    androidx.work.ExistingWorkPolicy.REPLACE,
+                                    syncWorkRequest
+                                )
                                 // هدايا العروض تُحسب بقيمة 0.0 في الأرشيف
                                 dbHelper.addToArchive(
                                     sender = destinationPhone,

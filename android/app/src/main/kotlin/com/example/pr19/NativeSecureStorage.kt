@@ -34,6 +34,137 @@ class NativeSecureStorage(context: Context) {
      * تبحث أولاً برمز المفتاح المباشر (Direct Key)، 
      * وإذا لم تجده تبحث بالمفتاح مع البادئة (Prefixed Key)
      */
+    fun getStringValue(key: String, defaultValue: String = ""): String {
+        val prefs = sharedPreferences ?: return defaultValue
+        
+        // 1. تجربة قراءة المفتاح المباشر
+        if (prefs.contains(key)) {
+            val directValue = prefs.getString(key, null)
+            if (directValue != null) return directValue
+        }
+
+        // 2. تجربة قراءة المفتاح مع البادئة
+        val prefixedKey = "${keyPrefix}_$key"
+        if (prefs.contains(prefixedKey)) {
+            val prefixedValue = prefs.getString(prefixedKey, null)
+            if (prefixedValue != null) return prefixedValue
+        }
+
+        return defaultValue
+    }
+
+    /**
+     * دالة ذكية لكتابة المفاتيح:
+     * تحدّث المفتاح الموجود حالياً سواء كان ببادئة أو بدون، 
+     * وإذا لم يكن موجوداً تحفظه بالمفتاح المباشر.
+     */
+    fun putStringValue(key: String, value: String) {
+        val prefs = sharedPreferences ?: return
+        val editor = prefs.edit()
+
+        val prefixedKey = "${keyPrefix}_$key"
+
+        if (prefs.contains(prefixedKey)) {
+            editor.putString(prefixedKey, value)
+        } else {
+            editor.putString(key, value)
+        }
+        
+        editor.apply()
+    }
+
+    // 🟢 1. معرف الجهاز
+    fun getDeviceId(): String = getStringValue("device_id", "")
+
+    // 🟢 2. حالة الترخيص
+    fun isLicenseValid(): Boolean {
+        val rawValue = getStringValue("is_license_valid", "true")
+        return rawValue.toBooleanStrictOrNull() ?: true
+    }
+
+    fun setLicenseValid(isValid: Boolean) {
+        putStringValue("is_license_valid", isValid.toString())
+        Log.d("NativeSecureStorage", "✅ تم تحديث حالة الترخيص إلى: $isValid")
+    }
+
+    // 🟢 3. عدد القسائم المستهلكة
+    fun getVouchersUsed(): Int {
+        val rawValue = getStringValue("vouchers_used", "0")
+        return rawValue.toIntOrNull() ?: 0
+    }
+
+    // 🟢 4. حد القسائم المتاحة (-1 تعني لا يوجد حد)
+    fun getVouchersLimit(): Int {
+        val rawValue = getStringValue("vouchers_limit", "-1")
+        return rawValue.toIntOrNull() ?: -1
+    }
+
+    // 🟢 5. زيادة العداد بمقدار 1 مع تفعيل علم المزامنة
+    fun incrementVouchersUsed() {
+        val current = getVouchersUsed()
+        val next = current + 1
+
+        putStringValue("vouchers_used", next.toString())
+        setNeedsSync(true)
+
+        Log.d("NativeSecureStorage", "✅ تم تحديث العداد من Kotlin إلى: $next")
+    }
+
+    // 🟢 6. علم المزامنة (needs_sync)
+    fun getNeedsSync(): Boolean {
+        val rawValue = getStringValue("needs_sync", "false")
+        return rawValue.toBooleanStrictOrNull() ?: false
+    }
+
+    fun setNeedsSync(needsSync: Boolean) {
+        putStringValue("needs_sync", needsSync.toString())
+    }
+
+    // 🟢 7. التحقق من وصول الحد المسموح
+    fun isLimitReached(): Boolean {
+        val limit = getVouchersLimit()
+        if (limit == -1) return false
+        val used = getVouchersUsed()
+        return used >= limit
+    }
+}
+
+/*package com.example.pr19
+
+import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+
+class NativeSecureStorage(context: Context) {
+
+    private val sharedPreferences: SharedPreferences? by lazy {
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            EncryptedSharedPreferences.create(
+                context,
+                "FlutterEncryptedStorage", // اسم ملف التخزين لـ flutter_secure_storage
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            Log.e("NativeSecureStorage", "❌ فشل فتح EncryptedSharedPreferences: ${e.message}")
+            null
+        }
+    }
+
+    private val keyPrefix = "VGhpcyBpcyB0aGUga2V5IGZvciBhIHNlY3VyZSBzdG9yYWdl"
+
+    /**
+     * دالة ذكية لمطابقة المفاتيح:
+     * تبحث أولاً برمز المفتاح المباشر (Direct Key)، 
+     * وإذا لم تجده تبحث بالمفتاح مع البادئة (Prefixed Key)
+     */
     private fun getStringValue(key: String, defaultValue: String): String {
         val prefs = sharedPreferences ?: return defaultValue
         
@@ -115,7 +246,8 @@ class NativeSecureStorage(context: Context) {
         val used = getVouchersUsed()
         return used >= limit
     }
-}
+    
+}*/
 /*package com.example.pr19
 
 import android.content.Context

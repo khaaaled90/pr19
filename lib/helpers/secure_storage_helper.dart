@@ -154,4 +154,16 @@ class SecureStorageHelper {
       'appliedKey': await _storage.read(key: _keyAppliedKey),
     };
   }
+  /// 1.ب حفظ بيانات الترخيص من Map مباشرة (قادمة من الفايربيس أو SyncManager)
+  static Future<void> saveLicenseDataFromMap(Map<String, dynamic> data) async {
+    await saveLicenseData(
+      deviceId: data['deviceId']?.toString() ?? '',
+      planType: data['planType']?.toString() ?? 'trial',
+      expiryDateMs: int.tryParse(data['expiryDate']?.toString() ?? '0') ?? 0,
+      vouchersLimit: int.tryParse(data['vouchersLimit']?.toString() ?? '-1') ?? -1,
+      vouchersUsed: int.tryParse(data['vouchersUsed']?.toString() ?? '0') ?? 0,
+      needsSync: data['needsSync'] == true || data['needsSync'] == 'true',
+      appliedKey: data['appliedKey']?.toString(),
+    );
+  }
 }

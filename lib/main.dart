@@ -74,8 +74,14 @@ class _MyAppState extends State<MyApp> {
     var validation = await SyncManager.checkAndSyncLicense();
 
     // 2. تعبئة وتحديث التخزين الآمن محلياً ببيانات الفايربيس المسترجعة (إن وجدت)
-    if (validation['licenseData'] != null) {
+    /*if (validation['licenseData'] != null) {
       await SecureStorageHelper.saveLicenseData(validation['licenseData']);
+    }*/
+    // في ملف main.dart عند خطوة المزامنة:
+    if (validation['licenseData'] != null) {
+      await SecureStorageHelper.saveLicenseDataFromMap(
+        validation['licenseData'] as Map<String, dynamic>,
+      );
     }
 
     // 3. إذا كان الجهاز غير مسجل إطلاقاً لا على السيرفر ولا محلياً -> شاشة التسجيل

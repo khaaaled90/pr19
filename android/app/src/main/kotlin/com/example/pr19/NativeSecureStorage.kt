@@ -58,7 +58,7 @@ class NativeSecureStorage(context: Context) {
      * تحدّث المفتاح الموجود حالياً سواء كان ببادئة أو بدون، 
      * وإذا لم يكن موجوداً تحفظه بالمفتاح المباشر.
      */
-    fun putStringValue(key: String, value: String) {
+    /*fun putStringValue(key: String, value: String) {
         val prefs = sharedPreferences ?: return
         val editor = prefs.edit()
 
@@ -71,35 +71,54 @@ class NativeSecureStorage(context: Context) {
         }
         
         editor.apply()
+    }*/
+    private fun putStringValue(key: String, value: String): Boolean {
+        val prefs = sharedPreferences ?: return false
+        val editor = prefs.edit()
+
+        val prefixedKey = "${keyPrefix}_$key"
+
+        if (prefs.contains(prefixedKey)) {
+            editor.putString(prefixedKey, value)
+        } else {
+            editor.putString(key, value)
+        }
+
+        return editor.commit() // 👈 تم الاستبدال هنا
     }
 
     // 🟢 1. معرف الجهاز
     fun getDeviceId(): String = getStringValue("device_id", "")
 
     // 🟢 2. حالة الترخيص
+    @Synchronized
     fun isLicenseValid(): Boolean {
         val rawValue = getStringValue("is_license_valid", "true")
         return rawValue.toBooleanStrictOrNull() ?: true
     }
 
+    @Synchronized
     fun setLicenseValid(isValid: Boolean) {
         putStringValue("is_license_valid", isValid.toString())
         Log.d("NativeSecureStorage", "✅ تم تحديث حالة الترخيص إلى: $isValid")
     }
 
     // 🟢 3. عدد القسائم المستهلكة
+    @Synchronized
     fun getVouchersUsed(): Int {
         val rawValue = getStringValue("vouchers_used", "0")
         return rawValue.toIntOrNull() ?: 0
     }
 
     // 🟢 4. حد القسائم المتاحة (-1 تعني لا يوجد حد)
+    @Synchronized
     fun getVouchersLimit(): Int {
         val rawValue = getStringValue("vouchers_limit", "-1")
         return rawValue.toIntOrNull() ?: -1
     }
 
     // 🟢 5. زيادة العداد بمقدار 1 مع تفعيل علم المزامنة
+    @Synchronized
     fun incrementVouchersUsed() {
         val current = getVouchersUsed()
         val next = current + 1
@@ -111,16 +130,19 @@ class NativeSecureStorage(context: Context) {
     }
 
     // 🟢 6. علم المزامنة (needs_sync)
+    @Synchronized
     fun getNeedsSync(): Boolean {
         val rawValue = getStringValue("needs_sync", "false")
         return rawValue.toBooleanStrictOrNull() ?: false
     }
 
+    @Synchronized
     fun setNeedsSync(needsSync: Boolean) {
         putStringValue("needs_sync", needsSync.toString())
     }
 
     // 🟢 7. التحقق من وصول الحد المسموح
+    @Synchronized
     fun isLimitReached(): Boolean {
         val limit = getVouchersLimit()
         if (limit == -1) return false
@@ -189,7 +211,21 @@ class NativeSecureStorage(context: Context) {
      * تحدّث المفتاح الموجود حالياً سواء كان ببادئة أو بدون، 
      * وإذا لم يكن موجوداً تحفظه بالمفتاح المباشر.
      */
-    private fun putStringValue(key: String, value: String) {
+    private fun putStringValue(key: String, value: String): Boolean {
+    val prefs = sharedPreferences ?: return false
+    val editor = prefs.edit()
+
+    val prefixedKey = "${keyPrefix}_$key"
+
+    if (prefs.contains(prefixedKey)) {
+        editor.putString(prefixedKey, value)
+    } else {
+        editor.putString(key, value)
+    }
+
+    return editor.commit() // 👈 استبدال apply() بـ commit() وإرجاع النتيجة
+}
+    /*private fun putStringValue(key: String, value: String) {
         val prefs = sharedPreferences ?: return
         val editor = prefs.edit()
 
@@ -202,7 +238,7 @@ class NativeSecureStorage(context: Context) {
         }
         
         editor.apply()
-    }
+    }*/
 
     // 🟢 1. التحقق من صلاحية الترخيص
     fun isLicenseValid(): Boolean {

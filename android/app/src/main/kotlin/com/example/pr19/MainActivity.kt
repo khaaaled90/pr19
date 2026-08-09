@@ -20,8 +20,14 @@ class MainActivity: FlutterActivity() {
         private const val SMS_CHANNEL = "com.example.app/sms" // قناة إرسال القسائم عبر SMS
     }
 
+    // 🟢 1. تعريف كائن التخزين على مستوى النشاط
+    private lateinit var secureStorage: NativeSecureStorage
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // 🟢 2. تهيئة الكائن مرة واحدة فقط عند بدء تشغيل المحرك
+        secureStorage = NativeSecureStorage(this)
 
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         
@@ -236,20 +242,28 @@ class MainActivity: FlutterActivity() {
 
                 if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
                     try {
-                        val secureStorage = NativeSecureStorage(this)
+                        //val secureStorage = NativeSecureStorage(this)
 
                         // التحقق من الحد قبل المحاولة
-                        if (secureStorage.isLimitReached()) {
+                        /*if (secureStorage.isLimitReached()) {
                             result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null)
                             return@setMethodCallHandler
-                        }
+                        }*/
 
-                        val isSent = sendNativeSms(phone, message)
-                        if (isSent) {
-                            secureStorage.incrementVouchersUsed()
-                            result.success(true)
-                        } else {
-                            result.success(false)
+                        // 🟢 حصر التحقق والإرسال والزيادة في قفل متزامن واحد
+                        synchronized(this) {
+                            if (secureStorage.isLimitReached()) {
+                                result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null)
+                                //return@setMethodCallHandler
+                            }else{
+                                val isSent = sendNativeSms(phone, message)
+                                if (isSent) {
+                                    secureStorage.incrementVouchersUsed()
+                                    result.success(true)
+                                } else {
+                                    result.success(false)
+                                }
+                            }                            
                         }
                     } catch (e: Exception) {
                         result.error("SMS_FAILED", "فشل إرسال الرسالة: ${e.localizedMessage}", null)

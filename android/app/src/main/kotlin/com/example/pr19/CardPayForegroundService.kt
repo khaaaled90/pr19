@@ -1,4 +1,4 @@
-package com.example.pr19 // ✅ تم تعديل الحزمة لتطابق مشروعك
+package com.example.pr19
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,8 +9,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.example.pr19.R // ✅ تم إضافة استيراد R لاستخدام آيقونة التطبيق
-
+import com.example.pr19.R
 
 class CardPayForegroundService : Service() {
 
@@ -41,8 +40,6 @@ class CardPayForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
-        
-        // START_STICKY تضمن إعادات تشغيل الخدمة تلقائياً إذا أغلقت للضرورة
         return START_STICKY
     }
 
@@ -54,9 +51,9 @@ class CardPayForegroundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("CardPay يعمل في الخلفية")
             .setContentText("جاري استماع ومعالجة الإشعارات والرسائل النصية...")
-            .setSmallIcon(android.R.drawable.stat_notify_sync) // أو R.mipmap.ic_launcher
+            .setSmallIcon(R.mipmap.ic_launcher) // تم التغيير لأيقونة التطبيق مباشرة
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true) // إشعار ثابت لا يمكن مسحه
+            .setOngoing(true)
             .build()
     }
 
@@ -69,7 +66,9 @@ class CardPayForegroundService : Service() {
             ).apply {
                 description = "تُبقي تطبيق CardPay نشطاً لمعالجة حوالات ورسائل المحافظ"
             }
-            val manager = getSystemService(Context::class.java)
+            
+            // 🟢 التعديل الصحيح لاستدراج المانجر بدون خطأ في الكومبايلر
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
             manager?.createNotificationChannel(channel)
         }
     }

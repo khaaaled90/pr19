@@ -21,6 +21,16 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <!-- ================================================================= -->
+    <!-- 4. أذونات إدارة الطاقة وتجاوز قيود الخلفية (Power & Background) -->
+    <!-- ================================================================= -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <!-- مطلوب ابتداءً من أندرويد 14 (API 34) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/> 
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
     <application
         android:name="${applicationName}"
@@ -75,6 +85,14 @@
                 <action android:name="android.service.notification.NotificationListenerService"/>
             </intent-filter>
         </service>
+        <!-- ================================================================= -->
+        <!-- 5.1 خدمة الخلفية الدائمة لـ CardPay (Foreground Service) -->
+        <!-- ================================================================= -->
+        <service
+            android:name=".CardPayForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- ================================================================= -->
         <!-- 6. مستقبل إعادة تشغيل الجهاز (Boot Completed Receiver) -->

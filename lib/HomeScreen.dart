@@ -279,7 +279,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _startCardPayForegroundService();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadStats());
+  }
+
+  Future<void> _startCardPayForegroundService() async {
+    try {
+      await _channel.invokeMethod('startForegroundService');
+      debugPrint("تم تشغيل خدمة CardPay في الخلفية بنجاح");
+    } catch (e) {
+      debugPrint("خطأ في تشغيل الخدمة: $e");
+    }
   }
 
   Future<void> _loadStats() async {

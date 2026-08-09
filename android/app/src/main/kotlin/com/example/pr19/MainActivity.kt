@@ -35,6 +35,15 @@ class MainActivity: FlutterActivity() {
         MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
 
+                "startForegroundService" -> {
+                    CardPayForegroundService.start(this)
+                    result.success(true)
+                }
+                "stopForegroundService" -> {
+                    CardPayForegroundService.stop(this)
+                    result.success(true)
+                }
+
                 // 🎯 عرض إشعار النظام عند إرسال القسيمة يدويًا من Flutter
                 "showVoucherNotification" -> {
                     val categoryName = call.argument<String>("categoryName") ?: ""

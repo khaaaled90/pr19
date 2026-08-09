@@ -93,7 +93,7 @@ object ProcessMessageProcessor {
         }
 
         // 3. مطابقة الكلمة المفتاحية عبر الكاش
-        val keywords = AppCache.getKeywords(dbHelper)
+        /*val keywords = AppCache.getKeywords(dbHelper)
         var matchedKwMap: Map<String, Any>? = null
         for (kw in keywords) {
             val kwText = kw["keyword"] as? String ?: continue
@@ -101,6 +101,57 @@ object ProcessMessageProcessor {
                 matchedKwMap = kw
                 break
             }
+        }*/
+        // =========================================================
+        // 3. استخراج مبلغ الإيداع ومطابقته مع الكلمة المفتاحية
+        // =========================================================
+
+        val keywords = AppCache.getKeywords(dbHelper)
+        var matchedKwMap: Map<String, Any>? = null
+
+        // استخراج مبلغ الإيداع الحقيقي من الرسالة
+        val extractedAmount = extractDepositAmount(body)
+
+        if (extractedAmount == null) {
+            Log.i(
+                "PROCESSOR",
+                "لم يتم التعرف على مبلغ الإيداع، سيتم تجاهل الرسالة: $body"
+            )
+            return
+        }
+
+        val depositAmount = extractedAmount.toDoubleOrNull()
+
+        if (depositAmount == null) {
+            Log.i(
+                "PROCESSOR",
+                "مبلغ الإيداع غير صالح: $extractedAmount"
+            )
+            return
+        }
+
+        // البحث عن كلمة مفتاحية تساوي مبلغ الإيداع بالضبط
+        for (kw in keywords) {
+
+            val kwText = (kw["keyword"] as? String ?: "").trim()
+
+            if (kwText.isBlank()) continue
+
+            val keywordAmount = kwText.toDoubleOrNull() ?: continue
+
+            if (keywordAmount == depositAmount) {
+                matchedKwMap = kw
+                break
+            }
+        }
+
+        // لا توجد باقة/كلمة مفتاحية بنفس مبلغ الإيداع
+        if (matchedKwMap == null) {
+            Log.i(
+                "PROCESSOR",
+                "مبلغ الإيداع $depositAmount لا توجد له كلمة مفتاحية مطابقة، سيتم تجاهل الرسالة"
+            )
+            return
         }
 
         if (matchedKwMap == null) return
@@ -408,6 +459,85 @@ object ProcessMessageProcessor {
         }
     }
 
+    private fun shouldIgnoreMessage(body: String): Boolean {
+        val text = body.trim()
+
+        if (text.isBlank()) {
+            return true
+        }
+
+        // =========================================================
+        // 1. رسائل الخصم / التحويل التي يقوم بها صاحب الجهاز
+        // =========================================================
+
+        // مثال:
+        // خصم 100 ريال تحويل مشترك رص:800 الى هيثم عبد الباسط -734542531
+
+        val isOutgoingTransfer =
+            text.contains("خصم", ignoreCase = true)
+
+        if (isOutgoingTransfer) {
+            Log.i(
+                "PROCESSOR_FILTER",
+                "تم تجاهل رسالة خصم/تحويل صادرة: $text"
+            )
+            return true
+        }
+
+        // =========================================================
+        // 2. تنبيهات المخزون التي يرسلها التطبيق للمدير
+        // =========================================================
+
+        val isStockAlert =
+            text.contains("تنبيه اقتراب نفاذ المخزون", ignoreCase = true) ||
+            text.contains("تنبيه نفاذ المخزون", ignoreCase = true) ||
+            text.contains("اقتراب نفاذ المخزون", ignoreCase = true) ||
+            text.contains("نفاذ المخزون", ignoreCase = true)
+
+        if (isStockAlert) {
+            Log.i(
+                "PROCESSOR_FILTER",
+                "تم تجاهل تنبيه المخزون: $text"
+            )
+            return true
+        }
+
+        // =========================================================
+        // 3. تنبيه المخزون بصيغة عامة
+        // =========================================================
+
+        if (
+            text.contains("المتبقي منها:", ignoreCase = true) &&
+            text.contains("الحد الأدنى:", ignoreCase = true)
+        ) {
+            Log.i(
+                "PROCESSOR_FILTER",
+                "تم تجاهل رسالة تنبيه كمية المخزون: $text"
+            )
+            return true
+        }
+
+        return false
+    }
+    fun extractDepositAmount(body: String): String? {
+        // تم إضافة الأرقام العربية [٠-٩] والفاصلة العشرية لتغطية كل أشكال المبالغ
+        val regex = "(?:(?:تم\\s*)?(?:إيداع|ايداع)|أودع|اودع|استلمت|أضيفت|أضيف|اضيف)(?:\\s*\\/\\s*|\\s+)(?:\\w+\\s+)?(?:مبلغ\\s*)?([0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?)".toRegex(RegexOption.IGNORE_CASE)
+
+        val match = regex.find(body) ?: return null
+        val rawAmount = match.groupValues.getOrNull(1) ?: return null
+
+        // تنظيف المبلغ وتحويل الأرقام العربية إلى إنجليزية لضمان صحة التحويل لاحقاً
+        return rawAmount
+            .replace(",", "")
+            .replace("٫", ".")
+            .map { ch ->
+                when (ch) {
+                    '٠' -> '0'; '١' -> '1'; '٢' -> '2'; '٣' -> '3'; '٤' -> '4'
+                    '٥' -> '5'; '٦' -> '6'; '٧' -> '7'; '٨' -> '8'; '٩' -> '9'
+                    else -> ch
+                }
+            }.joinToString("")
+    }
     /*private fun executeProcessing(context: Context, rawSender: String, originPackage: String, body: String, customerPhoneInput: String) {
         val dbHelper = AppSqliteHelper.getInstance(context)
 

@@ -154,6 +154,10 @@ object ProcessMessageProcessor {
                 status = "manual_approval_required",
                 price = keywordPrice // 🎯 تمرير السعر
             )
+            NotificationHelper.showManualApprovalNotification(
+                context = context,
+                receivedMessage = displayName
+            )
             return
         }
 

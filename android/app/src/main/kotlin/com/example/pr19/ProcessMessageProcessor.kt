@@ -248,6 +248,9 @@ object ProcessMessageProcessor {
                     name = extractedName,
                     walletNumber = extractedWallet
                 )
+                // 🟢 إظهار الإشعار من الكلاس المستقل
+                NotificationHelper.showVoucherSentNotification(context, keywordText, destinationPhone)
+            
                 Log.e("UPDATE_CUSTOMER", "Calling updateCustomerBalance()")
                 
                 checkAndSendManagerAlert(context, dbHelper, keywordId, keywordText)
@@ -303,7 +306,10 @@ object ProcessMessageProcessor {
                                     status = "sent_reward",
                                     price = rewardPrice // 👈 تم التعديل: سعر باقة الهدية الحقيقي
                                 )
+                                // 🟢 إظهار الإشعار من الكلاس المستقل
+                                NotificationHelper.showVoucherSentNotification(context, rewardKwText, destinationPhone)
                             }
+                            
                             checkAndSendManagerAlert(context, dbHelper, rewardKeywordId, "هدية: $rewardKwText")
                         } else {
                             Log.e("PROCESSOR1", "⚠️ تحقق شرط العرض لكن كروت الهدية غير متوفرة!")
@@ -364,6 +370,18 @@ object ProcessMessageProcessor {
                         }
                     }
                 }*/
+            } else {
+                // 🟢 أصلحت هنا: التعامل مع فشل الإرسال (مثلاً عند عدم وجود تغطية)
+                Log.e("PROCESSOR1", "⚠️ فشل إرسال الـ SMS (قد لا تتوفر تغطية)، تم حفظ العملية كمعلقة pending")
+                dbHelper.addToArchive(
+                    sender = destinationPhone,
+                    senderName = extractNameFromBody(body) ?: destinationPhone,
+                    receivedMessage = body,
+                    matchedKeyword = keywordText,
+                    sentNumber = mainVoucherCode, // حفظ الكرت المحجوز لإعادة إرساله
+                    status = "pending",           // حالة معلقة لعدم التغطية
+                    price = keywordPrice
+                )
             }
         } else {
             // ⭐ 9. حفظ العملية كمعلقة عند نفاذ المخزون الأساسي

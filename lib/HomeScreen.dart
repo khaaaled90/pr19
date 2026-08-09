@@ -1285,7 +1285,14 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
         if (sentStatus) {
           // رفع السجل إلى الفايربيس (قم بفك التعليق وتعديل اسم الدالة إذا لزم الأمر)
           // await FirebaseService.uploadReplyLog(logId);
-
+          try {
+            await _nativeControlChannel.invokeMethod("showVoucherNotification", {
+              "categoryName": kwName, // اسم الكلمة المفتاحية أو فئة الكرت
+              "phone": phone,                 // رقم هاتف المستلم
+            });
+          } catch (e) {
+            debugPrint("خطأ أثناء استدعاء إشعار القسيمة: $e");
+          }          
           _showMessage('✅ تم إرسال الكرت إلى $phone بنجاح');
           widget.onSentSuccess();
           if (mounted) Navigator.pop(context);

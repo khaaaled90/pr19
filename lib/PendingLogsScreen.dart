@@ -108,8 +108,12 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
           String matchedName = customer['name'] ?? sender;
           String matchedKeyword = log['matched_keyword'] ?? '';
 
-          String? voucherCode = await DatabaseHelper.instance
-              .getAndUseVoucherByKeyword(matchedKeyword, matchedPhone);
+          // ✅ الكود التعديل (يستخدم الكرت المحجوز أولاً، وإلا يسحب كرت جديد)
+          String? voucherCode = log['sent_number'];
+          if (voucherCode == null || voucherCode.toString().trim().isEmpty) {
+            voucherCode = await DatabaseHelper.instance
+                .getAndUseVoucherByKeyword(matchedKeyword, matchedPhone);
+          }
 
           if (voucherCode != null && voucherCode.isNotEmpty) {
             await DatabaseHelper.instance.resolvePendingLog(
@@ -284,8 +288,12 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                   }
 
                   // 2. سحب قسيمة جديدة من قاعدة البيانات
-                  String? voucherCode = await DatabaseHelper.instance
-                      .getAndUseVoucherByKeyword(matchedKeyword, phone);
+                  // ✅ الكود التعديل (يستخدم الكرت المحجوز أولاً، وإلا يسحب كرت جديد)
+                  String? voucherCode = pendingLog['sent_number'];
+                  if (voucherCode == null || voucherCode.toString().trim().isEmpty) {
+                    voucherCode = await DatabaseHelper.instance
+                        .getAndUseVoucherByKeyword(matchedKeyword, phone);
+                  }
 
                   if (voucherCode == null || voucherCode.isEmpty) {
                     if (keywordId != null) {

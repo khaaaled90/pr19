@@ -35,6 +35,20 @@ class MainActivity: FlutterActivity() {
         MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
 
+                // 🎯 عرض إشعار النظام عند إرسال القسيمة يدويًا من Flutter
+                "showVoucherNotification" -> {
+                    val categoryName = call.argument<String>("categoryName") ?: ""
+                    val phone = call.argument<String>("phone") ?: ""
+
+                    try {
+                        NotificationHelper.showVoucherSentNotification(applicationContext, categoryName, phone)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        Log.e("NOTIFICATION_ERROR", "فشل عرض إشعار القسيمة: ${e.message}", e)
+                        result.error("NOTIFICATION_FAILED", e.localizedMessage, null)
+                    }
+                }
+
                 // 🎯 تسجيل وتحديث العميل والـ AppCache
                 "registerCustomer" -> {
                     val phone = call.argument<String>("phone") ?: ""

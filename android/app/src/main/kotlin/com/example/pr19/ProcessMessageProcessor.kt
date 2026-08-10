@@ -263,6 +263,72 @@ object ProcessMessageProcessor {
                     }
                 }
             if (!normalizedAmount.isNullOrBlank()) {
+                
+                // استخراج معرف العميل بحسب الأولوية (هاتف -> محفظة -> اسم -> UNKNOWN)
+                val clientIdentifier = destinationPhone.ifBlank {
+                    if (!extractedWallet.isNullOrBlank()) extractedWallet
+                    else if (!extractedName.isNullOrBlank()) extractedName
+                    else "UNKNOWN"
+                }
+
+                /*
+                * البصمة المعدلة:
+                * معرف العميل | مبلغ الإيداع | الرصيد
+                *
+                * مثال:
+                * 770000000|100|25070
+                */
+                transactionFingerprint = "$clientIdentifier|$normalizedAmount|$normalizedBalance"
+
+                Log.e(
+                    "TRANSACTION_FINGERPRINT",
+                    "البصمة التي سيتم فحصها: $transactionFingerprint"
+                )
+
+                // البحث في الأرشيف قبل سحب القسيمة
+                if (dbHelper.isTransactionFingerprintExists(transactionFingerprint)) {
+                    Log.e(
+                        "TRANSACTION_FINGERPRINT",
+                        "⚠️ العملية موجودة مسبقًا في الأرشيف."
+                    )
+                    Log.e(
+                        "TRANSACTION_FINGERPRINT",
+                        "سيتم تجاهل الرسالة/الإشعار لمنع إرسال قسيمة ثانية."
+                    )
+                    return
+                }
+                Log.i(
+                    "TRANSACTION_FINGERPRINT",
+                    "✅ البصمة جديدة، سيتم متابعة معالجة العملية."
+                )
+            } else {
+                Log.e(
+                    "TRANSACTION_FINGERPRINT",
+                    "⚠️ تعذر إنشاء البصمة: مبلغ الإيداع غير صالح."
+                )
+            }
+        } else {
+                Log.e(
+                    "TRANSACTION_FINGERPRINT",
+                    "⚠️ لم يتم استخراج الرصيد، لن يتم فحص بصمة العملية."
+                )
+        }
+        /*var transactionFingerprint: String? = null
+        if (!extractedBalance.isNullOrBlank()) {
+            val normalizedBalance = extractedBalance
+                .replace(",", "")
+                .trim()
+            val normalizedAmount = extractedAmount
+                .trim()
+                .toDoubleOrNull()
+                ?.let {
+                    if (it % 1.0 == 0.0) {
+                        it.toLong().toString()
+                    } else {
+                        it.toString()
+                    }
+                }
+            if (!normalizedAmount.isNullOrBlank()) {
                 /*
                 * البصمة الأساسية حاليًا:
                 *
@@ -307,7 +373,7 @@ object ProcessMessageProcessor {
                 "TRANSACTION_FINGERPRINT",
                 "⚠️ لم يتم استخراج الرصيد، لن يتم فحص بصمة العملية."
             )
-        }
+        }*/
         // =========================================================
         // الفحص القديم للرصيد
         // =========================================================

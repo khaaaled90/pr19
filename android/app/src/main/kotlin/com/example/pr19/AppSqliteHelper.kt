@@ -278,32 +278,21 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     )
                 """)
             }
-            // ✅ الترقية للنسخة 15: إضافة بصمة العملية إلى سجل الردود
+            // ✅ الترقية للنسخة 15 داخل onUpgrade
             if (oldVersion < 15) {
+                db?.beginTransaction()
                 try {
-                    db?.execSQL(
-                        "ALTER TABLE reply_log ADD COLUMN transaction_fingerprint TEXT;"
-                    )
-                } catch (e: Exception) {
-                    Log.e(
-                        "SQLite",
-                        "Error adding transaction_fingerprint: ${e.message}"
-                    )
-                }
-                // إنشاء فهرس لبصمة العملية
-                try {
-                    db?.execSQL(
-                        """
-                        CREATE INDEX IF NOT EXISTS
-                        idx_reply_log_transaction_fingerprint
+                    db?.execSQL("ALTER TABLE reply_log ADD COLUMN transaction_fingerprint TEXT;")
+                    db?.execSQL("""
+                        CREATE INDEX IF NOT EXISTS idx_reply_log_transaction_fingerprint 
                         ON reply_log(transaction_fingerprint)
-                        """.trimIndent()
-                    )
+                    """.trimIndent())
+                    
+                    db?.setTransactionSuccessful() // تأكيد نجاح الترقية
                 } catch (e: Exception) {
-                    Log.e(
-                        "SQLite",
-                        "Error creating transaction fingerprint index: ${e.message}"
-                    )
+                    Log.e("SQLite", "Error upgrading DB to version 15: ${e.message}")
+                } finally {
+                    db?.endTransaction() // إنهاء المعاملة وتطبيق التغييرات
                 }
             }
 

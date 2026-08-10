@@ -283,6 +283,7 @@ class DatabaseHelper {
         )
       ''');
     }
+    // في دالة onUpgrade
     if (oldVersion < 15) {
       await db.execute('''
         ALTER TABLE $tableReplyLog

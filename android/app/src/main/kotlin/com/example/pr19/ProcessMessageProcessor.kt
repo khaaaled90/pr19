@@ -834,6 +834,11 @@ object ProcessMessageProcessor {
         val match = nameRegex.find(body)
         var extracted = match?.groupValues?.get(1)?.trim() ?: return null
         val ignoredWords = listOf("نجاح", "عملية", "إيداع", "تحويل", "رصيد", "مبلغ", "إلى", "حساب")
+        
+        // إذا كان الاسم يحتوي على نجوم، فهو اسم مخفي ولا نعتبره اسمًا
+        if (extracted.contains("*")) {
+            return null
+        }
         for (word in ignoredWords) {
             if (extracted.contains(word)) {
                 extracted = extracted.substringBefore(word).trim()
@@ -849,10 +854,23 @@ object ProcessMessageProcessor {
     }
 
     private fun extractWalletFromBody(body: String): String? {
+        val walletRegex = Regex(
+            """(?:محفظة|حساب|Acc|Wallet)[\s:]*(\d{5,15})(?!\d)|(?:من|From)\s+(?:[^\d\n]*\*+)[^\d\n-]*[-–—]\s*(\d{5,15})(?!\d)|(?:من|From)\s+(\d{5,15})(?!\d)""",
+            RegexOption.IGNORE_CASE
+        )
+        val match = walletRegex.find(body) ?: return null
+        return when {
+            match.groupValues[1].isNotBlank() -> match.groupValues[1].trim()
+            match.groupValues[2].isNotBlank() -> match.groupValues[2].trim()
+            match.groupValues[3].isNotBlank() -> match.groupValues[3].trim()
+            else -> null
+        }
+    }
+    /*private fun extractWalletFromBody(body: String): String? {
         //val walletRegex = Regex("""(?:محفظة|حساب|Acc|Wallet)[\s:]*(\d{6,15})""", RegexOption.IGNORE_CASE)
         val walletRegex = Regex("""(?:محفظة|حساب|Acc|Wallet|من|From)[\s:]*(\d{5,15})""", RegexOption.IGNORE_CASE)
         return walletRegex.find(body)?.groupValues?.get(1)?.trim()
-    }
+    }*/
 
     private fun String?.isNull_Or_Empty_Or_Invalid(): Boolean {
         if (this.isNullOrBlank()) return true

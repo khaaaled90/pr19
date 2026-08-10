@@ -691,6 +691,31 @@ object ProcessMessageProcessor {
         return false
     }
     fun extractDepositAmount(body: String): String? {
+        // Regex مطور يدعم:
+        // 1. أفعال الإيداع بمختلف صورها: أودعت، ادعت، او دعت (بمسافة)، أودع، اودع، اود، أود، إيداع، ايداع، أضيفت، أضيف، استلمت
+        // 2. كلمة "مبلغ" سواء جاءت بعد فعل أو جاءت منفردة (مثل: لحسابك مبلغ 200)
+        // 3. الفواصل والرموز مثل المسافات أو السلاش / بين الكلمة والرقم
+        val regex = Regex(
+            """(?:(?:تم\s*)?(?:إيداع|ايداع)|أودعت|ادعت|او\s*دعت|أودع|اودع|أود|اود|استلمت|أضيفت|أضيف|اضيف|مبلغ)[\s:/]+([0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?)""",
+            RegexOption.IGNORE_CASE
+        )
+
+        val match = regex.find(body) ?: return null
+        val rawAmount = match.groupValues.getOrNull(1) ?: return null
+
+        // تنظيف المبلغ وتحويل الأرقام الشرقية/العربية والفاصلة إلى صيغة قياسية
+        return rawAmount
+            .replace(",", "")
+            .replace("٫", ".")
+            .map { ch ->
+                when (ch) {
+                    '٠' -> '0'; '١' -> '1'; '٢' -> '2'; '٣' -> '3'; '٤' -> '4'
+                    '٥' -> '5'; '٦' -> '6'; '٧' -> '7'; '٨' -> '8'; '٩' -> '9'
+                    else -> ch
+                }
+            }.joinToString("")
+    }
+    /*fun extractDepositAmount(body: String): String? {
         // تم إضافة الأرقام العربية [٠-٩] والفاصلة العشرية لتغطية كل أشكال المبالغ
         val regex = "(?:(?:تم\\s*)?(?:إيداع|ايداع)|أودع|اودع|استلمت|أضيفت|أضيف|اضيف)(?:\\s*\\/\\s*|\\s+)(?:\\w+\\s+)?(?:مبلغ\\s*)?([0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?)".toRegex(RegexOption.IGNORE_CASE)
 
@@ -708,7 +733,7 @@ object ProcessMessageProcessor {
                     else -> ch
                 }
             }.joinToString("")
-    }
+    }*/
     /*private fun executeProcessing(context: Context, rawSender: String, originPackage: String, body: String, customerPhoneInput: String) {
         val dbHelper = AppSqliteHelper.getInstance(context)
 
@@ -1001,7 +1026,8 @@ object ProcessMessageProcessor {
     }*/
 
     private fun extractNameFromBody(body: String): String? {
-        val nameRegex = Regex("""(?:من|المودع|العميل|المحول|حساب|من الحساب|From)[\s:]+([^\d\n,.:]{3,30})""", RegexOption.IGNORE_CASE)
+        //val nameRegex = Regex("""(?:من|المودع|العميل|المحول|حساب|من الحساب|From)[\s:]+([^\d\n,.:]{3,30})""", RegexOption.IGNORE_CASE)
+        val nameRegex = Regex("""(?:اودع|أودع|اود|أود|أودعت|ادعت|من|المودع|العميل|المحول)[\s:/]+([^\d\n,.:]{3,35})""",, RegexOption.IGNORE_CASE)
         val match = nameRegex.find(body)
         var extracted = match?.groupValues?.get(1)?.trim() ?: return null
         val ignoredWords = listOf("نجاح", "عملية", "إيداع", "تحويل", "رصيد", "مبلغ", "إلى", "حساب")
@@ -1210,7 +1236,8 @@ object ProcessMessageProcessor {
     }
 
     private fun extractBalanceFromBody(body: String): String? {
-        val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        *val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|رصيد|متبقي|المتبقي|ر\.?ص|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
         return balanceRegex.find(body)?.groupValues?.get(1)?.replace(",", "")
     }
 

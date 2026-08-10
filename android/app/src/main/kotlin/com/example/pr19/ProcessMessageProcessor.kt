@@ -1027,7 +1027,8 @@ object ProcessMessageProcessor {
 
     private fun extractNameFromBody(body: String): String? {
         //val nameRegex = Regex("""(?:من|المودع|العميل|المحول|حساب|من الحساب|From)[\s:]+([^\d\n,.:]{3,30})""", RegexOption.IGNORE_CASE)
-        val nameRegex = Regex("""(?:اودع|أودع|اود|أود|أودعت|ادعت|من|المودع|العميل|المحول)[\s:/]+([^\d\n,.:]{3,35})""",, RegexOption.IGNORE_CASE)
+        val nameRegex = Regex("""(?:اودع|أودع|اود|أود|أودعت|ادعت|من|المودع|العميل|المحول)[\s:/]+([^\d\n,.:]{3,35})""", RegexOption.IGNORE_CASE)
+        //val nameRegex = Regex("""(?:اودع|أودع|اود|أود|أودعت|ادعت|او\s*دعت|من|المودع|العميل|المحول)[\s:/]+([^\d\n,.:]{3,35})""", RegexOption.IGNORE_CASE)
         val match = nameRegex.find(body)
         var extracted = match?.groupValues?.get(1)?.trim() ?: return null
         val ignoredWords = listOf("نجاح", "عملية", "إيداع", "تحويل", "رصيد", "مبلغ", "إلى", "حساب")

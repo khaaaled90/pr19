@@ -10,7 +10,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     companion object {
         private const val DATABASE_NAME = "smsqaiddb.db"
-        private const val DATABASE_VERSION = 14 // ✅ رفع الإصدار إلى 13 لإضافة price
+        private const val DATABASE_VERSION = 15 // ✅ رفع الإصدار إلى 13 لإضافة price
 
         @Volatile
         private var instance: AppSqliteHelper? = null
@@ -84,7 +84,8 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 extra_data TEXT,
                 status TEXT,
                 timestamp INTEGER,
-                is_deleted INTEGER DEFAULT 0
+                is_deleted INTEGER DEFAULT 0,
+                transaction_fingerprint TEXT
             )
         """)
 
@@ -171,6 +172,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             db?.execSQL("CREATE INDEX IF NOT EXISTS idx_keywords_active ON keywords(is_active)")
             db?.execSQL("CREATE INDEX IF NOT EXISTS idx_allowed_senders ON allowed_senders(is_active, sender)")
             db?.execSQL("CREATE INDEX IF NOT EXISTS idx_identifier ON client_identifiers(identifier)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_reply_log_transaction_fingerprint ON reply_log(transaction_fingerprint)")
         } catch (e: Exception) {
             Log.e("SQLite", "Error creating indexes: ${e.message}")
         }
@@ -275,6 +277,34 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                         created_at INTEGER NOT NULL
                     )
                 """)
+            }
+            // ✅ الترقية للنسخة 15: إضافة بصمة العملية إلى سجل الردود
+            if (oldVersion < 15) {
+                try {
+                    db?.execSQL(
+                        "ALTER TABLE reply_log ADD COLUMN transaction_fingerprint TEXT;"
+                    )
+                } catch (e: Exception) {
+                    Log.e(
+                        "SQLite",
+                        "Error adding transaction_fingerprint: ${e.message}"
+                    )
+                }
+                // إنشاء فهرس لبصمة العملية
+                try {
+                    db?.execSQL(
+                        """
+                        CREATE INDEX IF NOT EXISTS
+                        idx_reply_log_transaction_fingerprint
+                        ON reply_log(transaction_fingerprint)
+                        """.trimIndent()
+                    )
+                } catch (e: Exception) {
+                    Log.e(
+                        "SQLite",
+                        "Error creating transaction fingerprint index: ${e.message}"
+                    )
+                }
             }
 
             // إعادة إنشاء/تأكيد الفهارس لجميع الجداول
@@ -836,6 +866,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         source: String = "Native_SMS",
         extraData: String? = null,
         price: Double = 0.0 // 👈 بارامتر السعر
+        transactionFingerprint: String? = null
     ): Long {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -850,8 +881,30 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             put("timestamp", System.currentTimeMillis())
             put("is_deleted", 0)
             put("price", price) // 👈 حفظ السعر
+            put("transaction_fingerprint", transactionFingerprint ?: "")
         }
         return db.insert("reply_log", null, values)
+    }
+
+    fun isTransactionFingerprintExists(fingerprint: String): Boolean {
+        if (fingerprint.isBlank()) return false
+
+        val db = readableDatabase
+
+        val cursor = db.rawQuery(
+            """
+            SELECT 1
+            FROM reply_log
+            WHERE transaction_fingerprint = ?
+            AND is_deleted = 0
+            LIMIT 1
+            """.trimIndent(),
+            arrayOf(fingerprint)
+        )
+
+        return cursor.use {
+            it.moveToFirst()
+        }
     }
 
     fun getSetting(key: String, defaultValue: String): String {

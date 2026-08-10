@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
-  static const int _databaseVersion = 14; // ✅ تم الرفع إلى 13 لدعم حقل price
+  static const int _databaseVersion = 15; // ✅ تم الرفع إلى 13 لدعم حقل price
   static const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/cache');
 
   static const String tableKeywords = "keywords";
@@ -117,7 +117,8 @@ class DatabaseHelper {
         extra_data TEXT,
         status TEXT,
         timestamp INTEGER,
-        is_deleted INTEGER DEFAULT 0
+        is_deleted INTEGER DEFAULT 0,
+        transaction_fingerprint TEXT
       )
     ''');
 
@@ -194,6 +195,7 @@ class DatabaseHelper {
     await db.execute("CREATE INDEX IF NOT EXISTS idx_keywords_active ON $tableKeywords(is_active)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_allowed_senders ON $tableAllowedSenders(is_active, sender)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_identifier ON $tableClientIdentifiers(identifier)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_reply_log_transaction_fingerprint ON $tableReplyLog(transaction_fingerprint)");
   }
 
   Future<void> _insertDefaultSettings(Database db) async {
@@ -279,6 +281,17 @@ class DatabaseHelper {
           notes TEXT,
           created_at INTEGER NOT NULL
         )
+      ''');
+    }
+    if (oldVersion < 15) {
+      await db.execute('''
+        ALTER TABLE $tableReplyLog
+        ADD COLUMN transaction_fingerprint TEXT
+      ''');
+
+      await db.execute('''
+        CREATE INDEX IF NOT EXISTS idx_reply_log_transaction_fingerprint
+        ON $tableReplyLog(transaction_fingerprint)
       ''');
     }
 

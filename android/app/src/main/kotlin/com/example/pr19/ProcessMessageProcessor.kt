@@ -211,7 +211,7 @@ object ProcessMessageProcessor {
             return
         }
 
-        Log.e("PROCESSOR1", "===> بدء مرحلة التحقق من الرصيد <===")
+        /*Log.e("PROCESSOR1", "===> بدء مرحلة التحقق من الرصيد <===")
         val destinationPhone = targetCustomerPhone
         Log.e("PROCESSOR1", "رقم العميل المستهدف (destinationPhone): '$destinationPhone'")
         
@@ -230,6 +230,109 @@ object ProcessMessageProcessor {
             }
         } else {
             Log.e("PROCESSOR1", "⚠️ لم يتم استخراج أي رصيد من الرسالة، سيتم تجاوز فحص التكرار.")
+        }*/
+
+        Log.e("PROCESSOR1", "===> بدء مرحلة التحقق من الرصيد والبصمة <===")
+        val destinationPhone = targetCustomerPhone
+        Log.e(
+            "PROCESSOR1",
+            "رقم العميل المستهدف (destinationPhone): '$destinationPhone'"
+        )
+        Log.e("PROCESSOR1", "جاري استخراج الرصيد من نص الرسالة...")
+        val extractedBalance = extractBalanceFromBody(body)
+        Log.e(
+            "PROCESSOR1",
+            "الرصيد المستخرج (extractedBalance): '$extractedBalance'"
+        )
+        // =========================================================
+        // فحص بصمة العملية لمنع معالجة SMS والإشعار لنفس العملية
+        // =========================================================
+        var transactionFingerprint: String? = null
+        if (!extractedBalance.isNullOrBlank()) {
+            val normalizedBalance = extractedBalance
+                .replace(",", "")
+                .trim()
+            val normalizedAmount = extractedAmount
+                .trim()
+                .toDoubleOrNull()
+                ?.let {
+                    if (it % 1.0 == 0.0) {
+                        it.toLong().toString()
+                    } else {
+                        it.toString()
+                    }
+                }
+            if (!normalizedAmount.isNullOrBlank()) {
+                /*
+                * البصمة الأساسية حاليًا:
+                *
+                * DEPOSIT | مبلغ الإيداع | الرصيد
+                *
+                * مثال:
+                * DEPOSIT|100|25070
+                *
+                * نستخدم المبلغ والرصيد لأنهما موجودان
+                * في SMS والإشعار لنفس عملية الإيداع.
+                */
+                transactionFingerprint =
+                    "DEPOSIT|$normalizedAmount|$normalizedBalance"
+                Log.i(
+                    "TRANSACTION_FINGERPRINT",
+                    "البصمة التي سيتم فحصها: $transactionFingerprint"
+                )
+                // البحث في الأرشيف قبل سحب القسيمة
+                if (dbHelper.isTransactionFingerprintExists(transactionFingerprint)) {
+                    Log.i(
+                        "TRANSACTION_FINGERPRINT",
+                        "⚠️ العملية موجودة مسبقًا في الأرشيف."
+                    )
+                    Log.i(
+                        "TRANSACTION_FINGERPRINT",
+                        "سيتم تجاهل الرسالة/الإشعار لمنع إرسال قسيمة ثانية."
+                    )
+                    return
+                }
+                Log.i(
+                    "TRANSACTION_FINGERPRINT",
+                    "✅ البصمة جديدة، سيتم متابعة معالجة العملية."
+                )
+            } else {
+                Log.w(
+                    "TRANSACTION_FINGERPRINT",
+                    "⚠️ تعذر إنشاء البصمة: مبلغ الإيداع غير صالح."
+                )
+            }
+        } else {
+            Log.w(
+                "TRANSACTION_FINGERPRINT",
+                "⚠️ لم يتم استخراج الرصيد، لن يتم فحص بصمة العملية."
+            )
+        }
+        // =========================================================
+        // الفحص القديم للرصيد
+        // =========================================================
+        if (!extractedBalance.isNullOrBlank()) {
+            Log.e(
+                "PROCESSOR1",
+                "جاري فحص التكرار القديم عبر isDuplicateBalance..."
+            )
+            if (dbHelper.isDuplicateBalance(destinationPhone, extractedBalance)) {
+                Log.e(
+                    "PROCESSOR1",
+                    "Duplicate balance detected for $destinationPhone. Skipping."
+                )
+                return
+            } else {
+                Log.e(
+                    "PROCESSOR1",
+                    "✅ الرصيد جديد وغير مكرر للعميل: $destinationPhone."
+                )
+            }
+        } else {
+            Log.e(
+                "PROCESSOR1",
+                "⚠️ لم يتم استخراج أي رصيد من الرسالة، سيتم تجاوز فحص التكرار القديم."
+            )
         }
 
         var finalKeywordIdToUse = keywordId
@@ -289,7 +392,8 @@ object ProcessMessageProcessor {
                     matchedKeyword = keywordText,
                     sentNumber = mainVoucherCode,
                     status = "sent",
-                    price = keywordPrice // 🎯 تمرير السعر
+                    price = keywordPrice, // 🎯 تمرير السعر
+                    transactionFingerprint = transactionFingerprint
                 )
 
                 val extractedWallet = extractWalletFromBody(body)
@@ -435,7 +539,8 @@ object ProcessMessageProcessor {
                     matchedKeyword = keywordText,
                     sentNumber = mainVoucherCode, // حفظ الكرت المحجوز لإعادة إرساله
                     status = "pending",           // حالة معلقة لعدم التغطية
-                    price = keywordPrice
+                    price = keywordPrice,
+                    transactionFingerprint = transactionFingerprint
                 )
             }
         } else {

@@ -854,7 +854,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         status: String,
         source: String = "Native_SMS",
         extraData: String? = null,
-        price: Double = 0.0 // 👈 بارامتر السعر
+        price: Double = 0.0, // 👈 بارامتر السعر
         transactionFingerprint: String? = null
     ): Long {
         val db = writableDatabase

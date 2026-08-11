@@ -840,6 +840,150 @@ class DatabaseHelper {
 
     return true;
   }
+
+  //******************************** */
+
+  // 1. جلب العملاء مع معرفاتهم المرتبطة
+  Future<List<Map<String, dynamic>>> getCustomersWithIdentifiers() async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT 
+        c.id AS customer_id,
+        c.phone AS customer_phone,
+        c.name AS customer_name,
+        c.wallet_number,
+        c.last_balance,
+        GROUP_CONCAT(i.id || ':' || i.identifier, '||') AS identifiers
+      FROM $tableCustomers c
+      LEFT JOIN $tableClientIdentifiers i ON c.id = i.client_id
+      GROUP BY c.id, c.phone, c.name, c.wallet_number, c.last_balance
+      ORDER BY c.id DESC
+    ''');
+  }
+
+  /// تعديل اسم العميل ورقم هاتفه مع نقل المعرفات للرقم الجديد
+  Future<void> updateCustomerPhoneWithSeparation({
+    required int oldCustomerId,
+    required String oldPhone,
+    required String newPhone,
+    required String customerName,
+  }) async {
+    final db = await database;
+
+    await db.transaction((txn) async {
+      final cleanNewPhone = newPhone.trim();
+      final cleanOldPhone = oldPhone.trim();
+      final cleanName = customerName.trim().isEmpty ? null : customerName.trim();
+
+      // 1. إذا كان رقم الهاتف هو نفسه ولم يتغير، نقوم فقط بتحديث الاسم
+      if (cleanOldPhone == cleanNewPhone) {
+        await txn.update(
+          tableCustomers,
+          {'name': cleanName},
+          where: 'id = ?',
+          whereArgs: [oldCustomerId],
+        );
+        return;
+      }
+
+      // 2. تفريغ بيانات العميل القديم (لأنه تم إخلاء الرقم منه)
+      await txn.update(
+        tableCustomers,
+        {
+          'name': null,
+          'wallet_number': null,
+        },
+        where: 'id = ?',
+        whereArgs: [oldCustomerId],
+      );
+
+      // 3. التحقق مما إذا كان الرقم الجديد موجوداً مسبقاً لدى عميل آخر
+      final existingCustomer = await txn.query(
+        tableCustomers,
+        where: 'phone = ?',
+        whereArgs: [cleanNewPhone],
+        limit: 1,
+      );
+
+      int targetCustomerId;
+
+      if (existingCustomer.isNotEmpty) {
+        targetCustomerId = existingCustomer.first['id'] as int;
+        await txn.update(
+          tableCustomers,
+          {'name': cleanName},
+          where: 'id = ?',
+          whereArgs: [targetCustomerId],
+        );
+      } else {
+        targetCustomerId = await txn.insert(
+          tableCustomers,
+          {
+            'phone': cleanNewPhone,
+            'name': cleanName,
+            'created_at': DateTime.now().millisecondsSinceEpoch,
+          },
+        );
+      }
+
+      // 4. 🟢 نقل جميع معرفات العميل القديم إلى العميل الجديد صاحب الرقم الجديد
+      await txn.update(
+        tableClientIdentifiers,
+        {'client_id': targetCustomerId},
+        where: 'client_id = ?',
+        whereArgs: [oldCustomerId],
+      );
+    });
+  }
+
+  // 2. دالة نقل المعرف أو إنشائه مع عميل جديد عند تعديل الرقم
+  Future<void> updateIdentifierPhoneAndTransfer({
+    required int identifierId,
+    required String newPhone,
+  }) async {
+    final db = await database;
+
+    await db.transaction((txn) async {
+      final cleanPhone = newPhone.trim();
+
+      // البحث عن رقم الهاتف الجديد في جدول العملاء
+      final existingCustomer = await txn.query(
+        tableCustomers,
+        where: 'phone = ?',
+        whereArgs: [cleanPhone],
+        limit: 1,
+      );
+
+      int targetCustomerId;
+
+      if (existingCustomer.isNotEmpty) {
+        // حالة (أ): الرقم موجود مسبقاً -> استخدام id العميل الموجود لنقل المعرف إليه
+        targetCustomerId = existingCustomer.first['id'] as int;
+      } else {
+        // حالة (ب): الرقم غير موجود -> إنشاء سجل عميل جديد بالرقم الجديد
+        targetCustomerId = await txn.insert(
+          tableCustomers,
+          {
+            'phone': cleanPhone,
+            'name': null,
+            'wallet_number': null,
+            'last_balance': null,
+            'created_at': DateTime.now().millisecondsSinceEpoch,
+          },
+        );
+      }
+
+      // نقل المعرف للعميل المستهدف (الجديد أو القديم)
+      await txn.update(
+        tableClientIdentifiers,
+        {
+          'client_id': targetCustomerId,
+        },
+        where: 'id = ?',
+        whereArgs: [identifierId],
+      );
+    });
+  }
 }
 /*import 'dart:async';
 import 'package:flutter/services.dart';

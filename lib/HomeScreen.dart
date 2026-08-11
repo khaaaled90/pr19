@@ -825,7 +825,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _buildMenuItem('تعديل العملاء', Icons.manage_accounts_rounded,
                             const Color(0xFF64748B), cardBg, textColor, () async {
                           await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const _CustomersManagementScreenState()));
+                              MaterialPageRoute(builder: (_) => const CustomersManagementScreen()));
                           _loadStats();
                         }),
                       ],

@@ -1047,7 +1047,8 @@ object ProcessMessageProcessor {
 
     private fun extractBalanceFromBody(body: String): String? {
         //val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
-        val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|رصيد|متبقي|المتبقي|ر\.?ص|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        //val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|رصيد|متبقي|المتبقي|ر\.?ص|Balance|Bal)[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
+        val balanceRegex = Regex("""(?:رصيدك|الرصيد|رصيدكم|رصيد|متبقي|المتبقي|ر\.?ص|رص|Balance|Bal)\s*(?:هو|الجديد|الحالي|أصبح|اصبح)?[\s:]*([\d,]+(?:\.\d+)?)""", RegexOption.IGNORE_CASE)
         return balanceRegex.find(body)?.groupValues?.get(1)?.replace(",", "")
     }
 

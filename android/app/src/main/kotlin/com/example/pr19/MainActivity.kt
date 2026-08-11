@@ -154,48 +154,49 @@ class MainActivity: FlutterActivity() {
                 "openAutoStartSettings" -> {
                     var opened = false
                     val packageName = packageName
-                    // 🔴 الكود المُضاف لخيار سامسونج (ضع هذا الجزء فقط في البداية):
-                    val samsungIntents = arrayOf(
-                        Intent().setComponent(ComponentName("com.samsung.android.looper", "com.samsung.android.sm.ui.battery.BackgroundLimitsActivity")),
-                        Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BackgroundLimitsActivity")),
-                        Intent().setComponent(ComponentName("com.samsung.android.looper", "com.samsung.android.sm.ui.battery.BatteryActivity")),
-                        Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BatteryActivity")),
-                        Intent().setComponent(ComponentName("com.samsung.android.sm_cn", "com.samsung.android.sm.ui.battery.BatteryActivity")),
-                        Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.root.SettingsActivity")),
-                        Intent("android.intent.action.POWER_USAGE_SUMMARY")
+                    // 2. محاولة فتح قائمة Auto-Start الخاصة بـ Xiaomi / Oppo / Vivo
+                    val autoStartIntents = arrayOf(
+                        Intent().setComponent(ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")),
+                        Intent().setComponent(ComponentName("com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity")),
+                        Intent().setComponent(ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")),
+                        Intent().setComponent(ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")),
+                        Intent().setComponent(ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"))
                     )
 
-                    for (intent in samsungIntents) {
+                    for (intent in autoStartIntents) {
                         try {
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             startActivity(intent)
                             opened = true
                             break
                         } catch (e: Exception) {
-                            // تجربة الشاشة التالية
+                            // تجربة الشاشة التالية إن لم تكن الواجهة متوفرة
                         }
                     }
                     
                     if (!opened) {
-                        // 2. محاولة فتح قائمة Auto-Start الخاصة بـ Xiaomi / Oppo / Vivo
-                        val autoStartIntents = arrayOf(
-                            Intent().setComponent(ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")),
-                            Intent().setComponent(ComponentName("com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity")),
-                            Intent().setComponent(ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")),
-                            Intent().setComponent(ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")),
-                            Intent().setComponent(ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"))
+                        // 🔴 الكود المُضاف لخيار سامسونج (ضع هذا الجزء فقط في البداية):
+                        val samsungIntents = arrayOf(
+                            Intent().setComponent(ComponentName("com.samsung.android.looper", "com.samsung.android.sm.ui.battery.BackgroundLimitsActivity")),
+                            Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BackgroundLimitsActivity")),
+                            Intent().setComponent(ComponentName("com.samsung.android.looper", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                            Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                            Intent().setComponent(ComponentName("com.samsung.android.sm_cn", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                            Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.root.SettingsActivity")),
+                            Intent("android.intent.action.POWER_USAGE_SUMMARY")
                         )
 
-                        for (intent in autoStartIntents) {
+                        for (intent in samsungIntents) {
                             try {
                                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 startActivity(intent)
                                 opened = true
                                 break
                             } catch (e: Exception) {
-                                // تجربة الشاشة التالية إن لم تكن الواجهة متوفرة
+                                // تجربة الشاشة التالية
                             }
                         }
+                        
                     }
 
                     // 3. إذا لم ينجح، افتح صفحة استثناء البطارية القياسية لأندرويد

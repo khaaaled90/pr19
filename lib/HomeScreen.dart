@@ -12,6 +12,7 @@ import 'allowed_senders_screen.dart';
 import 'sales_screen.dart';
 import 'backup_screen.dart';
 import 'archive_screen.dart';
+import 'CustomersManagementScreen.dart';
 import 'ExceptedCustomersScreen.dart';
 import 'service/native_service_controller.dart';
 import 'helpers/secure_storage_helper.dart';
@@ -821,12 +822,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               MaterialPageRoute(builder: (_) => const BackupScreen()));
                           _loadStats();
                         }),
-                        /*_buildMenuItem('الإعدادات', Icons.settings_rounded,
+                        _buildMenuItem('تعديل العملاء', Icons.manage_accounts_rounded,
                             const Color(0xFF64748B), cardBg, textColor, () async {
                           await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                              MaterialPageRoute(builder: (_) => const _CustomersManagementScreenState()));
                           _loadStats();
-                        }),*/
+                        }),
                       ],
                     ),
                     const SizedBox(height: 24),

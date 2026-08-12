@@ -216,7 +216,52 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
   }
 
   /// 🟢 دالة حذف سجل معلق
-  Future<void> _deletePendingLog(int id) async {
+  /// 🟢 دالة حذف سجل معلق
+  Future<void> _deletePendingLog(dynamic id) async {
+    final int? logId = int.tryParse(id.toString());
+    if (logId == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("تأكيد الحذف"),
+        content: const Text("هل أنت متأكد من رغبتك في حذف هذه العملية المعلقة؟"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("إلغاء"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("حذف"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await DatabaseHelper.instance.deletePendingLog(logId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("تم حذف العملية المعلقة بنجاح"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        // إعادة تحميل القائمة وتطبيق الفلترة مجدداً
+        await _loadPendingLogs();
+      } catch (e) {
+        debugPrint("خطأ أثناء حذف المعلق: $e");
+      }
+    }
+  }
+  /*Future<void> _deletePendingLog(int id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -255,7 +300,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
         debugPrint("خطأ أثناء حذف المعلق: $e");
       }
     }
-  }
+  }*/
   
   /// نافذة الربط والإرسال المحدثة
   void _showResolveDialog(Map<String, dynamic> pendingLog) {
@@ -539,6 +584,111 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _checkAndAutoResolvePendingLogs,
+              child: _filteredLogs.isEmpty // 👈 تعديل: استخدام _filteredLogs
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        const SizedBox(height: 200),
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _pendingLogs.isEmpty ? Icons.check_circle_outline : Icons.search_off,
+                                size: 64,
+                                color: _pendingLogs.isEmpty ? Colors.green : Colors.grey,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _pendingLogs.isEmpty
+                                    ? "لا توجد عمليات معلقة حالياً"
+                                    : "لا توجد نتائج تطابق بحثك",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(12),
+                      itemCount: _filteredLogs.length, // 👈 تعديل: استخدام _filteredLogs
+                      itemBuilder: (context, index) {
+                        final item = _filteredLogs[index]; // 👈 تعديل: استخدام _filteredLogs
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.only(bottom: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(12),
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.amber,
+                              child: Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.white,
+                              ),
+                            ),
+                            title: Text(
+                              item['sender_name'] ?? 'عميل غير معروف',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text(
+                                  item['received_message'] ?? '',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "الفئة المطابقة: ${item['matched_keyword']} | القسيمة: ${item['sent_number']}",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  ),
+                                  onPressed: () => _showResolveDialog(item),
+                                  child: const Text("ربط وإرسال"),
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                  tooltip: "حذف العملية",
+                                  onPressed: () {
+                                    if (item['id'] != null) {
+                                      _deletePendingLog(item['id']);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+      /*body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _checkAndAutoResolvePendingLogs,
               child: _pendingLogs.isEmpty
                   ? ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -641,7 +791,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                         );
                       },
                     ),
-            ),
+            ),*/
     );
   }
 }

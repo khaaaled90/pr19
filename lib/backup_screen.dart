@@ -108,7 +108,16 @@ class _BackupScreenState extends State<BackupScreen> {
       onConfirm: () async {
         bool success = await BackupService.restoreLatest();
         if (success) {
-          _showSnackBar('✅ تم استعادة البيانات بنجاح');
+         // 1. تفريغ كاش أندرويد Native (Kotlin)
+          await DatabaseHelper.instance.clearNativeCache();
+          
+          
+          if (!mounted) return;
+          
+          _showSnackBar('✅ تم استعادة البيانات من الملف بنجاح');
+          // 3. الانتقال للرئيسية لتدمير الشاشات القديمة وإعادة بناء الواجهة بالبيانات الجديدة
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        
         } else {
           _showSnackBar('❌ لا توجد نسخ متاحة للإعادة أو حدث خطأ', isError: true);
         }
@@ -124,7 +133,16 @@ class _BackupScreenState extends State<BackupScreen> {
       onConfirm: () async {
         bool success = await BackupService.restoreFromPicker();
         if (success) {
+          // 1. تفريغ كاش أندرويد Native (Kotlin)
+          await DatabaseHelper.instance.clearNativeCache();
+          
+          
+          if (!mounted) return;
+          
           _showSnackBar('✅ تم استعادة البيانات من الملف بنجاح');
+          // 3. الانتقال للرئيسية لتدمير الشاشات القديمة وإعادة بناء الواجهة بالبيانات الجديدة
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        
         } else {
           _showSnackBar('❌ لم يتم اختيار ملف أو حدث خطأ في العملية', isError: true);
         }

@@ -456,6 +456,52 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
               )
             : const Text("العمليات المعلقة"),
         actions: [
+          // 🟢 1. زر التبديل لفتح/إغلاق البحث
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            tooltip: _isSearching ? "إغلاق البحث" : "بحث",
+            onPressed: () {
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchController.clear();
+                  _filterLogs('');
+                }
+              });
+            },
+          ),
+          // 🔄 2. زر التحديث وحسم المعلقات
+          IconButton(
+            icon: _isSyncing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.refresh),
+            tooltip: "تحديث وحسم معلقات العملاء المربوطين",
+            onPressed: _isSyncing ? null : _checkAndAutoResolvePendingLogs,
+          ),
+        ],
+      ),
+      /*appBar: AppBar(
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: "بحث باسم العميل، الرسالة، الفئة...",
+                  hintStyle: TextStyle(color: Colors.white70),
+                  border: InputBorder.none,
+                ),
+                onChanged: _filterLogs,
+              )
+            : const Text("العمليات المعلقة"),
+        actions: [
           // 🟢 زر التبديل لفتح/إغلاق البحث
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search),
@@ -488,7 +534,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
             onPressed: _isSyncing ? null : _checkAndAutoResolvePendingLogs,
           ),
         ],
-      ),
+      ),*/
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

@@ -27,6 +27,7 @@ class DatabaseHelper {
   
   Future<void> closeDatabase() async {
     try {
+      await clearDartAndDbCache();
       final db = _database;
       if (db != null && db.isOpen) {
         await db.close();
@@ -1002,6 +1003,23 @@ class DatabaseHelper {
         whereArgs: [identifierId],
       );
     });
+  }
+
+  /// تفريغ ذاكرة SQLite المؤقتة وإغلاق الاتصال وتصفير المرجع
+  Future<void> clearDartAndDbCache() async {
+    try {
+      final db = _database;
+      if (db != null && db.isOpen) {
+        // 🟢 أمر SQLite لتفرغ الذاكرة المؤقتة (Page Cache) المحتفظ بها في RAM
+        await db.execute('PRAGMA shrink_memory;');
+        await db.close();
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء تفريغ كاش قاعدة البيانات: $e");
+    } finally {
+      // 🟢 تصفير المرجع دائماً لضمان عدم استخدام الاتصال المغلق
+      _database = null;
+    }
   }
 }
 /*import 'dart:async';

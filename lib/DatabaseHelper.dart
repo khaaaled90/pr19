@@ -675,7 +675,7 @@ class DatabaseHelper {
     final db = await database;
     return await db.query(
       tableReplyLog,
-      where: "status IN ('manual_approval_required','voucher_approval_required')",
+      where: "is_deleted = 0 AND status IN ('manual_approval_required','voucher_approval_required')",
       orderBy: 'timestamp DESC',
     );
   }

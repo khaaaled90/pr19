@@ -118,6 +118,42 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
           String matchedName = customer['name'] ?? sender;
           String matchedKeyword = log['matched_keyword'] ?? '';
 
+          double price = (log['price'] as num?)?.toDouble() ?? 0.0;
+
+          // =========================================================
+          // 🎯 1. استخراج البيانات وتكوين بصمة العملية (Fingerprint)
+          // =========================================================
+          String? extractedBalance = _extractBalanceFromBody(messageBody);
+          String? transactionFingerprint;
+
+          if (extractedBalance != null && extractedBalance.trim().isNotEmpty) {
+            String normalizedBalance = extractedBalance.replaceAll(',', '').trim();
+            
+            // تحويل المبلغ لصيغة نصية دون أصفار عشرية زائدة (مثل Kotlin)
+            String normalizedAmount = (price % 1.0 == 0.0) 
+                ? price.toInt().toString() 
+                : price.toString();
+
+            if (normalizedAmount.isNotEmpty && price > 0) {
+              // استخراج معرف العميل بالترتيب: (هاتف -> اسم -> UNKNOWN)
+              String clientIdentifier = matchedPhone.isNotEmpty
+                  ? matchedPhone
+                  : (matchedName.isNotEmpty ? matchedName : "UNKNOWN");
+
+              // تركيب البصمة: معرف العميل | المبلغ | الرصيد
+              transactionFingerprint = "$clientIdentifier|$normalizedAmount|$normalizedBalance";
+              debugPrint("🔍 البصمة المجهزة للفحص: $transactionFingerprint");
+
+              // 🛑 2. فحص هل البصمة مكررة وموجودة في الأرشيف سابقاً؟
+              bool exists = await DatabaseHelper.instance.isTransactionFingerprintExists(transactionFingerprint);
+              if (exists) {
+                debugPrint("⚠️ العملية ($transactionFingerprint) موجودة مسبقاً في الأرشيف. تم تجاهلها لمنع التكرار.");
+                // اختياري: يمكنك حذف السجل المعلق المكرر أو تحديث حالته كـ مكرر
+                continue; // الانتقال للعملية التالية مباشرة
+              }
+            }
+          }
+
           // ✅ الكود التعديل (يستخدم الكرت المحجوز أولاً، وإلا يسحب كرت جديد)
           String? voucherCode = log['sent_number'];
           if (voucherCode == null || voucherCode.toString().trim().isEmpty) {
@@ -132,6 +168,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
               customerName: matchedName,
               voucherCode: voucherCode,
               price: (log['price'] as num?)?.toDouble() ?? 0.0, // 👈 إضافة السعر هنا
+              transactionFingerprint: transactionFingerprint,
             );
 
             String? extractedBalance = _extractBalanceFromBody(messageBody);
@@ -395,6 +432,36 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 int? keywordId = pendingLog['keyword_id'] as int?;
 
                 if (phone.length >= 9) {
+                  // 🎯 1. تجهيز البصمة وفحص عدم تكرار العملية بالأرشيف
+                  String messageBody = pendingLog['received_message'] ?? '';
+                  String? extractedBalance = _extractBalanceFromBody(messageBody);
+                  double price = (pendingLog['price'] as num?)?.toDouble() ?? 0.0;
+                  String? transactionFingerprint;
+
+                  if (extractedBalance != null && extractedBalance.trim().isNotEmpty) {
+                    String normalizedBalance = extractedBalance.replaceAll(',', '').trim();
+                    String normalizedAmount = (price % 1.0 == 0.0) ? price.toInt().toString() : price.toString();
+
+                    if (normalizedAmount.isNotEmpty && price > 0) {
+                      transactionFingerprint = "$phone|$normalizedAmount|$normalizedBalance";
+
+                      // 🛑 فحص البصمة في الأرشيف وقاعدة البيانات
+                      bool isDuplicate = await DatabaseHelper.instance.isTransactionFingerprintExists(transactionFingerprint);
+                      if (isDuplicate) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("⚠️ تحذير: هذه العملية تم صرف كرت لها سابقاً وموجودة في الأرشيف!"),
+                              backgroundColor: Colors.red,
+                              duration: Duration(seconds: 4),
+                            ),
+                          );
+                        }
+                        return; // 🛑 إيقاف عملية الصرف فوراً لمنع التكرار
+                      }
+                    }
+                  }
+                  
                   // 1. تحديث الكاش وقاعدة البيانات عبر Kotlin
                   try {
                     await _nativeControlChannel.invokeMethod("registerCustomer", {
@@ -434,6 +501,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                   if (keywordId != null) {
                     await triggerManagerAlertNative(keywordId, matchedKeyword);
                   }
+                  
                   // 3. تحديث حالة العملية المعلقة
                   await DatabaseHelper.instance.resolvePendingLog(
                     logId: pendingLog['id'],
@@ -441,6 +509,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                     customerName: name,
                     voucherCode: voucherCode,
                     price: (pendingLog['price'] as num?)?.toDouble() ?? 0.0, // 👈 إضافة السعر هنا
+                    transactionFingerprint: transactionFingerprint, // 👈 أضف هذا السطر هنا
                   );
 
                   // 4. إعداد وإرسال الـ SMS

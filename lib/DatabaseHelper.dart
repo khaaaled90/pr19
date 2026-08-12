@@ -680,6 +680,17 @@ class DatabaseHelper {
     );
   }
 
+  Future<bool> isTransactionFingerprintExists(String fingerprint) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'reply_log', // اسم الجدول
+      where: 'transaction_fingerprint = ?',
+      whereArgs: [fingerprint],
+      limit: 1,
+    );
+    return result.isNotEmpty;
+  }
+
   Future<Map<String, dynamic>?> getCustomerByPhone(String phone) async {
     final db = await database;
 
@@ -831,6 +842,7 @@ class DatabaseHelper {
     String? walletNumber,
     required String voucherCode,
     double price = 0.0, // 👈 تم إضافة بارامتر السعر هنا
+    String? transactionFingerprint, // 👈 1. أضف هذا البارامتر هنا
   }) async {
     final db = await database;
 
@@ -853,12 +865,25 @@ class DatabaseHelper {
         'status': 'sent_manual',
         'sent_number': voucherCode,
         'price': price, // 👈 تم إضافة تحديث السعر هنا
+        if (transactionFingerprint != null) 
+        'transaction_fingerprint': transactionFingerprint, // 👈 2. أضف حفظ البصمة هنا
       },
       where: 'id = ?',
       whereArgs: [logId],
     );
 
     return true;
+  }
+
+  Future<bool> isTransactionFingerprintExists(String fingerprint) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'reply_log', // اسم جدول السجلات لديك
+      where: 'transaction_fingerprint = ?',
+      whereArgs: [fingerprint],
+      limit: 1,
+    );
+    return result.isNotEmpty;
   }
 
   //******************************** */

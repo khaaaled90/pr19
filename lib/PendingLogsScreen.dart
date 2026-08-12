@@ -16,6 +16,8 @@ class PendingLogsScreen extends StatefulWidget {
 
 class _PendingLogsScreenState extends State<PendingLogsScreen> {
   List<Map<String, dynamic>> _pendingLogs = [];
+  // 🟢 أضف هذا السطر لتعريف المتغير المفقود
+  List<Map<String, dynamic>> _filteredLogs = [];
   bool _isLoading = true;
   bool _isSyncing = false;
   bool _isSearching = false;
@@ -468,6 +470,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
               });
             },
           ),
+        ], 
         //title: const Text("العمليات المعلقة"),
         actions: [
           IconButton(

@@ -18,11 +18,18 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
   List<Map<String, dynamic>> _pendingLogs = [];
   bool _isLoading = true;
   bool _isSyncing = false;
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadPendingLogs();
+  }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   /// دالة تنبيه الـ Native لمتابعة مخزون الكروت
@@ -74,6 +81,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
     if (mounted) {
       setState(() {
         _pendingLogs = logs;
+        _filterLogs(_searchController.text); // 👈 أضف هذا السطر لتصفية القائمة فور التحميل
         _isLoading = false;
       });
     }
@@ -182,6 +190,71 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
     return match?.group(1)?.replaceAll(',', '');
   }
 
+  /// 🟢 دالة تصفية القائمة بحسب البحث
+  void _filterLogs(String query) {
+    if (query.isEmpty) {
+      _filteredLogs = List.from(_pendingLogs);
+    } else {
+      final q = query.toLowerCase();
+      _filteredLogs = _pendingLogs.where((log) {
+        final senderName = (log['sender_name'] ?? '').toString().toLowerCase();
+        final message = (log['received_message'] ?? '').toString().toLowerCase();
+        final keyword = (log['matched_keyword'] ?? '').toString().toLowerCase();
+        final voucher = (log['sent_number'] ?? '').toString().toLowerCase();
+        final phone = (log['customer_phone'] ?? '').toString().toLowerCase();
+
+        return senderName.contains(q) ||
+            message.contains(q) ||
+            keyword.contains(q) ||
+            voucher.contains(q) ||
+            phone.contains(q);
+      }).toList();
+    }
+    setState(() {});
+  }
+
+  /// 🟢 دالة حذف سجل معلق
+  Future<void> _deletePendingLog(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("تأكيد الحذف"),
+        content: const Text("هل أنت تأكد من رغبتك في حذف هذه العملية المعلقة؟"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("إلغاء"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("حذف"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await DatabaseHelper.instance.deletePendingLog(id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("تم حذف العملية المعلقة بنجاح"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        await _loadPendingLogs();
+      } catch (e) {
+        debugPrint("خطأ أثناء حذف المعلق: $e");
+      }
+    }
+  }
+  
   /// نافذة الربط والإرسال المحدثة
   void _showResolveDialog(Map<String, dynamic> pendingLog) {
     final phoneController = TextEditingController();
@@ -367,7 +440,35 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("العمليات المعلقة"),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: "بحث باسم العميل، الرسالة، الفئة...",
+                  hintStyle: TextStyle(color: Colors.white70),
+                  border: InputBorder.none,
+                ),
+                onChanged: _filterLogs,
+              )
+            : const Text("العمليات المعلقة"),
+        actions: [
+          // 🟢 زر التبديل لفتح/إغلاق البحث
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            tooltip: _isSearching ? "إغلاق البحث" : "بحث",
+            onPressed: () {
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchController.clear();
+                  _filterLogs('');
+                }
+              });
+            },
+          ),
+        //title: const Text("العمليات المعلقة"),
         actions: [
           IconButton(
             icon: _isSyncing
@@ -461,10 +562,32 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                                 ),
                               ],
                             ),
-                            trailing: ElevatedButton(
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  ),
+                                  onPressed: () => _showResolveDialog(item),
+                                  child: const Text("ربط وإرسال"),
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                  tooltip: "حذف العملية",
+                                  onPressed: () {
+                                    if (item['id'] != null) {
+                                      _deletePendingLog(item['id']);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                            /*trailing: ElevatedButton(
                               onPressed: () => _showResolveDialog(item),
                               child: const Text("ربط وإرسال"),
-                            ),
+                            ),*/
                           ),
                         );
                       },

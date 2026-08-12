@@ -763,6 +763,25 @@ class DatabaseHelper {
     return result;
   }
 
+  /*Future<int> deletePendingLog(int id) async {
+    final db = await instance.database;
+    return await db.delete(
+      tableReplyLog, // اسم الجدول المعرف لديك
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }*/
+
+  Future<int> deletePendingLog(int id) async {
+    final db = await instance.database;
+    return await db.update(
+      tableReplyLog, // اسم الجدول المعرف لديك
+      {'is_deleted': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // التحقق هل الرقم مستثنى
   Future<bool> isCustomerExcepted(String phone) async {
     final db = await database;

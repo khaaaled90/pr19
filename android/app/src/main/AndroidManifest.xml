@@ -92,7 +92,12 @@
             android:name=".CardPayForegroundService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync" "specialUse">
+    
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="SMS and Notification monitoring for automated response" />
+        </service>
 
         <!-- ================================================================= -->
         <!-- 6. مستقبل إعادة تشغيل الجهاز (Boot Completed Receiver) -->

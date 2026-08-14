@@ -16,6 +16,8 @@ class VouchersScreen extends StatefulWidget {
 class _VouchersScreenState extends State<VouchersScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
+  bool _isUserPassMode = false; // خيار مفعل/مغلق لاسم المستخدم وكلمة المرور
+
   List<Map<String, dynamic>> _keywords = [];
   List<Map<String, dynamic>> _allNumbers = [];
   List<Map<String, dynamic>> _archiveList = [];
@@ -107,6 +109,13 @@ class _VouchersScreenState extends State<VouchersScreen> {
         List<String> extractedCodes = [];
 
         if (extension == 'xlsx' || extension == 'xls') {
+          extractedCodes = await _parseExcelFile(filePath, isPair: _isUserPassMode);
+        } else if (extension == 'pdf') {
+          extractedCodes = await _parsePdfFile(filePath, isPair: _isUserPassMode);
+        } else {
+          extractedCodes = await _parseTxtFile(filePath, isPair: _isUserPassMode);
+        }
+        /*if (extension == 'xlsx' || extension == 'xls') {
           extractedCodes = await _parseExcelFile(filePath);
         } else if (extension == 'pdf') {
           extractedCodes = await _parsePdfFile(filePath);
@@ -118,7 +127,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
               .map((e) => e.trim())
               .where((e) => e.isNotEmpty)
               .toList();
-        }
+        }*/
 
         if (extractedCodes.isEmpty) {
           _showSnackBar('⚠️ لم يتم العثور على أرقام أو أكواد كروت داخل الملف', isError: true);
@@ -142,7 +151,55 @@ class _VouchersScreenState extends State<VouchersScreen> {
     }
   }
 
-  Future<List<String>> _parseExcelFile(String path) async {
+  Future<List<String>> _parseExcelFile(String path, {required bool isPair}) async {
+    final bytes = File(path).readAsBytesSync();
+    final excel = Excel.decodeBytes(bytes);
+    
+    List<String> codes = [];
+
+    for (var table in excel.tables.keys) {
+      var sheet = excel.tables[table]!;
+      if (sheet.rows.isEmpty) continue;
+
+      if (isPair) {
+        // ON: كل صفين من نفس العمود قسيمة واحدة
+        int maxCols = sheet.maxColumns;
+        for (int col = 0; col < maxCols; col++) {
+          for (int row = 0; row < sheet.rows.length - 1; row += 2) {
+            // 🛡️ التعديل هنا: التأكد من أن العمود موجود داخل حدود هذا الصف لتجنب RangeError
+            var userCell = col < sheet.rows[row].length 
+                ? sheet.rows[row][col]?.value?.toString().trim() 
+                : null;
+                
+            var passCell = col < sheet.rows[row + 1].length 
+                ? sheet.rows[row + 1][col]?.value?.toString().trim() 
+                : null;
+            /*var userCell = sheet.rows[row][col]?.value?.toString().trim();
+            var passCell = sheet.rows[row + 1][col]?.value?.toString().trim();*/
+
+            if (userCell != null && userCell.isNotEmpty &&
+                passCell != null && passCell.isNotEmpty) {
+              codes.add('$userCell,$passCell');
+            }
+          }
+        }
+      } else {
+        // OFF: كل خلية من أي عمود قسيمة منفصلة
+        for (var row in sheet.rows) {
+          for (var cell in row) {
+            if (cell != null && cell.value != null) {
+              String val = cell.value.toString().trim();
+              if (val.isNotEmpty && !val.contains(RegExp(r'[^\w\d-]'))) {
+                codes.add(val);
+              }
+            }
+          }
+        }
+      }
+    }
+    return codes;
+  }
+  /*Future<List<String>> _parseExcelFile(String path) async {
     final bytes = File(path).readAsBytesSync();
     final excel = Excel.decodeBytes(bytes);
     List<String> codes = [];
@@ -160,16 +217,89 @@ class _VouchersScreenState extends State<VouchersScreen> {
       }
     }
     return codes;
+  }*/
+
+  Future<List<String>> _parsePdfFile(String path, {required bool isPair}) async {
+    final PdfDocument document = PdfDocument(inputBytes: File(path).readAsBytesSync());
+    String text = PdfTextExtractor(document).extractText();
+    document.dispose();
+
+    if (isPair) {
+      // ON: معالجة بالأعمدة (صفين متتاليين من نفس العمود)
+      List<String> rawLines = text
+          .split(RegExp(r'\r?\n'))
+          .map((l) => l.trim())
+          .where((l) => l.isNotEmpty)
+          .toList();
+
+      List<List<String>> grid = [];
+      for (var line in rawLines) {
+        List<String> colsInLine = RegExp(r'[A-Za-z0-9]{2,30}')
+            .allMatches(line)
+            .map((m) => m.group(0)!)
+            .toList();
+        if (colsInLine.isNotEmpty) {
+          grid.add(colsInLine);
+        }
+      }
+
+      List<String> codes = [];
+      if (grid.isEmpty) return codes;
+
+      int maxCols = 0;
+      for (var row in grid) {
+        if (row.length > maxCols) maxCols = row.length;
+      }
+
+      for (int col = 0; col < maxCols; col++) {
+        for (int row = 0; row < grid.length - 1; row += 2) {
+          if (col < grid[row].length && col < grid[row + 1].length) {
+            String user = grid[row][col];
+            String pass = grid[row + 1][col];
+            codes.add('$user,$pass');
+          }
+        }
+      }
+      return codes;
+    } else {
+      // OFF: استخراج كافة العناصر كأكواد فردية
+      final matches = RegExp(r'[A-Za-z0-9]{4,30}').allMatches(text);
+      return matches.map((m) => m.group(0)!.trim()).toList();
+    }
   }
 
-  Future<List<String>> _parsePdfFile(String path) async {
+  Future<List<String>> _parseTxtFile(String path, {required bool isPair}) async {
+    File file = File(path);
+    List<String> lines = (await file.readAsString())
+        .split(RegExp(r'\r?\n'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    List<String> codes = [];
+
+    if (isPair) {
+      // ON: كل سطرين متتاليين كرت واحد
+      for (int i = 0; i < lines.length - 1; i += 2) {
+        String user = lines[i];
+        String pass = lines[i + 1];
+        codes.add('$user,$pass');
+      }
+    } else {
+      // OFF: كل سطر قسيمة مستقلة
+      codes.addAll(lines);
+    }
+
+    return codes;
+  }
+  /*Future<List<String>> _parsePdfFile(String path) async {
     final PdfDocument document = PdfDocument(inputBytes: File(path).readAsBytesSync());
     String text = PdfTextExtractor(document).extractText();
     document.dispose();
 
     final matches = RegExp(r'[A-Za-z0-9]{4,30}').allMatches(text);
     return matches.map((m) => m.group(0)!..trim()).toList();
-  }
+  }*/
 
   Future<void> _saveNumbers() async {
     if (_selectedKeywordId == 'all' || _currentFilter != 'available') {
@@ -484,6 +614,83 @@ class _VouchersScreenState extends State<VouchersScreen> {
             },
           ),
           if (_selectedKeywordId != 'all') ...[
+            const SizedBox(height: 8),
+            // --- مفتاح التبديل ON / OFF ---
+            SwitchListTile(
+              title: const Text(
+                'تنسيق (اسم مستخدم وكلمة مرور)',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                _isUserPassMode
+                    ? 'مفعل: سيتم قراءة كل خليتين/سطرين كقسيمة واحدة'
+                    : 'مغلق: سيتم قراءة كل خلية/سطر كقسيمة منفصلة',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              value: _isUserPassMode,
+              activeColor: const Color(0xFF10B981),
+              contentPadding: EdgeInsets.zero,
+              onChanged: (val) {
+                setState(() {
+                  _isUserPassMode = val;
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.note_add_rounded, size: 18),
+                label: const Text('استيراد أكواد من ملف (Excel / PDF / TXT)',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: _pickAndReadFile,
+              ),
+            ),
+          ]
+        ],
+      ),
+    );
+  }
+  /*Widget _buildKeywordAndToolsRow(bool isDark, Color cardBg, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+      ),
+      child: Column(
+        children: [
+          DropdownButtonFormField<String>(
+            value: _selectedKeywordId,
+            dropdownColor: cardBg,
+            decoration: InputDecoration(
+              labelText: 'الباقة المستهدفة',
+              prefixIcon: const Icon(Icons.vpn_key_rounded, size: 20),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            items: [
+              const DropdownMenuItem(value: 'all', child: Text('اختر باقة للبدء...')),
+              ..._keywords.map((k) {
+                return DropdownMenuItem(
+                  value: k['id'].toString(),
+                  child: Text('${k['keyword']}'),
+                );
+              }).toList(),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                setState(() => _selectedKeywordId = val);
+                _refreshEditorText();
+              }
+            },
+          ),
+          if (_selectedKeywordId != 'all') ...[
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
@@ -501,7 +708,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
         ],
       ),
     );
-  }
+  }*/
 
   Widget _buildEditorSection(bool isDark, Color cardBg, Color textColor) {
     bool isAllSelected = _selectedKeywordId == 'all';

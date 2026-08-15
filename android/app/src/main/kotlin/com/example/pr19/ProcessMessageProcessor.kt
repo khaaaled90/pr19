@@ -671,12 +671,31 @@ object ProcessMessageProcessor {
         // خصم 100 ريال تحويل مشترك رص:800 الى هيثم عبد الباسط -734542531
 
         val isOutgoingTransfer =
-            text.contains("خصم", ignoreCase = true)
+            text.contains("خصم", ignoreCase = true)*/
 
         if (isOutgoingTransfer) {
             Log.i(
                 "PROCESSOR_FILTER",
                 "تم تجاهل رسالة خصم/تحويل صادرة: $text"
+            )
+            return true
+        }
+        
+        val isOutgoingTransferOrPayment =
+            text.contains("خصم", ignoreCase = true) ||
+            text.contains("ارسال", ignoreCase = true) ||
+            text.contains("إرسال", ignoreCase = true) ||
+            text.contains("سداد", ignoreCase = true) ||
+            text.contains("تسديد", ignoreCase = true) ||
+            text.contains("لقد قمت بعملية سداد", ignoreCase = true) ||
+            text.contains("سداد فواتير", ignoreCase = true) ||
+            text.contains("تم إرسال مبلغ", ignoreCase = true) ||
+            text.contains("تحويل محفظة", ignoreCase = true)
+
+        if (isOutgoingTransferOrPayment) {
+            Log.i(
+                "PROCESSOR_FILTER",
+                "تم تجاهل رسالة سداد/تحويل صادرة: $text"
             )
             return true
         }

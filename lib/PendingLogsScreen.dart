@@ -226,10 +226,6 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
               formattedVoucher = "\nرمز الكرت: ${voucherCode.trim()}";
             } 
             
-            /* = parts.length >= 2 
-                ? "${parts[0].trim()}, ${parts[1].trim()}" 
-                : voucherCode;*/
-            
             String footerMsg = await DatabaseHelper.instance
                 .getSetting('footer_message', '');
             String fullMsg1 = formattedVoucher + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
@@ -488,7 +484,33 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 String matchedKeyword = pendingLog['matched_keyword'] ?? '';
                 int? keywordId = pendingLog['keyword_id'] as int?;
 
+                
                 if (phone.length >= 9) {
+
+                  // 🔍 0. التحقق الذكي من العميل واعتامد رقمه المعتمد
+                  Map<String, dynamic>? customer;
+                  if (phone.isNotEmpty) {
+                    customer = await DatabaseHelper.instance.getCustomerByPhone(phone);
+                    if (customer == null) {
+                      String cleanPhone = phone.trim();
+                      if (cleanPhone.startsWith('+967')) cleanPhone = cleanPhone.substring(4);
+                      else if (cleanPhone.startsWith('967')) cleanPhone = cleanPhone.substring(3);
+                      else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+
+                      customer = await DatabaseHelper.instance.getCustomerByPhone(cleanPhone);
+                      if (customer == null) {
+                        customer = await DatabaseHelper.instance.getCustomerByPhone('+967$cleanPhone');
+                      }
+                    }
+                  }
+
+                  // اعتماد الرقم والاسم المسجلين في النظام إن وجدا
+                  if (customer != null) {
+                    phone = customer['phone'] ?? phone;
+                    if (name.isEmpty && customer['name'] != null) {
+                      name = customer['name'];
+                    }
+                  }
                   // 🎯 1. تجهيز البصمة وفحص عدم تكرار العملية بالأرشيف
                   String messageBody = pendingLog['received_message'] ?? '';
                   String? extractedBalance = _extractBalanceFromBody(messageBody);
@@ -572,7 +594,23 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                   // 4. إعداد وإرسال الـ SMS
                   String defaultReply = await DatabaseHelper.instance
                       .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');
-                  String fullMsg = "$defaultReply $voucherCode";
+                  
+
+                  List<String> parts = voucherCode.split(RegExp(r'[,\-/]'));
+                  String formattedVoucher;
+                  if (parts.length >= 2) {
+                    formattedVoucher = "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}";
+                  } else {
+                    formattedVoucher = "\nرمز الكرت: ${voucherCode.trim()}";
+                  } 
+                  
+                  String footerMsg = await DatabaseHelper.instance
+                      .getSetting('footer_message', '');
+                  String fullMsg1 = formattedVoucher + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+                  String fullMsg = "$defaultReply $fullMsg1";
+                  
+                  
+                  //String fullMsg = "$defaultReply $voucherCode";
 
                   bool isSent = await _sendSmsNative(phone, fullMsg);
 

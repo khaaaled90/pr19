@@ -106,31 +106,33 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
         String messageBody = log['received_message'] ?? ''; // 👈 أضف هذا السطر لسحب نص الرسالة
 
         // ✅ الكود الجديد:
+        // ✅ الكود الجديد الذكي والمتكامل:
         Map<String, dynamic>? customer;
         if (phone.isNotEmpty) {
-          // 1️⃣ البحث بالرقم الاصلي القادم من الرسالة/السجل كما هو
+          // 1️⃣ البحث بالرقم كما جاء في الرسالة تماماً
           customer = await DatabaseHelper.instance.getCustomerByPhone(phone);
 
-          // 2️⃣ إذا لم يجده، نتحقق بالصيغة الأخرى (مع أو بدون +967)
+          // 2️⃣ إذا لم يجده، نقوم بستخلاص الرقم المحلي الصافي والبحث بالصيغ الأخرى
           if (customer == null) {
-            String alternativePhone = phone.trim();
+            String cleanPhone = phone.trim();
 
-            if (alternativePhone.startsWith('+967')) {
-              // إذا كان يحتوي على +967 نجرب البحث بدونه (مثلاً: 734542531)
-              alternativePhone = alternativePhone.substring(4);
-            } else if (alternativePhone.startsWith('967')) {
-              alternativePhone = alternativePhone.substring(3);
-            } else {
-              // 🛡️ إذا كان يبدأ بصفر مكرر في البداية (مثل 073...) نحذفه قبل إضافة +967
-              if (alternativePhone.startsWith('0')) {
-                alternativePhone = alternativePhone.substring(1);
-              }
-              // إضافة رمز المفتاح الدولي +967 (مثلاً: +967734542531)
-              alternativePhone = '+967$alternativePhone';
+            // إزالة المفتاح الدولي بأشكاله المختلفة أو الصفر الأولي
+            if (cleanPhone.startsWith('+967')) {
+              cleanPhone = cleanPhone.substring(4);
+            } else if (cleanPhone.startsWith('967')) {
+              cleanPhone = cleanPhone.substring(3);
+            } else if (cleanPhone.startsWith('0')) {
+              cleanPhone = cleanPhone.substring(1);
             }
 
-            // المحاولة الثانية بالرقم البديل
-            customer = await DatabaseHelper.instance.getCustomerByPhone(alternativePhone);
+            // تجربة البحث بالصيغة المحلية الصافية (مثلاً: 734542531)
+            customer = await DatabaseHelper.instance.getCustomerByPhone(cleanPhone);
+
+            // 3️⃣ إذا لم يجده، نجرب البحث بالصيغة الدولية الكاملة المزودة بـ + (مثلاً: +967734542531)
+            if (customer == null) {
+              String internationalPhone = '+967$cleanPhone';
+              customer = await DatabaseHelper.instance.getCustomerByPhone(internationalPhone);
+            }
           }
         }
         /*Map<String, dynamic>? customer;

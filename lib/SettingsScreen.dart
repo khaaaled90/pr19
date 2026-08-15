@@ -374,6 +374,117 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: '📞 معلومات الاتصال والدعم',
                     icon: Icons.contact_support_rounded,
                     children: [
+                      // 1️⃣ الرقم الأول
+                      ListTile(
+                        leading: Icon(Icons.phone_android, color: theme.colorScheme.primary),
+                        title: const Text('الدعم الفني (رقم 1)'),
+                        subtitle: const Text('734542531 (اضغط للنسخ)'),
+                        onTap: () => _copyToClipboard('734542531', 'رقم الدعم الفني 1'),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF25D366),
+                                ),
+                                onPressed: () => _openWhatsApp('734542531'),
+                                icon: const Icon(Icons.chat, color: Colors.white, size: 18),
+                                label: const Text('واتساب', style: TextStyle(color: Colors.white)),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3498DB),
+                                ),
+                                onPressed: () => _makePhoneCall('734542531'),
+                                icon: const Icon(Icons.phone, color: Colors.white, size: 18),
+                                label: const Text('اتصال', style: TextStyle(color: Colors.white)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const Divider(height: 24, indent: 16, endIndent: 16),
+
+                      // 2️⃣ الرقم الثاني
+                      ListTile(
+                        leading: Icon(Icons.phone_android, color: theme.colorScheme.primary),
+                        title: const Text('الدعم الفني (رقم 2)'),
+                        subtitle: const Text('770000000 (اضغط للنسخ)'), // 👈 استبدل بالرقم الثاني
+                        onTap: () => _copyToClipboard('770000000', 'رقم الدعم الفني 2'),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF25D366),
+                                ),
+                                onPressed: () => _openWhatsApp('770000000'), // 👈 استبدل بالرقم الثاني
+                                icon: const Icon(Icons.chat, color: Colors.white, size: 18),
+                                label: const Text('واتساب', style: TextStyle(color: Colors.white)),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3498DB),
+                                ),
+                                onPressed: () => _makePhoneCall('770000000'), // 👈 استبدل بالرقم الثاني
+                                icon: const Icon(Icons.phone, color: Colors.white, size: 18),
+                                label: const Text('اتصال', style: TextStyle(color: Colors.white)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const Divider(height: 24, indent: 16, endIndent: 16),
+
+                      // 3️⃣ قناة الواتساب الرسمية
+                      ListTile(
+                        leading: const Icon(Icons.groups_rounded, color: Color(0xFF25D366)),
+                        title: const Text('قناة الواتساب الرسمية'),
+                        subtitle: const Text('تابع أحدث التحديثات والأخبار'),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                        onTap: () => _launchUrl('https://whatsapp.com/channel/YOUR_CHANNEL_ID'), // 👈 رابط القناة
+                      ),
+
+                      // 4️⃣ قناة التلجرام
+                      ListTile(
+                        leading: const Icon(Icons.telegram, color: Color(0xFF0088CC)),
+                        title: const Text('قناة التلجرام'),
+                        subtitle: const Text('انضم لقناتنا على تلجرام'),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                        onTap: () => _launchUrl('https://t.me/YOUR_TELEGRAM_CHANNEL'), // 👈 رابط التلجرام
+                      ),
+
+                      // 5️⃣ صفحة الفيسبوك
+                      ListTile(
+                        leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
+                        title: const Text('صفحة الفيسبوك'),
+                        subtitle: const Text('تابعنا على فيسبوك'),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                        onTap: () => _launchUrl('https://facebook.com/YOUR_PAGE_URL'), // 👈 رابط الفيسبوك
+                      ),
+                      
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                  /*_buildHelpAccordion(
+                    context,
+                    title: '📞 معلومات الاتصال والدعم',
+                    icon: Icons.contact_support_rounded,
+                    children: [
                       ListTile(
                         leading: Icon(Icons.person, color: theme.colorScheme.primary),
                         title: const Text('الدعم الفني'),
@@ -409,7 +520,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       )
                     ],
-                  ),
+                  ),*/
                 ],
               ),
             ),

@@ -1519,6 +1519,13 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
         bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);*/
       if (usedVoucher != null) {
         String cardCode = usedVoucher['number_code'] ?? '';
+        // 🟢 1. تنظيف النص واستخراج الأرقام فقط
+        String cleanDigits = phone.replaceAll(RegExp(r'\D'), '');
+
+        // 🟢 2. تحويل الرقم إلى الصيغة الدولية إذا كان يتكون من 9 أرقام أو أكثر
+        if (cleanDigits.length >= 9) {
+          phone = "+967${cleanDigits.substring(cleanDigits.length - 9)}";
+        }
         await dbHelper.saveOrUpdateCustomer(phone);
 
         // 🛡️ تقسيم الكرت إذا كان يحتوي على (فاصلة أو شرطة أو سلاش)

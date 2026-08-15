@@ -100,7 +100,6 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
       int resolvedCount = 0;
       String defaultReply = await DatabaseHelper.instance
           .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');
-
       for (var log in currentLogs) {
         String sender = log['sender'] ?? '';
         String sendername = log['sender_name'] ?? '';
@@ -230,8 +229,11 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
             /* = parts.length >= 2 
                 ? "${parts[0].trim()}, ${parts[1].trim()}" 
                 : voucherCode;*/
-
-            String fullMsg = "$defaultReply $formattedVoucher";
+            
+            String footerMsg = await DatabaseHelper.instance
+                .getSetting('footer_message', '');
+            String fullMsg1 = formattedVoucher + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+            String fullMsg = "$defaultReply $fullMsg1";
             await _sendSmsNative(matchedPhone, fullMsg);
             resolvedCount++;
             /*

@@ -427,9 +427,13 @@ object ProcessMessageProcessor {
                 "\nرمز الكرت: ${mainVoucherCode.trim()}"
             }
             val defaultReply = AppCache.getDefaultReply(dbHelper)
-            //val fullMessage = "$defaultReply $mainVoucherCode"
-            // ✏️ عَدِّل هذا السطر فقط (استبدل mainVoucherCode بـ formattedVoucher):
-            val fullMessage = "$defaultReply $formattedVoucher"
+            val footerMsg = dbHelper.getSetting("footer_message", "").trim()
+            val formattedWithFooter = if (footerMsg.isNotEmpty()) {
+                "$formattedVoucher\n$footerMsg"
+            } else {
+                formattedVoucher
+            }
+            val fullMessage = "$defaultReply $formattedWithFooter"
 
             Log.e("UPDATE_CUSTOMER", "mainVoucherCode=$mainVoucherCode")
             val isSent = DualSimSmsSender.sendSms(
@@ -501,7 +505,13 @@ object ProcessMessageProcessor {
 
                             // ➕ أضف هذين السطرين هنا:
                             val rewardParts = rewardVoucherCode.split(Regex("[,\\-/]"))
-                            val formattedReward = if (rewardParts.size >= 2) "${rewardParts[0].trim()}, ${rewardParts[1].trim()}" else rewardVoucherCode
+                            //val formattedReward = if (rewardParts.size >= 2) "${rewardParts[0].trim()}, ${rewardParts[1].trim()}" else rewardVoucherCode
+                            val formattedReward = if (parts.size >= 2) {
+                                    "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}"
+                                } else {
+                                    "\nرمز الكرت: ${mainVoucherCode.trim()}"
+                                }
+                            
                             // تصفير العداد عند نجاح سحب كرت العرض
                             dbHelper.resetCustomerCounter(destinationPhone, keywordId)
 

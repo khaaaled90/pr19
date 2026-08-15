@@ -1528,7 +1528,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
         if (parts.length >= 2) {
           formattedCardCode = "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}";
         } else {
-          formattedCardCode = "\nرمز الكرت: ${voucherCode.trim()}";
+          formattedCardCode = "\nرمز الكرت: ${cardCode.trim()}";
         } 
         String footerMsg = await dbHelper.getSetting('footer_message', '');
         String defaultReply = await DatabaseHelper.instance

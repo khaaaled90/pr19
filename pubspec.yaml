@@ -30,7 +30,8 @@ dependencies:
   # Permissions & System
   permission_handler: ^11.3.0
   intent_plus: ^0.1.0
-
+  flutter_contacts: ^1.1.9+2
+  
   # Database
   sqflite: ^2.3.0
 

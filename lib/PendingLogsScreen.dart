@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'DatabaseHelper.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // قنوات الاتصال المباشرة مع Kotlin
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
@@ -432,6 +434,12 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                     labelText: "رقم الهاتف (مثال: 771234567)",
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.phone),
+                    // 👈 إضافة أيقونة جهات الاتصال هنا
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.contacts, color: Colors.blue),
+                      tooltip: "اختيار من جهات الاتصال",
+                      onPressed: () => _pickContact(phoneController, nameController),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -590,6 +598,49 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
       phoneController.dispose();
       nameController.dispose();
     });
+  }
+  
+  Future<void> _pickContact(
+    TextEditingController phoneController,
+    TextEditingController nameController,
+  ) async {
+    // 1️⃣ طلب الإذن لقراءة جهات الاتصال
+    var status = await Permission.contacts.request();
+    if (status.isGranted) {
+      try {
+        // 2️⃣ فتح شاشة اختيار جهة الاتصال المدمجة في النظام
+        Contact? contact = await FlutterContacts.openExternalPick();
+        if (contact != null) {
+          // جلب بيانات جهة الاتصال بالتفصيل (لأن الإرجاع المبدئي قد لا يحوي الأرقام)
+          Contact? fullContact = await FlutterContacts.getContact(contact.id);
+          
+          if (fullContact != null && fullContact.phones.isNotEmpty) {
+            String rawPhone = fullContact.phones.first.number;
+            
+            // 🛡️ تنظيف الرقم من المسافات والرموز الزائدة
+            String cleanPhone = rawPhone.replaceAll(RegExp(r'[^\d+]'), '');
+
+            // تعيين الرقم والاسم في Controllers
+            phoneController.text = cleanPhone;
+            if (nameController.text.trim().isEmpty && fullContact.displayName.isNotEmpty) {
+              nameController.text = fullContact.displayName;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("خطأ أثناء اختيار جهة الاتصال: $e");
+      }
+    } else {
+      // في حال رفض الإذن
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("يرجى منح إذن الوصول لجهات الاتصال لتفعيل هذه الميزة"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 
   @override

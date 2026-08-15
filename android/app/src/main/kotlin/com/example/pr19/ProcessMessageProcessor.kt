@@ -420,7 +420,12 @@ object ProcessMessageProcessor {
         if (mainVoucherCode != null) {
             // ➕ أضف هذه الأسطر الأربعة هنا:
             val parts = mainVoucherCode.split(Regex("[,\\-/]"))
-            val formattedVoucher = if (parts.size >= 2) "${parts[0].trim()}, ${parts[1].trim()}" else mainVoucherCode
+            //val formattedVoucher = if (parts.size >= 2) "${parts[0].trim()}, ${parts[1].trim()}" else mainVoucherCode
+            val formattedVoucher = if (parts.size >= 2) {
+                "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}"
+            } else {
+                "\nرمز الكرت: ${mainVoucherCode.trim()}"
+            }
             val defaultReply = AppCache.getDefaultReply(dbHelper)
             //val fullMessage = "$defaultReply $mainVoucherCode"
             // ✏️ عَدِّل هذا السطر فقط (استبدل mainVoucherCode بـ formattedVoucher):

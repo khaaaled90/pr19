@@ -220,9 +220,16 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
 
             // 🛡️ تقسيم وتنسيق القسيمة للرسالة SMS
             List<String> parts = voucherCode.split(RegExp(r'[,\-/]'));
-            String formattedVoucher = parts.length >= 2 
+            String formattedVoucher;
+            if (parts.length >= 2) {
+              formattedVoucher = "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}";
+            } else {
+              formattedVoucher = "\nرمز الكرت: ${voucherCode.trim()}";
+            } 
+            
+            /* = parts.length >= 2 
                 ? "${parts[0].trim()}, ${parts[1].trim()}" 
-                : voucherCode;
+                : voucherCode;*/
 
             String fullMsg = "$defaultReply $formattedVoucher";
             await _sendSmsNative(matchedPhone, fullMsg);

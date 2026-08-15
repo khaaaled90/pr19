@@ -1523,10 +1523,13 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
 
         // 🛡️ تقسيم الكرت إذا كان يحتوي على (فاصلة أو شرطة أو سلاش)
         List<String> parts = cardCode.split(RegExp(r'[,\-/]'));
-        String formattedCardCode = parts.length >= 2 
-            ? "${parts[0].trim()}, ${parts[1].trim()}" 
-            : cardCode;
-
+        
+        String formattedCardCode;
+        if (parts.length >= 2) {
+          formattedCardCode = "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}";
+        } else {
+          formattedCardCode = "\nرمز الكرت: ${voucherCode.trim()}";
+        } 
         String footerMsg = await dbHelper.getSetting('footer_message', '');
         String defaultReply = await DatabaseHelper.instance
           .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');

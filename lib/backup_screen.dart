@@ -291,7 +291,7 @@ class _BackupScreenState extends State<BackupScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.add_to_drive_rounded, size: 18),
-                        label: const Text('حفظ نسخة في Downloads/SMSQaid',
+                        label: const Text('حفظ نسخة في Downloads/SMSCardPay',
                             style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF27AE60),

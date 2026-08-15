@@ -671,7 +671,7 @@ object ProcessMessageProcessor {
         // خصم 100 ريال تحويل مشترك رص:800 الى هيثم عبد الباسط -734542531
 
         val isOutgoingTransfer =
-            text.contains("خصم", ignoreCase = true)*/
+            text.contains("خصم", ignoreCase = true)
 
         if (isOutgoingTransfer) {
             Log.i(
@@ -680,7 +680,7 @@ object ProcessMessageProcessor {
             )
             return true
         }
-        
+
         val isOutgoingTransferOrPayment =
             text.contains("خصم", ignoreCase = true) ||
             text.contains("ارسال", ignoreCase = true) ||

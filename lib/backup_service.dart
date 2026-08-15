@@ -27,10 +27,10 @@ class BackupService {
   static Future<Directory> _getBackupDirectory() async {
     Directory? externalDir;
     if (Platform.isAndroid) {
-      externalDir = Directory('/storage/emulated/0/Download/SMSQaid');
+      externalDir = Directory('/storage/emulated/0/Download/SMSCardPay');
     } else {
       final docs = await getApplicationDocumentsDirectory();
-      externalDir = Directory(join(docs.path, 'SMSQaid'));
+      externalDir = Directory(join(docs.path, 'SMSCardPay'));
     }
 
     if (!await externalDir.exists()) {
@@ -66,7 +66,7 @@ class BackupService {
 
       final backupDir = await _getBackupDirectory();
       final String timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final String newFileName = 'SMSQaid_Backup_$timestamp.db';
+      final String newFileName = 'SMSCardPay_Backup_$timestamp.db';
       final String targetPath = join(backupDir.path, newFileName);
 
       await dbFile.copy(targetPath);

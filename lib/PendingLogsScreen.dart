@@ -430,7 +430,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 TextField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: "رقم الهاتف (مثال: 771234567)",
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.phone),

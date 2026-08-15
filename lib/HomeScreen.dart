@@ -16,6 +16,8 @@ import 'CustomersManagementScreen.dart';
 import 'ExceptedCustomersScreen.dart';
 import 'service/native_service_controller.dart';
 import 'helpers/secure_storage_helper.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
@@ -1371,12 +1373,47 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
   bool isSending = false;
   bool noCardsAvailable = false;
 
+
   @override
   void initState() {
     super.initState();
     _loadKeywords();
   }
 
+  // 2️⃣ دالة اختيار جهة الاتصال (تُوضع هنا داخل الكلاس)
+  Future<void> _pickContact() async {
+    var status = await Permission.contacts.request();
+    if (status.isGranted) {
+      try {
+        Contact? contact = await FlutterContacts.openExternalPick();
+        if (contact != null) {
+          Contact? fullContact = await FlutterContacts.getContact(contact.id);
+          if (fullContact != null && fullContact.phones.isNotEmpty) {
+            String rawPhone = fullContact.phones.first.number;
+
+            // تنظيف الرقم من المسافات والرموز الزائدة
+            String cleanPhone = rawPhone.replaceAll(RegExp(r'[^\d+]'), '');
+
+            setState(() {
+              _phoneController.text = cleanPhone;
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint("خطأ أثناء اختيار جهة الاتصال: $e");
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("يرجى منح إذن الوصول لجهات الاتصال لتفعيل الميزة"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+  
   @override
   void dispose() {
     _phoneController.dispose();
@@ -1706,7 +1743,13 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
                 textDirection: TextDirection.ltr,
                 decoration: InputDecoration(
                   labelText: 'رقم المستلم',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.contacts_rounded, color: Colors.blue),
+                    tooltip: 'اختيار من جهات الاتصال',
+                    onPressed: _pickContact,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

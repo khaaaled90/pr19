@@ -418,8 +418,13 @@ object ProcessMessageProcessor {
         Log.e("PROCESSOR1", "voucher_approval_required=$mainVoucherCode")
             
         if (mainVoucherCode != null) {
+            // ➕ أضف هذه الأسطر الأربعة هنا:
+            val parts = mainVoucherCode.split(Regex("[,\\-/]"))
+            val formattedVoucher = if (parts.size >= 2) "${parts[0].trim()}, ${parts[1].trim()}" else mainVoucherCode
             val defaultReply = AppCache.getDefaultReply(dbHelper)
-            val fullMessage = "$defaultReply $mainVoucherCode"
+            //val fullMessage = "$defaultReply $mainVoucherCode"
+            // ✏️ عَدِّل هذا السطر فقط (استبدل mainVoucherCode بـ formattedVoucher):
+            val fullMessage = "$defaultReply $formattedVoucher"
 
             Log.e("UPDATE_CUSTOMER", "mainVoucherCode=$mainVoucherCode")
             val isSent = DualSimSmsSender.sendSms(
@@ -488,6 +493,10 @@ object ProcessMessageProcessor {
                         val rewardVoucherCode = dbHelper.getAndUseVoucher(rewardKeywordId, destinationPhone)
 
                         if (rewardVoucherCode != null) {
+
+                            // ➕ أضف هذين السطرين هنا:
+                            val rewardParts = rewardVoucherCode.split(Regex("[,\\-/]"))
+                            val formattedReward = if (rewardParts.size >= 2) "${rewardParts[0].trim()}, ${rewardParts[1].trim()}" else rewardVoucherCode
                             // تصفير العداد عند نجاح سحب كرت العرض
                             dbHelper.resetCustomerCounter(destinationPhone, keywordId)
 
@@ -498,7 +507,9 @@ object ProcessMessageProcessor {
                             val rewardKwText = rewardKwMap?.get("keyword") as? String ?: "عرض مجاني"
                             val rewardPrice = (rewardKwMap?.get("price") as? Number)?.toDouble() ?: 0.0
 
-                            val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $rewardVoucherCode"
+                            //val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $rewardVoucherCode"
+                            // ✏️ عَدِّل هذا السطر فقط (استبدل rewardVoucherCode بـ formattedReward):
+                            val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $formattedReward"
                             val isRewardSent = DualSimSmsSender.sendSms(
                                 context = context,
                                 phoneNumber = destinationPhone,

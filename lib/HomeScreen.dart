@@ -1469,14 +1469,36 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
       final dbHelper = DatabaseHelper.instance;
       var usedVoucher = await dbHelper.getAndUseVoucher(selectedKeywordId!, phone);
 
-      if (usedVoucher != null) {
-        String cardCode = usedVoucher['number_code'];
+      //if (usedVoucher != null) {
+        /*String cardCode = usedVoucher['number_code'];
         await dbHelper.saveOrUpdateCustomer(phone);
         String footerMsg = await dbHelper.getSetting('footer_message', '');
-        String fullMessage = cardCode + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+        String defaultReply = await DatabaseHelper.instance
+          .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');
+        String fullMsg = cardCode + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+        
+        String fullMessage = "$defaultReply $fullMsg";
 
+        bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);*/
+      if (usedVoucher != null) {
+        String cardCode = usedVoucher['number_code'] ?? '';
+        await dbHelper.saveOrUpdateCustomer(phone);
+
+        // 🛡️ تقسيم الكرت إذا كان يحتوي على (فاصلة أو شرطة أو سلاش)
+        List<String> parts = cardCode.split(RegExp(r'[,\-/]'));
+        String formattedCardCode = parts.length >= 2 
+            ? "${parts[0].trim()}, ${parts[1].trim()}" 
+            : cardCode;
+
+        String footerMsg = await dbHelper.getSetting('footer_message', '');
+        String defaultReply = await DatabaseHelper.instance
+          .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');
+        
+        // ✏️ استخدام الكرت المنسق داخل الرسالة
+        String fullMsg = formattedCardCode + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+        String fullMessage = "$defaultReply $fullMsg";
         bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);
-
+        
         // حفظ العملية محلياً مع السعر وتغيير الحالة إلى sent_manual
         bool isArchived = await dbHelper.addToArchive(
           sender: 'إرسال يدوي',

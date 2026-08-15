@@ -105,10 +105,38 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
         String phone = log['customer_phone'] ?? '';
         String messageBody = log['received_message'] ?? ''; // 👈 أضف هذا السطر لسحب نص الرسالة
 
+        // ✅ الكود الجديد:
         Map<String, dynamic>? customer;
         if (phone.isNotEmpty) {
+          // 1️⃣ البحث بالرقم الاصلي القادم من الرسالة/السجل كما هو
           customer = await DatabaseHelper.instance.getCustomerByPhone(phone);
+
+          // 2️⃣ إذا لم يجده، نتحقق بالصيغة الأخرى (مع أو بدون +967)
+          if (customer == null) {
+            String alternativePhone = phone.trim();
+
+            if (alternativePhone.startsWith('+967')) {
+              // إذا كان يحتوي على +967 نجرب البحث بدونه (مثلاً: 734542531)
+              alternativePhone = alternativePhone.substring(4);
+            } else if (alternativePhone.startsWith('967')) {
+              alternativePhone = alternativePhone.substring(3);
+            } else {
+              // 🛡️ إذا كان يبدأ بصفر مكرر في البداية (مثل 073...) نحذفه قبل إضافة +967
+              if (alternativePhone.startsWith('0')) {
+                alternativePhone = alternativePhone.substring(1);
+              }
+              // إضافة رمز المفتاح الدولي +967 (مثلاً: +967734542531)
+              alternativePhone = '+967$alternativePhone';
+            }
+
+            // المحاولة الثانية بالرقم البديل
+            customer = await DatabaseHelper.instance.getCustomerByPhone(alternativePhone);
+          }
         }
+        /*Map<String, dynamic>? customer;
+        if (phone.isNotEmpty) {
+          customer = await DatabaseHelper.instance.getCustomerByPhone(phone);
+        }*/
         if (customer == null && sender.isNotEmpty) {
           customer = await DatabaseHelper.instance.getCustomerByNameOrIdentifier(sendername);
         }
@@ -186,9 +214,19 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
               );
             }*/
 
-            String fullMsg = "$defaultReply $voucherCode";
+            // 🛡️ تقسيم وتنسيق القسيمة للرسالة SMS
+            List<String> parts = voucherCode.split(RegExp(r'[,\-/]'));
+            String formattedVoucher = parts.length >= 2 
+                ? "${parts[0].trim()}, ${parts[1].trim()}" 
+                : voucherCode;
+
+            String fullMsg = "$defaultReply $formattedVoucher";
             await _sendSmsNative(matchedPhone, fullMsg);
             resolvedCount++;
+            /*
+            String fullMsg = "$defaultReply $voucherCode";
+            await _sendSmsNative(matchedPhone, fullMsg);
+            resolvedCount++;*/
           }
         }
       }

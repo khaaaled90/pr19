@@ -23,6 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _ownerPhoneController = TextEditingController();
   final TextEditingController _warningThresholdController = TextEditingController();
   final TextEditingController _footerMessageController = TextEditingController();
+  final TextEditingController _defaultReplyController = TextEditingController();
 
   List<Map<String, dynamic>> _stockStatusList = [];
   bool _isLoading = true;
@@ -38,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _ownerPhoneController.dispose();
     _warningThresholdController.dispose();
+    _defaultReplyController.dispose();
     _footerMessageController.dispose();
     super.dispose();
   }
@@ -53,6 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       String ownerPhone = await _db.getSetting('owner_phone', '777777777');
       String threshold = await _db.getSetting('warning_threshold', '5');
       String footerMsg = await _db.getSetting('footer_message', '');
+      String defaultReply = await _db.getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو:');
 
       _serviceEnabled = serviceVal == 'true';
       _notificationEnabled = notiVal == 'true';
@@ -62,6 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       _ownerPhoneController.text = ownerPhone;
       _warningThresholdController.text = threshold;
+      _defaultReplyController.text = defaultReply;
       _footerMessageController.text = footerMsg;
 
       await _fetchStockStatus();
@@ -108,6 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _db.updateSetting('stock_alert_enabled', _stockAlertEnabled ? 'true' : 'false');
       await _db.updateSetting('owner_phone', _ownerPhoneController.text.trim());
       await _db.updateSetting('warning_threshold', _warningThresholdController.text.trim());
+      await _db.updateSetting('default_reply', _defaultReplyController.text.trim());
       await _db.updateSetting('footer_message', _footerMessageController.text.trim());
 
       if (!mounted) return;
@@ -223,14 +228,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             await NativeServiceController.requestIgnoreBatteryOptimizations();
                           },
                         ),
-                        const Divider(height: 1),
+                        /*const Divider(height: 1),
                         SwitchListTile(
                           title: const Text('📋 الأرشفة',
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                           value: _archiveEnabled,
                           activeColor: const Color(0xFF27AE60),
                           onChanged: (v) => setState(() => _archiveEnabled = v),
-                        ),
+                        ),*/
                         /*const Divider(height: 1),
                         SwitchListTile(
                           title: const Text('🎁 العروض والمكافآت',
@@ -240,6 +245,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onChanged: (v) => setState(() => _offersEnabled = v),
                         ),*/
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildSectionCard(
+                    context,
+                    title: '💬 رسالة بداية الرد (مقدمة الرسالة)',
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: TextField(
+                        controller: _defaultReplyController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          hintText: 'مثال: شكراً لتواصلك. رقمك الخاص هو:',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.all(10),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),

@@ -108,41 +108,34 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
 
         // ✅ الكود الجديد:
         // ✅ الكود الجديد الذكي والمتكامل:
+        // 🟢 1. استخلاص آخر 9 أرقام صافية لتوحيد البحث وتفادي التكرار
         Map<String, dynamic>? customer;
-        if (phone.isNotEmpty) {
-          // 1️⃣ البحث بالرقم كما جاء في الرسالة تماماً
+        String cleanDigits = phone.replaceAll(RegExp(r'\D'), '');
+
+        if (cleanDigits.length >= 9) {
+          String localPhone = cleanDigits.substring(cleanDigits.length - 9); // 734542531
+          String internationalPhone = "+967$localPhone"; // +967734542531
+
+          // 🔍 البحث بجميع الصيغ المتوقعة في قاعدة البيانات
+          customer = await DatabaseHelper.instance.getCustomerByPhone(internationalPhone);
+          customer ??= await DatabaseHelper.instance.getCustomerByPhone(localPhone);
+          customer ??= await DatabaseHelper.instance.getCustomerByPhone(phone);
+        } else if (phone.isNotEmpty) {
+          // في حال كان الرقم أقل من 9 أرقام (رقم قصير أو اسم معرف)
           customer = await DatabaseHelper.instance.getCustomerByPhone(phone);
+        }
 
-          // 2️⃣ إذا لم يجده، نقوم بستخلاص الرقم المحلي الصافي والبحث بالصيغ الأخرى
-          if (customer == null) {
-            String cleanPhone = phone.trim();
-
-            // إزالة المفتاح الدولي بأشكاله المختلفة أو الصفر الأولي
-            if (cleanPhone.startsWith('+967')) {
-              cleanPhone = cleanPhone.substring(4);
-            } else if (cleanPhone.startsWith('967')) {
-              cleanPhone = cleanPhone.substring(3);
-            } else if (cleanPhone.startsWith('0')) {
-              cleanPhone = cleanPhone.substring(1);
-            }
-
-            // تجربة البحث بالصيغة المحلية الصافية (مثلاً: 734542531)
-            customer = await DatabaseHelper.instance.getCustomerByPhone(cleanPhone);
-
-            // 3️⃣ إذا لم يجده، نجرب البحث بالصيغة الدولية الكاملة المزودة بـ + (مثلاً: +967734542531)
-            if (customer == null) {
-              String internationalPhone = '+967$cleanPhone';
-              customer = await DatabaseHelper.instance.getCustomerByPhone(internationalPhone);
-            }
-          }
+        // 🔍 2. محاولة البحث بالاسم إذا لم يُعثر عليه بالرقم
+        if (customer == null && sendername.isNotEmpty) {
+          customer = await DatabaseHelper.instance.getCustomerByNameOrIdentifier(sendername);
         }
         /*Map<String, dynamic>? customer;
         if (phone.isNotEmpty) {
           customer = await DatabaseHelper.instance.getCustomerByPhone(phone);
         }*/
-        if (customer == null && sender.isNotEmpty) {
+        /*if (customer == null && sender.isNotEmpty) {
           customer = await DatabaseHelper.instance.getCustomerByNameOrIdentifier(sendername);
-        }
+        }*/
 
         if (customer != null) {
           String matchedPhone = customer['phone'] ?? phone;
@@ -479,7 +472,32 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
-                String phone = phoneController.text.trim();
+                String rawPhone = phoneController.text.trim();
+                String name = nameController.text.trim();
+                String matchedKeyword = pendingLog['matched_keyword'] ?? '';
+                int? keywordId = pendingLog['keyword_id'] as int?;
+
+                // 🟢 استخلاص آخر 9 أرقام لتوحيد البحث وتفادي التكرار
+                String cleanDigits = rawPhone.replaceAll(RegExp(r'\D'), '');
+                if (cleanDigits.length >= 9) {
+                  String localPhone = cleanDigits.substring(cleanDigits.length - 9); // الأرقام الـ 9 الأخيرة
+                  String internationalPhone = "+967$localPhone"; // الصيغة الدولية
+
+                  // 🔍 البحث بجميع الصيغ الممكنة
+                  Map<String, dynamic>? customer = await DatabaseHelper.instance.getCustomerByPhone(internationalPhone);
+                  customer ??= await DatabaseHelper.instance.getCustomerByPhone(localPhone);
+                  customer ??= await DatabaseHelper.instance.getCustomerByPhone(rawPhone);
+
+                  String phone;
+                  if (customer != null) {
+                    phone = customer['phone'] ?? internationalPhone;
+                    if (name.isEmpty && customer['name'] != null) {
+                      name = customer['name'];
+                    }
+                  } else {
+                    phone = rawPhone.startsWith('+') ? rawPhone : internationalPhone;
+                  }
+                /*String phone = phoneController.text.trim();
                 String name = nameController.text.trim();
                 String matchedKeyword = pendingLog['matched_keyword'] ?? '';
                 int? keywordId = pendingLog['keyword_id'] as int?;
@@ -510,7 +528,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                     if (name.isEmpty && customer['name'] != null) {
                       name = customer['name'];
                     }
-                  }
+                  }*/
                   // 🎯 1. تجهيز البصمة وفحص عدم تكرار العملية بالأرشيف
                   String messageBody = pendingLog['received_message'] ?? '';
                   String? extractedBalance = _extractBalanceFromBody(messageBody);
@@ -595,20 +613,34 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                   String defaultReply = await DatabaseHelper.instance
                       .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');
                   
-
-                  List<String> parts = voucherCode.split(RegExp(r'[,\-/]'));
+                  // *. معالجة وتنظيف النص المجلوب من pendingLog بشكل صارم
+                  String cleanVoucher = (voucherCode ?? '').replaceAll('\r', '').replaceAll('\n', ' ').trim();//List<String> parts = voucherCode.split(RegExp(r'[,\-/]'));
+                  List<String> parts = cleanVoucher
+                      .split(RegExp(r'[\s,:\-//]+'))
+                      .map((e) => e.trim())
+                      .where((e) => e.isNotEmpty)
+                      .toList();
+                  // ✂️ دعم الفصل بجميع الأشكال (مسافات، نقطتين، شرطة، فواصل)
+                  //List<String> parts = voucherCode.trim().split(RegExp(r'[\s,:\-//]+')).where((p) => p.isNotEmpty).toList();
                   String formattedVoucher;
+                  if (parts.length >= 2) {
+                    formattedVoucher = "\nاسم المستخدم: ${parts[0]}\nكلمة المرور: ${parts[1]}";
+                  } else {
+                    formattedVoucher = "\nرمز الكرت: $cleanVoucher";
+                  }
+                  /*String formattedVoucher;
                   if (parts.length >= 2) {
                     formattedVoucher = "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}";
                   } else {
                     formattedVoucher = "\nرمز الكرت: ${voucherCode.trim()}";
-                  } 
+                  }*/ 
                   
                   String footerMsg = await DatabaseHelper.instance
                       .getSetting('footer_message', '');
+                  /*String fullMsg1 = formattedVoucher + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+                  String fullMsg = "$defaultReply $fullMsg1";*/
                   String fullMsg1 = formattedVoucher + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
-                  String fullMsg = "$defaultReply $fullMsg1";
-                  
+                  String fullMsg = "${defaultReply.trim()} $fullMsg1";
                   
                   //String fullMsg = "$defaultReply $voucherCode";
 

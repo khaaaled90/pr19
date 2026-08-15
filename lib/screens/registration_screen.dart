@@ -263,7 +263,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       controller: _networkController,
                       style: TextStyle(color: textColor),
                       decoration: _buildInputDecoration(
-                        label: 'اسم الشبكة / الخدمة (مثل: شبكة المازن)',
+                        label: 'اسم الشبكة / الخدمة (مثل: شبكة اليمن)',
                         icon: Icons.wifi_rounded,
                         isDark: isDark,
                       ),
@@ -619,7 +619,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       controller: _networkController,
                       style: TextStyle(color: textColor),
                       decoration: _buildInputDecoration(
-                        label: 'اسم الشبكة / الخدمة (مثل: شبكة المازن)',
+                        label: 'اسم الشبكة / الخدمة (مثل: شبكة اليمن)',
                         icon: Icons.wifi_rounded,
                         isDark: isDark,
                       ),
@@ -937,7 +937,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       controller: _networkController,
                       style: TextStyle(color: textColor),
                       decoration: _buildInputDecoration(
-                        label: 'اسم الشبكة / الخدمة (مثل: شبكة المازن)',
+                        label: 'اسم الشبكة / الخدمة (مثل: شبكة اليمن)',
                         icon: Icons.wifi_rounded,
                         isDark: isDark,
                       ),
@@ -1142,7 +1142,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 TextFormField(
                   controller: _networkController,
                   decoration: const InputDecoration(
-                    labelText: 'اسم الشبكة / الخدمة (مثل: شبكة المازن)',
+                    labelText: 'اسم الشبكة / الخدمة (مثل: شبكة اليمن)',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.wifi),
                   ),

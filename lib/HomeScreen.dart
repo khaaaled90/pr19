@@ -23,7 +23,158 @@ import 'package:permission_handler/permission_handler.dart';
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
 const MethodChannel _nativeControlChannel = MethodChannel('com.example.pr19/native_control');
 
+
 class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentIndex = 0;
+
+  int _homeRefreshKey = 0;
+  int _vouchersRefreshKey = 0;
+  int _salesRefreshKey = 0;
+  int _settingsRefreshKey = 0;
+  int _contactRefreshKey = 0;
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+      switch (index) {
+        case 0:
+          _homeRefreshKey++;
+          break;
+        case 1:
+          _vouchersRefreshKey++;
+          break;
+        case 2:
+          _salesRefreshKey++;
+          break;
+        case 3:
+          _settingsRefreshKey++;
+          break;
+        case 4:
+          _contactRefreshKey++;
+          break;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBody: true,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          HomeScreen(key: ValueKey('home_$_homeRefreshKey')),
+          VouchersScreen(key: ValueKey('vouchers_$_vouchersRefreshKey')),
+          SalesScreen(key: ValueKey('sales_$_salesRefreshKey')),
+          SettingsScreen(key: ValueKey('settings_$_settingsRefreshKey')),
+          ContactTabScreen(key: ValueKey('contact_$_contactRefreshKey')),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+          decoration: BoxDecoration(
+            color: Colors.transparent, // شفاف لإبراز الأزرار المستقلة
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
+              _buildNavItem(Icons.confirmation_number_rounded, 'الكروت', 1),
+              _buildNavItem(Icons.donut_small_rounded, 'التقارير', 2),
+              _buildNavItem(Icons.tune_rounded, 'الإعدادات', 3),
+              _buildNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final bool isActive = _currentIndex == index;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final primaryColor = theme.primaryColor;
+    final cardBg = theme.cardColor;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onTabTapped(index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive
+                ? (isDark ? primaryColor.withOpacity(0.25) : primaryColor)
+                : cardBg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isActive
+                  ? primaryColor.withOpacity(0.5)
+                  : (isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+              width: 1.2,
+            ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: primaryColor.withOpacity(0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    )
+                  ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isActive
+                    ? (isDark ? const Color(0xFF38BDF8) : Colors.white)
+                    : (isDark ? Colors.white54 : Colors.black54),
+                size: isActive ? 22 : 20,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                  color: isActive
+                      ? (isDark ? const Color(0xFF38BDF8) : Colors.white)
+                      : (isDark ? Colors.white54 : Colors.black54),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+//**************************** */
+/*class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
 
   @override
@@ -159,7 +310,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     );
   }
-}
+}*/
 /*class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
 
@@ -1169,8 +1320,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+        // 🎯 إضافة الزر العائم فوق شريط التنقل بشكل متناسق ومستقل
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 75), // رفعه أعلى المنيو بار العائم
+          child: FloatingActionButton.extended(
+            onPressed: _openManualSendDialog,
+            backgroundColor: Theme.of(context).primaryColor,
+            elevation: 6,
+            icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+            label: const Text(
+              'إرسال يدوي',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+    );
+  }
         // 🎯 إضافة الزر العائم المطفي/المعطل
-        floatingActionButton: FloatingActionButton.extended(
+        /*floatingActionButton: FloatingActionButton.extended(
           onPressed: _openManualSendDialog, // تمرير مباشر بدون () وبدون أقواس دالة
           backgroundColor: Theme.of(context).primaryColor,
           elevation: 4,
@@ -1185,7 +1357,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         )
     );
-  }
+  }*/
 
   Widget _buildToggleControl({
     required String title,

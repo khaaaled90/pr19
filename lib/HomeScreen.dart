@@ -72,6 +72,143 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final cardBg = theme.cardColor;
 
     return Scaffold(
+      // 🟢 تجعل محتوى الشاشة يتمتد لخلف الـ BottomNavigationBar
+      extendBody: true, 
+
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          // 3. ربط جميع الشاشات بـ ValueKey لتعيد التحديث تلقائياً
+          HomeScreen(key: ValueKey('home_$_homeRefreshKey')),
+          VouchersScreen(key: ValueKey('vouchers_$_vouchersRefreshKey')),
+          SalesScreen(key: ValueKey('sales_$_salesRefreshKey')),
+          SettingsScreen(key: ValueKey('settings_$_settingsRefreshKey')),
+          ContactTabScreen(key: ValueKey('contact_$_contactRefreshKey')),
+        ],
+      ),
+
+      // 🟢 مغلف بـ SafeArea للتحكم بالهوامش في الشاشات العادية والحديثة
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: cardBg.withOpacity(isDark ? 0.92 : 0.98), // شفافة خفيفة لمظهر عائم عصري
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.4 : 0.12),
+                blurRadius: 20,
+                spreadRadius: 2,
+                offset: const Offset(0, 6),
+              )
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
+                _buildNavItem(Icons.confirmation_number_rounded, 'الكروت', 1),
+                _buildNavItem(Icons.donut_small_rounded, 'التقارير', 2),
+                _buildNavItem(Icons.tune_rounded, 'الإعدادات', 3),
+                _buildNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final bool isActive = _currentIndex == index;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final activeColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A);
+    final inactiveColor = isDark ? Colors.white38 : Colors.black38;
+
+    return InkWell(
+      onTap: () => _onTabTapped(index),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: isActive
+            ? BoxDecoration(
+                color: activeColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(16),
+              )
+            : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: isActive ? activeColor : inactiveColor, size: 22),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                color: isActive ? activeColor : inactiveColor,
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+/*class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentIndex = 0;
+
+  // 1. عدادات موحدة لجميع الشاشات لإجبارها على التحديث عند النقر
+  int _homeRefreshKey = 0;
+  int _vouchersRefreshKey = 0;
+  int _salesRefreshKey = 0;
+  int _settingsRefreshKey = 0;
+  int _contactRefreshKey = 0;
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+
+      // 2. تحديث العداد الخاص بالتبويب المحدد فور التنقل
+      switch (index) {
+        case 0:
+          _homeRefreshKey++;
+          break;
+        case 1:
+          _vouchersRefreshKey++;
+          break;
+        case 2:
+          _salesRefreshKey++;
+          break;
+        case 3:
+          _settingsRefreshKey++;
+          break;
+        case 4:
+          _contactRefreshKey++;
+          break;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = theme.cardColor;
+
+    return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
         children: [
@@ -151,7 +288,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     );
   }
-}
+}*/
 /*class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
 

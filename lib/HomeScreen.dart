@@ -98,8 +98,75 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     );
   }
-
   Widget _buildNavItem(IconData icon, String label, int index) {
+    final bool isActive = _currentIndex == index;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final primaryColor = theme.primaryColor;
+    final cardBg = theme.cardColor;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onTabTapped(index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            // 1. ألوان مصمتة وواضحة بدون الشفافية المنخفضة
+            color: isActive
+                ? (isDark ? primaryColor : primaryColor)
+                : cardBg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              // 2. إطار واضح
+              color: isActive
+                  ? Colors.transparent
+                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade300),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                // 3. ألوان أيقونات مصمتة (Solid Colors)
+                color: isActive
+                    ? Colors.white
+                    : (isDark ? Colors.white70 : Colors.black87),
+                size: isActive ? 22 : 20,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                  // 4. ألوان نصوص مصمتة وواضحة
+                  color: isActive
+                      ? Colors.white
+                      : (isDark ? Colors.white70 : Colors.black87),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  /*Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isActive = _currentIndex == index;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -171,7 +238,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     );
   }
-}
+}*/
 
 //**************************** */
 /*class MainNavigationScreen extends StatefulWidget {

@@ -186,11 +186,32 @@ object ProcessMessageProcessor {
             }
         }
 
-        // 👈 🎯 هنا موقع الإضافة بالضبط (بعد اكتمال البحث عن الرقم)
+        // 👈 🎯 معالجة الرقم للفحص بصيغتين (بالمفتاح وبدونه)
+        if (targetCustomerPhone.isNotBlank()) {
+            // 1. استخراج الأرقام الصافية فقط وإزالة +967 أو 00967 إن وجدت
+            val cleanPhone = targetCustomerPhone.replace(Regex(@"[^\d]"), "")
+            val rawPhone = when {
+                cleanPhone.startsWith("967") -> cleanPhone.substring(3)
+                cleanPhone.startsWith("0967") -> cleanPhone.substring(4)
+                cleanPhone.startsWith("0") -> cleanPhone.substring(1)
+                else -> cleanPhone
+            }
+
+            // 2. تجهيز الصيغتين (المجردة والمصحوبة بمفتاح الدولة)
+            val phoneWithPrefix = "+967$rawPhone"
+            val phoneWithoutPrefix = rawPhone
+
+            // 3. الفحص في قائمة الاستثناءات بالصيغتين
+            if (dbHelper.isSenderIgnored(phoneWithPrefix) || dbHelper.isSenderIgnored(phoneWithoutPrefix)) {
+                Log.i("PROCESSOR", "تم إهمال الرسالة: العميل $targetCustomerPhone موجود في قائمة الاستثناءات.")
+                return
+            }
+        }
+        /*// 👈 🎯 هنا موقع الإضافة بالضبط (بعد اكتمال البحث عن الرقم)
         if (targetCustomerPhone.isNotBlank() && dbHelper.isSenderIgnored(targetCustomerPhone)) {
             Log.i("PROCESSOR", "تم إهمال الرسالة: العميل $targetCustomerPhone موجود في قائمة الاستثناءات.")
             return
-        }
+        }*/
 
         // ⭐ 6. فحص العميل المعلق (إذا لم يتعرف النظام على هاتف أو اسم)
         if (targetCustomerPhone.isNull_Or_Empty_Or_Invalid()) {

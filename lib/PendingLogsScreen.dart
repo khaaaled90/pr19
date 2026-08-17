@@ -115,12 +115,16 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
         if (cleanDigits.length >= 9) {
           String localPhone = cleanDigits.substring(cleanDigits.length - 9); // 734542531
           String internationalPhone = "+967$localPhone"; // +967734542531
-
+          // 🚫 فحص جدول الاستثنائات بجميع الصيغ (بالمفتاح وبدونه)
+          if (await DatabaseHelper.instance.isCustomerExcepted(phone)) {
+            continue; // تجاوز الرقم المستثنى
+          }
           // 🔍 البحث بجميع الصيغ المتوقعة في قاعدة البيانات
           customer = await DatabaseHelper.instance.getCustomerByPhone(internationalPhone);
           customer ??= await DatabaseHelper.instance.getCustomerByPhone(localPhone);
           customer ??= await DatabaseHelper.instance.getCustomerByPhone(phone);
         } else if (phone.isNotEmpty) {
+          if (await DatabaseHelper.instance.isCustomerExcepted(phone)) continue;
           // في حال كان الرقم أقل من 9 أرقام (رقم قصير أو اسم معرف)
           customer = await DatabaseHelper.instance.getCustomerByPhone(phone);
         }
@@ -482,6 +486,19 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 if (cleanDigits.length >= 9) {
                   String localPhone = cleanDigits.substring(cleanDigits.length - 9); // الأرقام الـ 9 الأخيرة
                   String internationalPhone = "+967$localPhone"; // الصيغة الدولية
+                  // 🚫 فحص جدول الاستثنائات بجميع الصيغ (بالمفتاح وبدونه)
+                  if (await DatabaseHelper.instance.isCustomerExcepted(rawPhone)) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("🛑 تنبيه: هذا الرقم موجود في قائمة الاستثنائات!"),
+                          backgroundColor: Colors.red,
+                          duration: Duration(seconds: 4),
+                        ),
+                      );
+                    }
+                    return; // 👈 استخدام return هنا لإيقاف العملية وإغلاق الدالة
+                  }
 
                   // 🔍 البحث بجميع الصيغ الممكنة
                   Map<String, dynamic>? customer = await DatabaseHelper.instance.getCustomerByPhone(internationalPhone);

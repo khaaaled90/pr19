@@ -795,8 +795,38 @@ class DatabaseHelper {
   }
 
   // التحقق هل الرقم مستثنى
-  Future<bool> isCustomerExcepted(String phone) async {
+  /*Future<bool> isCustomerExcepted(String phone) async {
     final db = await database;
+    final res = await db.query(
+      tableExceptedCustomers,
+      where: 'phone = ?',
+      whereArgs: [phone],
+      limit: 1,
+    );
+    return res.isNotEmpty;
+  }*/
+
+  // 🚫 التحقق هل الرقم مستثنى (يفحص بالصيغتين تلقائياً: بالمفتاح +967 وبدونه)
+  Future<bool> isCustomerExcepted(String phone) async {
+    if (phone.trim().isEmpty) return false;
+
+    final db = await database;
+    String cleanDigits = phone.replaceAll(RegExp(r'\D'), '');
+
+    if (cleanDigits.length >= 9) {
+      String localPhone = cleanDigits.substring(cleanDigits.length - 9); // 77XXXXXXX
+      String internationalPhone = "+967$localPhone"; // +96777XXXXXXX
+
+      final res = await db.query(
+        tableExceptedCustomers,
+        where: 'phone = ? OR phone = ? OR phone = ?',
+        whereArgs: [internationalPhone, localPhone, phone],
+        limit: 1,
+      );
+      return res.isNotEmpty;
+    }
+
+    // في حال كان الرقم قصيراً جداً
     final res = await db.query(
       tableExceptedCustomers,
       where: 'phone = ?',

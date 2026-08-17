@@ -98,6 +98,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     );
   }
+
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isActive = _currentIndex == index;
     final theme = Theme.of(context);
@@ -237,8 +238,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ),
       ),
     );
-  }
-}*/
+  }*/
+}
 
 //**************************** */
 /*class MainNavigationScreen extends StatefulWidget {

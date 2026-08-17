@@ -189,7 +189,8 @@ object ProcessMessageProcessor {
         // 👈 🎯 معالجة الرقم للفحص بصيغتين (بالمفتاح وبدونه)
         if (targetCustomerPhone.isNotBlank()) {
             // 1. استخراج الأرقام الصافية فقط وإزالة +967 أو 00967 إن وجدت
-            val cleanPhone = targetCustomerPhone.replace(Regex(@"[^\d]"), "")
+            //val cleanPhone = targetCustomerPhone.replace(Regex(@"[^\d]"), "")
+            val cleanPhone = targetCustomerPhone.replace(Regex("""[^\d]"""), "")
             val rawPhone = when {
                 cleanPhone.startsWith("967") -> cleanPhone.substring(3)
                 cleanPhone.startsWith("0967") -> cleanPhone.substring(4)

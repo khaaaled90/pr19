@@ -157,6 +157,10 @@ class MainActivity: FlutterActivity() {
                     // 2. محاولة فتح قائمة Auto-Start الخاصة بـ Xiaomi / Oppo / Vivo
                     val autoStartIntents = arrayOf(
                         Intent().setComponent(ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")),
+                        Intent().apply {
+                            action = "miui.intent.action.OP_AUTO_START_BACKGROUND_SETTINGS"
+                            addCategory(Intent.CATEGORY_DEFAULT)
+                        },
                         Intent().setComponent(ComponentName("com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity")),
                         Intent().setComponent(ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")),
                         Intent().setComponent(ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")),
@@ -321,6 +325,21 @@ class MainActivity: FlutterActivity() {
             } else {
                 result.notImplemented()
             }
+        }
+    }
+
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        super.cleanUpFlutterEngine(flutterEngine)
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+        MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler(null)
+        MethodChannel(messenger, SMS_CHANNEL).setMethodCallHandler(null)
+    }
+
+    private fun hasSmsPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkSelfPermission(android.Manifest.permission.SEND_SMS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            true
         }
     }
 
@@ -572,6 +591,12 @@ class MainActivity: FlutterActivity() {
             if (call.method == "sendSms") {
                 val phone = call.argument<String>("phone") ?: call.argument<String>("address")
                 val message = call.argument<String>("message") ?: call.argument<String>("body")
+
+                // --- أضف هذا الفحص هنا ---
+                if (!hasSmsPermission()) {
+                    result.error("PERMISSION_DENIED", "إذن إرسال الرسائل النصية غير ممنوح", null)
+                    return@setMethodCallHandler
+                }
 
                 if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
                     try {

@@ -22,6 +22,8 @@ class MainActivity: FlutterActivity() {
 
     // 🟢 1. تعريف كائن التخزين على مستوى النشاط
     private lateinit var secureStorage: NativeSecureStorage
+    private var controlChannel: MethodChannel? = null
+    private var smsChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -31,20 +33,25 @@ class MainActivity: FlutterActivity() {
 
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         
+        //controlChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.pr19/native_control")
+        //smsChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.app/sms")
+        
         // 1. قناة التحكم بالأذونات واستثناء البطارية وتفريغ الـ Cache والبدء التلقائي
-        MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler { call, result ->
-            when (call.method) {
+        //MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler { call, result ->
+            controlChannel = MethodChannel(messenger, CONTROL_CHANNEL).apply {
+            setMethodCallHandler { call, result ->
+                when (call.method) {
 
-                "startForegroundService" -> {
-                    CardPayForegroundService.start(this)
-                    result.success(true)
-                }
-                "stopForegroundService" -> {
-                    CardPayForegroundService.stop(this)
-                    result.success(true)
-                }
+                    "startForegroundService" -> {
+                        CardPayForegroundService.start(this@MainActivity)
+                        result.success(true)
+                    }
+                    "stopForegroundService" -> {
+                        CardPayForegroundService.stop(this@MainActivity)
+                        result.success(true)
+                    }
 
-                // 🎯 عرض إشعار النظام عند إرسال القسيمة يدويًا من Flutter
+                    // 🎯 عرض إشعار النظام عند إرسال القسيمة يدويًا من Flutter
                 "showVoucherNotification" -> {
                     val categoryName = call.argument<String>("categoryName") ?: ""
                     val phone = call.argument<String>("phone") ?: ""
@@ -286,21 +293,15 @@ class MainActivity: FlutterActivity() {
         }
 
         // 2. قناة إرسال الرسائل النصية القادمة من Flutter
-        MethodChannel(messenger, SMS_CHANNEL).setMethodCallHandler { call, result ->
+        //MethodChannel(messenger, SMS_CHANNEL).setMethodCallHandler { call, result ->
+        smsChannel = MethodChannel(messenger, SMS_CHANNEL).apply {
+        setMethodCallHandler { call, result ->
             if (call.method == "sendSms") {
                 val phone = call.argument<String>("phone") ?: call.argument<String>("address")
                 val message = call.argument<String>("message") ?: call.argument<String>("body")
 
-                if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
+                /*if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
                     try {
-                        //val secureStorage = NativeSecureStorage(this)
-
-                        // التحقق من الحد قبل المحاولة
-                        /*if (secureStorage.isLimitReached()) {
-                            result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null)
-                            return@setMethodCallHandler
-                        }*/
-
                         // 🟢 حصر التحقق والإرسال والزيادة في قفل متزامن واحد
                         synchronized(this) {
                             if (secureStorage.isLimitReached()) {
@@ -319,6 +320,27 @@ class MainActivity: FlutterActivity() {
                     } catch (e: Exception) {
                         result.error("SMS_FAILED", "فشل إرسال الرسالة: ${e.localizedMessage}", null)
                     }
+                }*/ 
+                if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
+                    kotlin.concurrent.thread {
+                        try {
+                            synchronized(this@MainActivity) {
+                                if (secureStorage.isLimitReached()) {
+                                    runOnUiThread { result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null) }
+                                } else {
+                                    val isSent = sendNativeSms(phone, message)
+                                    if (isSent) {
+                                        secureStorage.incrementVouchersUsed()
+                                        runOnUiThread { result.success(true) }
+                                    } else {
+                                        runOnUiThread { result.success(false) }
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.error("SMS_FAILED", "فشل إرسال الرسالة: ${e.localizedMessage}", null) }
+                        }
+                    }
                 } else {
                     result.error("INVALID_ARGS", "رقم الهاتف أو نص الرسالة فارغ", null)
                 }
@@ -329,11 +351,18 @@ class MainActivity: FlutterActivity() {
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        controlChannel?.setMethodCallHandler(null)
+        smsChannel?.setMethodCallHandler(null)
+        controlChannel = null
+        smsChannel = null
+        super.cleanUpFlutterEngine(flutterEngine)
+    }
+    /*override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
         super.cleanUpFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler(null)
         MethodChannel(messenger, SMS_CHANNEL).setMethodCallHandler(null)
-    }
+    }*/
 
     private fun hasSmsPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

@@ -295,60 +295,62 @@ class MainActivity: FlutterActivity() {
         // 2. قناة إرسال الرسائل النصية القادمة من Flutter
         //MethodChannel(messenger, SMS_CHANNEL).setMethodCallHandler { call, result ->
         smsChannel = MethodChannel(messenger, SMS_CHANNEL).apply {
-        setMethodCallHandler { call, result ->
-            if (call.method == "sendSms") {
-                val phone = call.argument<String>("phone") ?: call.argument<String>("address")
-                val message = call.argument<String>("message") ?: call.argument<String>("body")
+            setMethodCallHandler { call, result ->
+                if (call.method == "sendSms") {
+                    val phone = call.argument<String>("phone") ?: call.argument<String>("address")
+                    val message = call.argument<String>("message") ?: call.argument<String>("body")
 
-                /*if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
-                    try {
-                        // 🟢 حصر التحقق والإرسال والزيادة في قفل متزامن واحد
-                        synchronized(this) {
-                            if (secureStorage.isLimitReached()) {
-                                result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null)
-                                //return@setMethodCallHandler
-                            }else{
-                                val isSent = sendNativeSms(phone, message)
-                                if (isSent) {
-                                    secureStorage.incrementVouchersUsed()
-                                    result.success(true)
-                                } else {
-                                    result.success(false)
-                                }
-                            }                            
-                        }
-                    } catch (e: Exception) {
-                        result.error("SMS_FAILED", "فشل إرسال الرسالة: ${e.localizedMessage}", null)
-                    }
-                }*/ 
-                if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
-                    kotlin.concurrent.thread {
+                    /*if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
                         try {
-                            synchronized(this@MainActivity) {
+                            // 🟢 حصر التحقق والإرسال والزيادة في قفل متزامن واحد
+                            synchronized(this) {
                                 if (secureStorage.isLimitReached()) {
-                                    runOnUiThread { result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null) }
-                                } else {
+                                    result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null)
+                                    //return@setMethodCallHandler
+                                }else{
                                     val isSent = sendNativeSms(phone, message)
                                     if (isSent) {
                                         secureStorage.incrementVouchersUsed()
-                                        runOnUiThread { result.success(true) }
+                                        result.success(true)
                                     } else {
-                                        runOnUiThread { result.success(false) }
+                                        result.success(false)
                                     }
-                                }
+                                }                            
                             }
                         } catch (e: Exception) {
-                            runOnUiThread { result.error("SMS_FAILED", "فشل إرسال الرسالة: ${e.localizedMessage}", null) }
+                            result.error("SMS_FAILED", "فشل إرسال الرسالة: ${e.localizedMessage}", null)
                         }
+                    }*/ 
+                    if (!phone.isNullOrEmpty() && !message.isNullOrEmpty()) {
+                        kotlin.concurrent.thread {
+                            try {
+                                synchronized(this@MainActivity) {
+                                    if (secureStorage.isLimitReached()) {
+                                        runOnUiThread { result.error("LIMIT_REACHED", "تم الوصول للحد الأقصى للقسائم", null) }
+                                    } else {
+                                        val isSent = sendNativeSms(phone, message)
+                                        if (isSent) {
+                                            secureStorage.incrementVouchersUsed()
+                                            runOnUiThread { result.success(true) }
+                                        } else {
+                                            runOnUiThread { result.success(false) }
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("SMS_FAILED", "فشل إرسال الرسالة: ${e.localizedMessage}", null) }
+                            }
+                        }
+                    } else {
+                        result.error("INVALID_ARGS", "رقم الهاتف أو نص الرسالة فارغ", null)
                     }
                 } else {
-                    result.error("INVALID_ARGS", "رقم الهاتف أو نص الرسالة فارغ", null)
+                    result.notImplemented()
                 }
-            } else {
-                result.notImplemented()
             }
-        }
+        }    
     }
+
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
         controlChannel?.setMethodCallHandler(null)

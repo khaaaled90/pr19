@@ -34,10 +34,10 @@ jobs:
 
       - name: Extract SHA-256 Key Fingerprint
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.jks
-          keytool -list -v -keystore release.jks -alias ${{ secrets.RELEASE_KEY_ALIAS }} -storepass ${{ secrets.RELEASE_STORE_PASSWORD }} | grep "SHA256:"
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release.jks
+          keytool -list -v -keystore release.jks -alias "${{ secrets.KEY_ALIAS }}" -storepass "${{ secrets.KEYSTORE_PASSWORD }}" | grep "SHA256:"
           rm release.jks
-
+          
       # تثبيت Android SDK 36
       - name: Install Android SDK 36
         run: |

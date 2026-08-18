@@ -16,7 +16,7 @@
     public static *** e(...);
 }
 
-# إعادة تسمية الكلاسات والحزم بأسماء مبهمة وقصيرة جداً (مثل a.a.a)
+# إعادة تسمية الكلاسات والحزم بأسماء مبهمة وقصيرة جداً
 -repackageclasses ''
 -allowaccessmodification
 -flattenpackagehierarchy ''
@@ -24,9 +24,6 @@
 # إخفاء أسماء الملفات الأصلية وأرقام الأسطر
 -renamesourcefileattribute SourceFile
 -keepattributes SourceFile,LineNumberTable,*Annotation*,Signature
-
-# حذف متغيرات الكود المحلية
--variables
 
 # =====================================================================
 # 2. قواعد استثناء المكتبات الأساسية (لمنع إنهيار التطبيق)
@@ -53,7 +50,7 @@
     native <methods>;
 }
 
-# --- SQLite & Room / Serialization (في حال استخدام كلاسات البيانات) ---
+# --- SQLite & Serialization ---
 -keepclassmembers class * implements java.io.Serializable {
     static final long serialVersionUID;
     private static final java.io.ObjectStreamField[] serialPersistentFields;

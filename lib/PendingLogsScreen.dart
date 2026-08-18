@@ -206,13 +206,6 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 extractedBalance,
               );
             }
-            /*String? extractedBalance = _extractBalanceFromBody(messageBody);
-            if (extractedBalance != null && extractedBalance.isNotEmpty) {
-              await DatabaseHelper.instance.updateCustomerBalance(
-                phone: matchedPhone,
-                newBalance: extractedBalance,
-              );
-            }*/
 
             // 🛡️ تقسيم وتنسيق القسيمة للرسالة SMS
             List<String> parts = voucherCode.split(RegExp(r'[,\-/]'));
@@ -514,38 +507,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                   } else {
                     phone = rawPhone.startsWith('+') ? rawPhone : internationalPhone;
                   }
-                /*String phone = phoneController.text.trim();
-                String name = nameController.text.trim();
-                String matchedKeyword = pendingLog['matched_keyword'] ?? '';
-                int? keywordId = pendingLog['keyword_id'] as int?;
-
-                
-                if (phone.length >= 9) {
-
-                  // 🔍 0. التحقق الذكي من العميل واعتامد رقمه المعتمد
-                  Map<String, dynamic>? customer;
-                  if (phone.isNotEmpty) {
-                    customer = await DatabaseHelper.instance.getCustomerByPhone(phone);
-                    if (customer == null) {
-                      String cleanPhone = phone.trim();
-                      if (cleanPhone.startsWith('+967')) cleanPhone = cleanPhone.substring(4);
-                      else if (cleanPhone.startsWith('967')) cleanPhone = cleanPhone.substring(3);
-                      else if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-
-                      customer = await DatabaseHelper.instance.getCustomerByPhone(cleanPhone);
-                      if (customer == null) {
-                        customer = await DatabaseHelper.instance.getCustomerByPhone('+967$cleanPhone');
-                      }
-                    }
-                  }
-
-                  // اعتماد الرقم والاسم المسجلين في النظام إن وجدا
-                  if (customer != null) {
-                    phone = customer['phone'] ?? phone;
-                    if (name.isEmpty && customer['name'] != null) {
-                      name = customer['name'];
-                    }
-                  }*/
+              
                   // 🎯 1. تجهيز البصمة وفحص عدم تكرار العملية بالأرشيف
                   String messageBody = pendingLog['received_message'] ?? '';
                   String? extractedBalance = _extractBalanceFromBody(messageBody);
@@ -626,7 +588,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                     transactionFingerprint: transactionFingerprint, // 👈 أضف هذا السطر هنا
                   );
 
-                  // 4. إعداد وإرسال الـ SMS
+                                    // 4. إعداد وإرسال الـ SMS
                   String defaultReply = await DatabaseHelper.instance
                       .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');
                   

@@ -63,3 +63,23 @@
 # عدم طباعة تحذيرات للمكتبات الخارجيّة
 -dontwarn **
 -dontnote **
+
+# =====================================================================
+# استثناء إضافات Flutter والـ Method Channels (يمنع اختفاء وإخفاق الـ UI)
+# =====================================================================
+
+# استثناء كافة plugins الخاصة بـ Flutter
+-keep class io.flutter.plugins.** { *; }
+-keep class dev.fluttercommunity.** { *; }
+
+# استثناء خاص بمكتبة url_launcher
+-keep class io.flutter.plugins.urllauncher.** { *; }
+-keep class dev.fluttercommunity.plus.urllauncher.** { *; }
+
+# عدم حذف أو تغيير أسماء الـ Annotations المطلوبة للـ MethodChannels
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+
+# منع حجب أو حذف كلاسات المساعدة الديناميكية للواجهات
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}

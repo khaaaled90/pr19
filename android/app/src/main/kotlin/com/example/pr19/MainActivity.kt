@@ -39,257 +39,258 @@ class MainActivity: FlutterActivity() {
         // 1. قناة التحكم بالأذونات واستثناء البطارية وتفريغ الـ Cache والبدء التلقائي
         //MethodChannel(messenger, CONTROL_CHANNEL).setMethodCallHandler { call, result ->
             controlChannel = MethodChannel(messenger, CONTROL_CHANNEL).apply {
-            setMethodCallHandler { call, result ->
-                when (call.method) {
+                setMethodCallHandler { call, result ->
+                    when (call.method) {
 
-                    "startForegroundService" -> {
-                        CardPayForegroundService.start(this@MainActivity)
-                        result.success(true)
-                    }
-                    "stopForegroundService" -> {
-                        CardPayForegroundService.stop(this@MainActivity)
-                        result.success(true)
-                    }
+                        "startForegroundService" -> {
+                            CardPayForegroundService.start(this@MainActivity)
+                            result.success(true)
+                        }
+                        "stopForegroundService" -> {
+                            CardPayForegroundService.stop(this@MainActivity)
+                            result.success(true)
+                        }
 
-                    // 🎯 عرض إشعار النظام عند إرسال القسيمة يدويًا من Flutter
-                "showVoucherNotification" -> {
-                    val categoryName = call.argument<String>("categoryName") ?: ""
-                    val phone = call.argument<String>("phone") ?: ""
+                        // 🎯 عرض إشعار النظام عند إرسال القسيمة يدويًا من Flutter
+                    "showVoucherNotification" -> {
+                        val categoryName = call.argument<String>("categoryName") ?: ""
+                        val phone = call.argument<String>("phone") ?: ""
 
-                    try {
-                        NotificationHelper.showVoucherSentNotification(applicationContext, categoryName, phone)
-                        result.success(true)
-                    } catch (e: Exception) {
-                        Log.e("NOTIFICATION_ERROR", "فشل عرض إشعار القسيمة: ${e.message}", e)
-                        result.error("NOTIFICATION_FAILED", e.localizedMessage, null)
-                    }
-                }
-
-                // 🎯 تسجيل وتحديث العميل والـ AppCache
-                "registerCustomer" -> {
-                    val phone = call.argument<String>("phone") ?: ""
-                    val name = call.argument<String>("name")
-                    val wallet = call.argument<String>("wallet")
-                    val balance = call.argument<String>("balance") ?: ""
-
-                    if (phone.isNotBlank()) {
                         try {
-                            AppSqliteHelper.getInstance(applicationContext).updateCustomerBalance(
-                                phone = phone,
-                                newBalance = balance,
-                                name = name,
-                                walletNumber = wallet
-                            )
+                            NotificationHelper.showVoucherSentNotification(applicationContext, categoryName, phone)
                             result.success(true)
                         } catch (e: Exception) {
-                            Log.e("CLIENT_CACHE", "Error in registerCustomer: ${e.message}", e)
-                            result.error("REGISTER_FAILED", e.localizedMessage, null)
+                            Log.e("NOTIFICATION_ERROR", "فشل عرض إشعار القسيمة: ${e.message}", e)
+                            result.error("NOTIFICATION_FAILED", e.localizedMessage, null)
                         }
-                    } else {
-                        result.error("INVALID_PHONE", "رقم الهاتف فارغ", null)
                     }
-                }
 
-                // طلب إذن استماع الإشعارات للمحافظ
-                "requestNotificationListenerPermission" -> {
-                    val isGranted = isNotificationServiceEnabled()
-                    if (!isGranted) {
-                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    // 🎯 تسجيل وتحديث العميل والـ AppCache
+                    "registerCustomer" -> {
+                        val phone = call.argument<String>("phone") ?: ""
+                        val name = call.argument<String>("name")
+                        val wallet = call.argument<String>("wallet")
+                        val balance = call.argument<String>("balance") ?: ""
+
+                        if (phone.isNotBlank()) {
+                            try {
+                                AppSqliteHelper.getInstance(applicationContext).updateCustomerBalance(
+                                    phone = phone,
+                                    newBalance = balance,
+                                    name = name,
+                                    walletNumber = wallet
+                                )
+                                result.success(true)
+                            } catch (e: Exception) {
+                                Log.e("CLIENT_CACHE", "Error in registerCustomer: ${e.message}", e)
+                                result.error("REGISTER_FAILED", e.localizedMessage, null)
+                            }
+                        } else {
+                            result.error("INVALID_PHONE", "رقم الهاتف فارغ", null)
                         }
-                        startActivity(intent)
                     }
-                    result.success(isGranted)
-                }
 
-                // التحقق من حالة إذن الإشعارات
-                /*"isNotificationListenerGranted" -> {
-                    result.success(isNotificationServiceEnabled())
-                }*/
-
-                "isNotificationListenerGranted" -> {
-                    val packageName = packageName
-                    val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
-                    val isGranted = flat != null && flat.contains(packageName)
-                    result.success(isGranted)
-                }
-                "openNotificationListenerSettings" -> {
-                    try {
-                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(intent)
-                        result.success(true)
-                    } catch (e: Exception) {
-                        result.success(false)
-                    }
-                }
-
-                // طلب استثناء البطارية (Doze Mode Bypass)
-                "requestIgnoreBatteryOptimizations" -> {
-                    requestBatteryOptimizationExemption()
-                    result.success(true)
-                }
-
-                // التحقق من حالة استثناء البطارية
-                "isIgnoringBatteryOptimizations" -> {
-                    result.success(isIgnoringBatteryOptimizations())
-                }
-
-                // 🎯 فتح إعدادات التشغيل التلقائي / معلومات التطبيق (Auto-Start / App Info)
-                
-                /*"openAutoStartSettings" -> {
-                    try {
-                        val intent = Intent().apply {
-                            action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                            data = Uri.fromParts("package", packageName, null)
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    // طلب إذن استماع الإشعارات للمحافظ
+                    "requestNotificationListenerPermission" -> {
+                        val isGranted = isNotificationServiceEnabled()
+                        if (!isGranted) {
+                            val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
                         }
-                        startActivity(intent)
-                        result.success(true)
-                    } catch (e: Exception) {
-                        Log.e("PERMISSIONS", "Error opening auto start settings: ${e.message}", e)
-                        result.error("ERR", e.message, null)
+                        result.success(isGranted)
                     }
-                }*/
 
-                "isAutoStartGranted" -> {
-                    // فحص هل التطبيق مستثنى من تحسينات البطارية (Battery Optimization)
-                    val pm = getSystemService(POWER_SERVICE) as PowerManager
-                    val isIgnoring = pm.isIgnoringBatteryOptimizations(packageName)
-                    result.success(isIgnoring)
-                }
-                "openAutoStartSettings" -> {
-                    var opened = false
-                    val packageName = packageName
-                    // 2. محاولة فتح قائمة Auto-Start الخاصة بـ Xiaomi / Oppo / Vivo
-                    val autoStartIntents = arrayOf(
-                        Intent().setComponent(ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")),
-                        Intent().apply {
-                            action = "miui.intent.action.OP_AUTO_START_BACKGROUND_SETTINGS"
-                            addCategory(Intent.CATEGORY_DEFAULT)
-                        },
-                        Intent().setComponent(ComponentName("com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity")),
-                        Intent().setComponent(ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")),
-                        Intent().setComponent(ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")),
-                        Intent().setComponent(ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"))
-                    )
+                    // التحقق من حالة إذن الإشعارات
+                    /*"isNotificationListenerGranted" -> {
+                        result.success(isNotificationServiceEnabled())
+                    }*/
 
-                    for (intent in autoStartIntents) {
+                    "isNotificationListenerGranted" -> {
+                        val packageName = packageName
+                        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+                        val isGranted = flat != null && flat.contains(packageName)
+                        result.success(isGranted)
+                    }
+                    "openNotificationListenerSettings" -> {
                         try {
+                            val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             startActivity(intent)
-                            opened = true
-                            break
+                            result.success(true)
                         } catch (e: Exception) {
-                            // تجربة الشاشة التالية إن لم تكن الواجهة متوفرة
+                            result.success(false)
                         }
                     }
+
+                    // طلب استثناء البطارية (Doze Mode Bypass)
+                    "requestIgnoreBatteryOptimizations" -> {
+                        requestBatteryOptimizationExemption()
+                        result.success(true)
+                    }
+
+                    // التحقق من حالة استثناء البطارية
+                    "isIgnoringBatteryOptimizations" -> {
+                        result.success(isIgnoringBatteryOptimizations())
+                    }
+
+                    // 🎯 فتح إعدادات التشغيل التلقائي / معلومات التطبيق (Auto-Start / App Info)
                     
-                    if (!opened) {
-                        // 🔴 الكود المُضاف لخيار سامسونج (ضع هذا الجزء فقط في البداية):
-                        val samsungIntents = arrayOf(
-                            Intent().setComponent(ComponentName("com.samsung.android.looper", "com.samsung.android.sm.ui.battery.BackgroundLimitsActivity")),
-                            Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BackgroundLimitsActivity")),
-                            Intent().setComponent(ComponentName("com.samsung.android.looper", "com.samsung.android.sm.ui.battery.BatteryActivity")),
-                            Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BatteryActivity")),
-                            Intent().setComponent(ComponentName("com.samsung.android.sm_cn", "com.samsung.android.sm.ui.battery.BatteryActivity")),
-                            Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.root.SettingsActivity")),
-                            Intent("android.intent.action.POWER_USAGE_SUMMARY")
+                    /*"openAutoStartSettings" -> {
+                        try {
+                            val intent = Intent().apply {
+                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                data = Uri.fromParts("package", packageName, null)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e("PERMISSIONS", "Error opening auto start settings: ${e.message}", e)
+                            result.error("ERR", e.message, null)
+                        }
+                    }*/
+
+                    "isAutoStartGranted" -> {
+                        // فحص هل التطبيق مستثنى من تحسينات البطارية (Battery Optimization)
+                        val pm = getSystemService(POWER_SERVICE) as PowerManager
+                        val isIgnoring = pm.isIgnoringBatteryOptimizations(packageName)
+                        result.success(isIgnoring)
+                    }
+                    "openAutoStartSettings" -> {
+                        var opened = false
+                        val packageName = packageName
+                        // 2. محاولة فتح قائمة Auto-Start الخاصة بـ Xiaomi / Oppo / Vivo
+                        val autoStartIntents = arrayOf(
+                            Intent().setComponent(ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")),
+                            Intent().apply {
+                                action = "miui.intent.action.OP_AUTO_START_BACKGROUND_SETTINGS"
+                                addCategory(Intent.CATEGORY_DEFAULT)
+                            },
+                            Intent().setComponent(ComponentName("com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity")),
+                            Intent().setComponent(ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")),
+                            Intent().setComponent(ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")),
+                            Intent().setComponent(ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"))
                         )
 
-                        for (intent in samsungIntents) {
+                        for (intent in autoStartIntents) {
                             try {
                                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 startActivity(intent)
                                 opened = true
                                 break
                             } catch (e: Exception) {
-                                // تجربة الشاشة التالية
+                                // تجربة الشاشة التالية إن لم تكن الواجهة متوفرة
                             }
                         }
                         
+                        if (!opened) {
+                            // 🔴 الكود المُضاف لخيار سامسونج (ضع هذا الجزء فقط في البداية):
+                            val samsungIntents = arrayOf(
+                                Intent().setComponent(ComponentName("com.samsung.android.looper", "com.samsung.android.sm.ui.battery.BackgroundLimitsActivity")),
+                                Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BackgroundLimitsActivity")),
+                                Intent().setComponent(ComponentName("com.samsung.android.looper", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                                Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                                Intent().setComponent(ComponentName("com.samsung.android.sm_cn", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                                Intent().setComponent(ComponentName("com.samsung.android.sm", "com.samsung.android.sm.root.SettingsActivity")),
+                                Intent("android.intent.action.POWER_USAGE_SUMMARY")
+                            )
+
+                            for (intent in samsungIntents) {
+                                try {
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    startActivity(intent)
+                                    opened = true
+                                    break
+                                } catch (e: Exception) {
+                                    // تجربة الشاشة التالية
+                                }
+                            }
+                            
+                        }
+
+                        // 3. إذا لم ينجح، افتح صفحة استثناء البطارية القياسية لأندرويد
+                        if (!opened) {
+                            try {
+                                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                    data = Uri.parse("package:$packageName")
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                            } catch (e: Exception) {
+                                // fallback لشاشة إعدادات التطبيق العامة
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.parse("package:$packageName")
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                            }
+                        }
+                        result.success(true)
                     }
 
-                    // 3. إذا لم ينجح، افتح صفحة استثناء البطارية القياسية لأندرويد
-                    if (!opened) {
+                    // تفريغ الذاكرة المؤقتة (Clear AppCache) عند التعديل في Flutter
+                    "clearCache" -> {
                         try {
-                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                                data = Uri.parse("package:$packageName")
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            startActivity(intent)
+                            Log.e("CLIENT_CACHE", "******** clearCache() CALLED ********")
+                            AppCache.clearCache()
+                            result.success(true)
                         } catch (e: Exception) {
-                            // fallback لشاشة إعدادات التطبيق العامة
-                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = Uri.parse("package:$packageName")
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            startActivity(intent)
+                            result.error("CACHE_CLEAR_FAILED", e.localizedMessage, null)
                         }
                     }
-                    result.success(true)
-                }
 
-                // تفريغ الذاكرة المؤقتة (Clear AppCache) عند التعديل في Flutter
-                "clearCache" -> {
-                    try {
-                        Log.e("CLIENT_CACHE", "******** clearCache() CALLED ********")
-                        AppCache.clearCache()
+                    // فحص وتنبيه مدير المخزون عند القسائم المفرغة
+                    "checkAndSendManagerAlert" -> {
+                        val keywordId = call.argument<Int>("keywordId") ?: 0
+                        val keywordText = call.argument<String>("keywordText") ?: ""
+
+                        try {
+                            val dbHelper = AppSqliteHelper.getInstance(applicationContext)
+                            
+                            ProcessMessageProcessor.checkAndSendManagerAlert(
+                                context = applicationContext,
+                                dbHelper = dbHelper,
+                                keywordId = keywordId,
+                                keywordText = keywordText
+                            )
+                            
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e("STOCK_ALERT", "خطأ في استدعاء تنبيه المخزون: ${e.message}", e)
+                            result.error("ALERT_FAILED", e.localizedMessage, null)
+                        }
+                    }
+
+                    "warmupCache" -> {
+                        try {
+                            val dbHelper = AppSqliteHelper.getInstance(applicationContext)
+                            Thread {
+                                AppCache.warmupCache(dbHelper)
+                            }.start()
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e("CLIENT_CACHE", "Error in warmupCache: ${e.message}")
+                            result.error("WARMUP_FAILED", e.localizedMessage, null)
+                        }
+                    }
+
+                    "disableLicense" -> {
+                        LicenseManager.stopAllBackgroundWork(applicationContext)
                         result.success(true)
-                    } catch (e: Exception) {
-                        result.error("CACHE_CLEAR_FAILED", e.localizedMessage, null)
+                    }
+
+                    "enableLicense" -> {
+                        LicenseManager.enableBackgroundWork(applicationContext)
+                        result.success(true)
+                    }
+
+                    else -> {
+                        result.notImplemented()
                     }
                 }
-
-                // فحص وتنبيه مدير المخزون عند القسائم المفرغة
-                "checkAndSendManagerAlert" -> {
-                    val keywordId = call.argument<Int>("keywordId") ?: 0
-                    val keywordText = call.argument<String>("keywordText") ?: ""
-
-                    try {
-                        val dbHelper = AppSqliteHelper.getInstance(applicationContext)
-                        
-                        ProcessMessageProcessor.checkAndSendManagerAlert(
-                            context = applicationContext,
-                            dbHelper = dbHelper,
-                            keywordId = keywordId,
-                            keywordText = keywordText
-                        )
-                        
-                        result.success(true)
-                    } catch (e: Exception) {
-                        Log.e("STOCK_ALERT", "خطأ في استدعاء تنبيه المخزون: ${e.message}", e)
-                        result.error("ALERT_FAILED", e.localizedMessage, null)
-                    }
-                }
-
-                "warmupCache" -> {
-                    try {
-                        val dbHelper = AppSqliteHelper.getInstance(applicationContext)
-                        Thread {
-                            AppCache.warmupCache(dbHelper)
-                        }.start()
-                        result.success(true)
-                    } catch (e: Exception) {
-                        Log.e("CLIENT_CACHE", "Error in warmupCache: ${e.message}")
-                        result.error("WARMUP_FAILED", e.localizedMessage, null)
-                    }
-                }
-
-                "disableLicense" -> {
-                    LicenseManager.stopAllBackgroundWork(applicationContext)
-                    result.success(true)
-                }
-
-                "enableLicense" -> {
-                    LicenseManager.enableBackgroundWork(applicationContext)
-                    result.success(true)
-                }
-
-                else -> {
-                    result.notImplemented()
-                }
-            }
+            }    
         }
 
         // 2. قناة إرسال الرسائل النصية القادمة من Flutter

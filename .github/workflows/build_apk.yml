@@ -32,12 +32,6 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Extract SHA-256 Key Fingerprint
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release.jks
-          keytool -list -v -keystore release.jks -alias "${{ secrets.KEY_ALIAS }}" -storepass "${{ secrets.KEYSTORE_PASSWORD }}" | grep "SHA256:"
-          rm release.jks
-          
       # تثبيت Android SDK 36
       - name: Install Android SDK 36
         run: |
@@ -45,29 +39,26 @@ jobs:
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platforms;android-36" \
             "build-tools;36.0.0"
-      
+
       # clean Packages
       - name: clean Dependencies
         run: flutter clean
-      
+
       # Packages
       - name: Install Dependencies
         run: flutter pub get
-      
-      # 🟢 أضف هذه الخطوة لتوليد الأيقونات على سيرفر GitHub تلقائياً
+
+      # توليد الأيقونات
       - name: Generate Launcher Icons
         run: dart run flutter_launcher_icons
 
-      - name: Build APK
-        run: flutter build apk --release --build-number=214
-
-      # 🔑 1. تفكيك ملف الـ Keystore من GitHub Secrets وخزنه في مجلد android/app
+      # 🔑 تفكيك ملف الـ Keystore وتخزينه للتوقيع
       - name: Decode Keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/kha.jks
 
-      # 🛠️ 2. بناء الـ APK واستدعاء متغيرات البيئة للتوقيع
-      - name: Build APK
+      # 🛠️ بناء الـ APK المشفر بـ R8/ProGuard و C++
+      - name: Build Release APK
         run: flutter build apk --release --build-number=${{ github.run_number }}
         env:
           KEYSTORE_PATH: "kha.jks"
@@ -75,14 +66,43 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      # 🔑 3. تنظيف ملف الـ Keystore بعد انتهاء البناء للأمان
+      # 🛡️ 1. خطوة التغليف الخارجي (DEX Packing & Structure Shielding)
+      - name: Apply External DEX Packing
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          
+          mkdir -p workspace/unpacked
+          unzip -q $APK_PATH -d workspace/unpacked
+          
+          # إعادة التجميع لإنشاء غلاف حماية للـ DEX ومسح التوقيع القديم
+          cd workspace/unpacked
+          zip -q -r ../packed.apk .
+          cd ../..
+
+      # 📐 2. المحاذاة البرمجية (ZipAlign)
+      - name: Align Packed APK
+        run: |
+          $ANDROID_HOME/build-tools/36.0.0/zipalign -v 4 workspace/packed.apk workspace/app-aligned.apk
+
+      # 🔐 3. إعادة التوقيع الصارم بالشهادة الرسمية (apksigner)
+      - name: Re-sign Protected APK
+        run: |
+          $ANDROID_HOME/build-tools/36.0.0/apksigner sign \
+            --ks android/app/kha.jks \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --out workspace/app-final-protected.apk \
+            workspace/app-aligned.apk
+
+      # 🔑 تنظيف ملف الـ Keystore بعد انتهاء التوقيع النهائي للأمان
       - name: Clean Keystore
         if: always()
         run: rm -f android/app/kha.jks
 
-      # Upload APK
-      - name: Upload APK
+      # 📦 رفع ملف الـ APK المغلف والمشفر النهائي
+      - name: Upload Protected APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: app-release-protected
+          path: workspace/app-final-protected.apk

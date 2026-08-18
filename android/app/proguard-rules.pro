@@ -1,5 +1,68 @@
 # حماية جميع الحزم والكلاسات والدوال في المشروع والمكتبات
--keep class ** { *; }
--keepclassmembers class ** { *; }
+#-keep class ** { *; }
+#-keepclassmembers class ** { *; }
+#-dontwarn **
+#-dontnote **
+# =====================================================================
+# 1. إعدادات التمويه والضغط المشددة
+# =====================================================================
+
+# إزالة جميع سجلات الـ Logging لحماية مسارات الكود والبيانات الحساسة
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+}
+
+# إعادة تسمية الكلاسات والحزم بأسماء مبهمة وقصيرة جداً (مثل a.a.a)
+-repackageclasses ''
+-allowaccessmodification
+-flattenpackagehierarchy ''
+
+# إخفاء أسماء الملفات الأصلية وأرقام الأسطر
+-renamesourcefileattribute SourceFile
+-keepattributes SourceFile,LineNumberTable,*Annotation*,Signature
+
+# حذف متغيرات الكود المحلية
+-variables
+
+# =====================================================================
+# 2. قواعد استثناء المكتبات الأساسية (لمنع إنهيار التطبيق)
+# =====================================================================
+
+# --- Flutter Engine & Plugins ---
+-keep class io.flutter.** { *; }
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class io.flutter.util.** { *; }
+-keep class io.flutter.view.** { *; }
+-keep class io.flutter.embedding.** { *; }
+
+# --- Firebase ---
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+
+# --- AndroidX WorkManager & Crypto ---
+-keep class androidx.work.** { *; }
+-keep class androidx.security.crypto.** { *; }
+
+# --- Native C/C++ Code (JNI) ---
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# --- SQLite & Room / Serialization (في حال استخدام كلاسات البيانات) ---
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    private void writeReplace();
+    private void readResolve();
+}
+
+# عدم طباعة تحذيرات للمكتبات الخارجيّة
 -dontwarn **
 -dontnote **

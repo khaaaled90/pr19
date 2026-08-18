@@ -66,31 +66,14 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      # 🛡️ 1. التغليف الخارجي المصحح (DEX Packing & Shielding)
-      - name: Apply External DEX Packing & Fix Alignment
+      # 📐 1. المحاذاة البرمجية الدقيقة (ZipAlign)
+      - name: Align Release APK
         run: |
-          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
-          
-          # 1. إنشاء مجلد عمل وفك الملف
-          mkdir -p workspace/unpacked
-          unzip -q $APK_PATH -d workspace/unpacked
-          
-          # 2. حذف مجلد التوقيع القديم لمنع التعارض
-          rm -rf workspace/unpacked/META-INF
-          
-          # 3. إعادة الضغط مع استثناء resources.arsc من الضغط (Uncompressed -0)
-          cd workspace/unpacked
-          zip -q -0 ../packed.apk resources.arsc
-          zip -q -r -9 ../packed.apk . -x resources.arsc
-          cd ../..
+          mkdir -p workspace
+          $ANDROID_HOME/build-tools/36.0.0/zipalign -v -p 4 build/app/outputs/flutter-apk/app-release.apk workspace/app-aligned.apk
 
-      # 📐 2. المحاذاة البرمجية الدقيقة (ZipAlign with Page Alignment)
-      - name: Align Packed APK
-        run: |
-          $ANDROID_HOME/build-tools/36.0.0/zipalign -v -p 4 workspace/packed.apk workspace/app-aligned.apk
-
-      # 🔐 3. إعادة التوقيع الصارم بجميع البروتوكولات (V1, V2, V3)
-      - name: Re-sign Protected APK
+      # 🔐 2. التوقيع الصارم المباشر (apksigner)
+      - name: Re-sign APK
         run: |
           $ANDROID_HOME/build-tools/36.0.0/apksigner sign \
             --ks android/app/kha.jks \
@@ -103,17 +86,17 @@ jobs:
             --out workspace/app-final-protected.apk \
             workspace/app-aligned.apk
 
-      # 🔍 4. التحقق من صحة التوقيع والمحاذاة قبل التصدير
+      # 🔍 3. التحقق من صحة التوقيع والمحاذاة
       - name: Verify APK Integrity
         run: |
           $ANDROID_HOME/build-tools/36.0.0/apksigner verify -v workspace/app-final-protected.apk
 
-      # 🔑 تنظيف المفتاح
+      # 🔑 4. تنظيف المفتاح
       - name: Clean Keystore
         if: always()
         run: rm -f android/app/kha.jks
 
-      # 📦 رفع ملف APK النهائي الصالح للتثبيت
+      # 📦 5. رفع ملف APK النهائي الصالح للتثبيت
       - name: Upload Protected APK
         uses: actions/upload-artifact@v4
         with:

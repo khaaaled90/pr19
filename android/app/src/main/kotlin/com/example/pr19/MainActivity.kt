@@ -24,10 +24,38 @@ class MainActivity: FlutterActivity() {
     private lateinit var secureStorage: NativeSecureStorage
     private var controlChannel: MethodChannel? = null
     private var smsChannel: MethodChannel? = null
-
+    
+    // 🟢 1. إضافة دالة onCreate للتحقق من أمان التطبيق فور إقلاعه وقبل تحميل Flutter
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // 🔒 فحص السلامة وتوقيع الـ APK
+        checkAppSecurity()
+    }
+    private fun checkAppSecurity() {
+        try {
+            if (SecurityHelper.isSecurityViolated(applicationContext)) {
+                Log.e("SECURITY_VIOLATION", "🚨 تم كشف تلاعب بالتوقيع (MT Manager) أو بيئة رووت!")
+                
+                // 1. إيقاف جميع خدمات الخلفية فوراً
+                LicenseManager.stopAllBackgroundWork(applicationContext)
+                
+                // 2. إنهاء العملية وقتل التطبيق في الذاكرة
+                android.os.Process.killProcess(android.os.Process.myPid())
+                System.exit(0)
+            }
+        } catch (e: Exception) {
+            Log.e("SECURITY_VIOLATION", "خطأ أثناء فحص الأمان: ${e.message}")
+            // في حال حدوث أي استثناء أثناء الفحص، نغلق التطبيق احتياطاً
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }
+    }
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        // إعادة الفحص هنا أيضاً للزيادة في التأكيد
+        checkAppSecurity()
+        
         // 🟢 2. تهيئة الكائن مرة واحدة فقط عند بدء تشغيل المحرك
         secureStorage = NativeSecureStorage(this)
 

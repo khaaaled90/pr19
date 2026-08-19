@@ -83,3 +83,18 @@
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
+# =====================================================================
+# حماية كلاسات الأمان والـ JNI الخاصة بالتطبيق (Security & Native)
+# =====================================================================
+
+# منع R8 من تغيير اسم أو مسار كلاس SecurityHelper والدوال التابعة له
+-keep class com.example.pr19.SecurityHelper {
+    public static *** isSecurityViolated(...);
+    private static *** getAppSignatureSha256(...);
+    public static *** verifySignatureNative(...);
+    native <methods>;
+}
+
+# حماية كلاسات الترخيص والتخزين المحلي لضمان عدم تغيير أسمائها أثناء التمويه
+-keep class com.example.pr19.NativeSecureStorage { *; }
+-keep class com.example.pr19.LicenseManager { *; }

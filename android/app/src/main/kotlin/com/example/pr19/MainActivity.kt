@@ -1,5 +1,6 @@
 package com.example.pr19
 
+import android.os.Bundle
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -55,7 +56,7 @@ class MainActivity: FlutterActivity() {
 
         // إعادة الفحص هنا أيضاً للزيادة في التأكيد
         checkAppSecurity()
-        
+
         // 🟢 2. تهيئة الكائن مرة واحدة فقط عند بدء تشغيل المحرك
         secureStorage = NativeSecureStorage(this)
 

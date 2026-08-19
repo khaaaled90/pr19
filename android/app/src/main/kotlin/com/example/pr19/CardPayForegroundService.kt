@@ -38,7 +38,7 @@ class CardPayForegroundService : Service() {
         createNotificationChannel()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    /*override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = createNotification()
 
         // 🟢 التعديل الجوهري: معالجة قيود Android 14+ وإضافة try-catch لمنع Crash التطبيق
@@ -57,6 +57,42 @@ class CardPayForegroundService : Service() {
         }
 
         return START_STICKY
+    }*/
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val notification = createNotification()
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // Android 14+
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.e("ForegroundService", "Error starting foreground service: ${e.message}")
+        }
+
+        // 🟢 START_STICKY تُجبر أندرويد على إعادة بناء الخدمة فوراً إذا قُتلت بسبب نقص الذاكرة
+        return START_STICKY
+    }
+
+    // 🟢 في حال سحب العميل للتطبيق من قائمة Recent Apps، يتم إعادة تشغيل الخدمة فوراً
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        try {
+            val restartServiceIntent = Intent(applicationContext, CardPayForegroundService::class.java)
+            restartServiceIntent.setPackage(packageName)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                applicationContext.startForegroundService(restartServiceIntent)
+            } else {
+                applicationContext.startService(restartServiceIntent)
+            }
+        } catch (e: Exception) {
+            Log.e("ForegroundService", "Failed to restart service on task removed: ${e.message}")
+        }
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onBind(intent: Intent?): IBinder? {

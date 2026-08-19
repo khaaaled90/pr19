@@ -369,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  /*const SizedBox(height: 20),
                   _buildHelpAccordion(
                     context,
                     title: '📞 معلومات الاتصال والدعم',
@@ -480,7 +480,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       
                       const SizedBox(height: 8),
                     ],
-                  ),
+                  ),*/
                   /*_buildHelpAccordion(
                     context,
                     title: '📞 معلومات الاتصال والدعم',

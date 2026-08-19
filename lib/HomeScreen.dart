@@ -10,6 +10,7 @@ import 'SettingsScreen.dart';
 import 'vouchers_screen.dart';
 import 'allowed_senders_screen.dart';
 import 'sales_screen.dart';
+import 'support_screen.dart';
 import 'backup_screen.dart';
 import 'archive_screen.dart';
 import 'CustomersManagementScreen.dart';
@@ -74,7 +75,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           VouchersScreen(key: ValueKey('vouchers_$_vouchersRefreshKey')),
           SalesScreen(key: ValueKey('sales_$_salesRefreshKey')),
           SettingsScreen(key: ValueKey('settings_$_settingsRefreshKey')),
-          ContactTabScreen(key: ValueKey('contact_$_contactRefreshKey')),
+          SupportScreen(key: ValueKey('contact_$_contactRefreshKey')),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -2196,7 +2197,7 @@ class SettingsTabScreen extends StatelessWidget {
   }
 }
 
-class ContactTabScreen extends StatelessWidget {
+/*class ContactTabScreen extends StatelessWidget {
   const ContactTabScreen({Key? key}) : super(key: key);
 
   @override
@@ -2206,4 +2207,4 @@ class ContactTabScreen extends StatelessWidget {
       body: const Center(child: Text('شاشة التواصل والدعم الفني')),
     );
   }
-}
+}*/

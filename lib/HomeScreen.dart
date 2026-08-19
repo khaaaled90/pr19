@@ -1350,36 +1350,36 @@ class _HomeScreenState extends State<HomeScreen> {
                           _loadStats();
                         }), 
                         */
-                        _buildMenuItem('الاستثنائات', Icons.person_off_rounded,
-                            const Color(0xFF6366F1), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const ExceptedCustomersScreen()));
-                          _loadStats();
-                        }),
                         _buildMenuItem('العمليات', Icons.pending_actions_rounded,
                             const Color(0xFFEC4899), cardBg, textColor, () async {
                           await Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const PendingLogsScreen()));
                           _loadStats();
                         }),
+                        _buildMenuItem('الاستثنائات', Icons.person_off_rounded,
+                            const Color(0xFF6366F1), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const ExceptedCustomersScreen()));
+                          _loadStats();
+                        }),
                         //_buildMenuItem('إرسال يدوي', Icons.send_rounded,
                             //const Color(0xFFEF4444), cardBg, textColor, _openManualSendDialog),
-                        _buildMenuItem('الحسابات', Icons.account_balance_rounded,
+                        _buildMenuItem('المحافظ', Icons.account_balance_rounded,
                             const Color(0xFF10B981), cardBg, textColor, () async {
                           await Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const AllowedSendersScreen()));
-                          _loadStats();
-                        }),
-                        _buildMenuItem('النسخ', Icons.cloud_sync_rounded,
-                            const Color(0xFF3B82F6), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const BackupScreen()));
                           _loadStats();
                         }),
                         _buildMenuItem('تعديل العملاء', Icons.manage_accounts_rounded,
                             const Color(0xFF64748B), cardBg, textColor, () async {
                           await Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const CustomersManagementScreen()));
+                          _loadStats();
+                        }),
+                        _buildMenuItem('النسخ الاحتياطي', Icons.cloud_sync_rounded,
+                            const Color(0xFF3B82F6), cardBg, textColor, () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const BackupScreen()));
                           _loadStats();
                         }),
                       ],

@@ -56,8 +56,11 @@ class MainActivity: FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        // تشغيل نظام الأمان النيتف
+        SecurityHelper.secureInit(applicationContext)
+        
         // إعادة الفحص هنا أيضاً للزيادة في التأكيد
-        checkAppSecurity()
+        //checkAppSecurity()
 
         // 🟢 2. تهيئة الكائن مرة واحدة فقط عند بدء تشغيل المحرك
         secureStorage = NativeSecureStorage(this)

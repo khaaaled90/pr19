@@ -13,7 +13,7 @@ class BootReceiver : BroadcastReceiver() {
         if (action == Intent.ACTION_BOOT_COMPLETED || 
             action == Intent.ACTION_MY_PACKAGE_REPLACED ||
             action == "android.intent.action.QUICKBOOT_POWERON" ||
-            action == "com.htc.intent.action.QUICKBOOT_POWERON" 
+            action == "com.htc.intent.action.QUICKBOOT_POWERON" || 
             action == "com.example.pr19.ACTION_KEEP_ALIVE") {
             
             try {

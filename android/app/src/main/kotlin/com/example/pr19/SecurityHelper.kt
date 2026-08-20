@@ -1,6 +1,25 @@
 package com.example.pr19
 
 import android.content.Context
+
+object SecurityHelper {
+
+    init {
+        System.loadLibrary("pr19security")
+    }
+
+    // دالة Native تستقبل الـ Context وتتولى الفحص والقتل الذاتي إذا لزم الأمر
+    external fun initSecurityNative(context: Context)
+
+    fun secureInit(context: Context) {
+        // نكتفي باستدعاء النيتف، والـ C++ يتكفل بالباقي
+        initSecurityNative(context)
+    }
+}
+
+/*package com.example.pr19
+
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import java.security.MessageDigest
@@ -72,7 +91,7 @@ object SecurityHelper {
         }
         return false
     }
-}
+}*/
 /*package com.example.pr19
 
 import android.content.Context

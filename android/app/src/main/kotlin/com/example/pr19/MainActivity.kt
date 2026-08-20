@@ -30,10 +30,12 @@ class MainActivity: FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // تشغيل نظام الأمان النيتف
+        SecurityHelper.secureInit(applicationContext)
         // 🔒 فحص السلامة وتوقيع الـ APK
-        checkAppSecurity()
+        //checkAppSecurity()
     }
-    private fun checkAppSecurity() {
+    /*private fun checkAppSecurity() {
         try {
             if (SecurityHelper.isSecurityViolated(applicationContext)) {
                 Log.e("SECURITY_VIOLATION", "🚨 تم كشف تلاعب بالتوقيع (MT Manager) أو بيئة رووت!")
@@ -50,7 +52,7 @@ class MainActivity: FlutterActivity() {
             // في حال حدوث أي استثناء أثناء الفحص، نغلق التطبيق احتياطاً
             android.os.Process.killProcess(android.os.Process.myPid())
         }
-    }
+    }*/
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 

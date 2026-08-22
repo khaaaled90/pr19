@@ -169,13 +169,35 @@ class CardPayForegroundService : Service() {
         return null
     }
 
-    private fun createNotification(): Notification {
+    /*private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("CardPay يعمل في الخلفية")
             .setContentText("جاري استماع ومعالجة الإشعارات والرسائل النصية...")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
+            .build()
+    }*/
+
+    private fun createNotification(): Notification {
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("CardPay يعمل في الخلفية")
+            .setContentText("جاري استماع ومعالجة الإشعارات والرسائل النصية...")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setFlag(Notification.FLAG_NO_CLEAR, true)
+            .setFlag(Notification.FLAG_ONGOING_EVENT, true)
+            .setAutoCancel(false)
             .build()
     }
 

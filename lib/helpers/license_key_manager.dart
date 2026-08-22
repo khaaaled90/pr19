@@ -6,7 +6,7 @@ import 'secure_storage_helper.dart';
 class LicenseKeyManager {
   // 🔑 المفتاح السري الخاص بك فقط (يجب أن يكون من 32 حرفاً بالضبط)
   // ⚠️ تحذير: لا تغير هذا المفتاح بعد نشر التطبيق وإلا ستلغى الأكواد القديمة
-  static const String _secretKey = "MY_SUPER_SECRET_KEY_32_CHARS_!!";
+  static const String _secretKey = "MY_SUPER_SECRET_KEY_32_CHARS_!!!";
 
   /// 1. فك كود الترخيص وتفعيله محلياً أوفلاين (تُنفّذ داخل تطبيق العميل)
   static Future<Map<String, dynamic>> activateWithCode(String inputCode) async {

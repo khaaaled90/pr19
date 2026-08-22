@@ -94,7 +94,10 @@
     public static *** verifySignatureNative(...);
     native <methods>;
 }
+# 1. تثبيت أسماء المستقبلات والخدمات لتبقى مطابقة لـ AndroidManifest.xml (ضروري جداً)
+-keep class com.example.pr19.SmsReceiver { *; }
+-keep class com.example.pr19.NativeNotificationListener { *; }
 
-# حماية كلاسات الترخيص والتخزين المحلي لضمان عدم تغيير أسمائها أثناء التمويه
--keep class com.example.pr19.NativeSecureStorage { *; }
--keep class com.example.pr19.LicenseManager { *; }
+# 2. تمويه وتعتيم كلاسات التخزين والترخيص (آمن تماماً ولن يسبب كراش)
+-keep,allowobfuscation class com.example.pr19.NativeSecureStorage { *; }
+-keep,allowobfuscation class com.example.pr19.LicenseManager { *; }

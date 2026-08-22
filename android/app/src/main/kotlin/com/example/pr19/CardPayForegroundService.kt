@@ -188,17 +188,22 @@ class CardPayForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("CardPay يعمل في الخلفية")
             .setContentText("جاري استماع ومعالجة الإشعارات والرسائل النصية...")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
-            .setFlag(Notification.FLAG_NO_CLEAR, true)
-            .setFlag(Notification.FLAG_ONGOING_EVENT, true)
             .setAutoCancel(false)
             .build()
+
+        // 🔒 تطبيق خصائص منع المسح مباشرة على كائن الإشعار النهائي (Notification)
+        notification.flags = notification.flags or
+                Notification.FLAG_NO_CLEAR or
+                Notification.FLAG_ONGOING_EVENT
+
+        return notification
     }
 
     private fun createNotificationChannel() {

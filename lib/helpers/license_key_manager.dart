@@ -13,13 +13,26 @@ class LicenseKeyManager {
     try {
       final currentDeviceId = await DeviceUtils.getDeviceId();
 
-      // فك تشفير الكود باستخدام مفتاح AES
       final key = encrypt.Key.fromUtf8(_secretKey);
+      final iv = encrypt.IV.fromLength(16);
+      final encrypter = encrypt.Encrypter(
+        encrypt.AES(
+          key,
+          mode: encrypt.AESMode.cbc,
+        ),
+      );
+      final decrypted = encrypter.decrypt64(
+        inputCode.trim(),
+        iv: iv,
+      );
+      // فك تشفير الكود باستخدام مفتاح AES
+      /*final key = encrypt.Key.fromUtf8(_secretKey);
       final iv = encrypt.IV.fromLength(16);
       final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
       // فك الشفرة من Base64
       String decrypted = encrypter.decrypt64(inputCode.trim(), iv: iv);
+      */
       // القيمة المفكوكة تكون بهذا الشكل: "A1B2-C3D4-E5F6-7890|2027-08-05|monthly"
 
       List<String> parts = decrypted.split('|');

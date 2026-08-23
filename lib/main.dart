@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'كرت شبكة',
+      title: 'CardPay',
       debugShowCheckedModeBanner: false,
 
       // 🌍 إعدادات اللغة العربية

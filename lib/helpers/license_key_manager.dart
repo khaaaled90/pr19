@@ -59,8 +59,19 @@ class LicenseKeyManager {
         'planType': planType,
         'expiryDate': expiryDate,
       };
-    } catch (e) {
+    /*} catch (e) {
       return {'success': false, 'message': 'كود التفعيل غير صحيح أو تالف'};
+    }*/
+    } catch (e, stackTrace) {
+      print('================ LICENSE ERROR ================');
+      print('ERROR: $e');
+      print('STACK: $stackTrace');
+      print('===============================================');
+
+      return {
+        'success': false,
+        'message': 'خطأ: $e',
+      };
     }
   }
 

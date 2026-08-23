@@ -127,13 +127,35 @@ class MainController extends StatefulWidget {
 
 class _MainControllerState extends State<MainController> {
   bool _hasAllPermissions = false;
+  // ➕1. إضافة متغير لمعرفة حالة التحميل
+  bool _isLoading = true;
 
   Widget _currentScreen = const Scaffold(
     body: Center(child: CircularProgressIndicator()),
   );
 
+  // ➕2. إضافة initState للبدء بالفحص فوراً
+  @override
+  void initState() {
+    super.initState();
+    _checkAppLicenseStatus();
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 1️⃣ أثناء فحص السيرفر والترخيص المحلي أولاً
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // 2️⃣ استثناء خاص: إذا كان الترخيص منتهياً، اعرض شاشة القفل فوراً دون المرور بالأذونات
+    if (_currentScreen is LicenseLockScreen) {
+      return _currentScreen;
+    }
+
+    // 3️⃣ للتثبيت الجديد أو الترخيص الصالح: تأكد من الأذونات أولاً
     // ✋ 1. إذا لم تُمنح الأذونات بعد -> عرض شاشة الأذونات
     if (!_hasAllPermissions) {
       return PermissionsScreen(
@@ -151,6 +173,10 @@ class _MainControllerState extends State<MainController> {
     return _currentScreen;
   }
   Future<void> _checkAppLicenseStatus() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
     // 1. فحص الترخيص المحلي المخزن أولاً (يعمل أوفلاين بنجاح)
     var localCheck = await SecureStorageHelper.checkLocalLicenseValid();
 
@@ -158,6 +184,7 @@ class _MainControllerState extends State<MainController> {
     if (localCheck['isValid'] == true) {
       if (!mounted) return;
       setState(() {
+        _isLoading = false; // 👈 إيقاف التحميل
         _currentScreen = const MainNavigationScreen();
       });
 
@@ -175,6 +202,7 @@ class _MainControllerState extends State<MainController> {
     if (!hasNetwork) {
       if (!mounted) return;
       setState(() {
+        _isLoading = false; // 👈 إيقاف التحميل
         _currentScreen = RegistrationScreen(
           onRegistrationComplete: _checkAppLicenseStatus,
         );
@@ -184,6 +212,8 @@ class _MainControllerState extends State<MainController> {
 
     // 🔄 3. توفر إنترنت + عدم وجود ترخيص محلي -> استعلام وتنزيل من الفايربيس
     var validation = await SyncManager.checkAndSyncLicense();
+
+    //setState(() => _isLoading = true);
 
     // إذا تم العثور على وثيقة الجهاز في الفايربيس
     if (validation['isValid'] == true) {
@@ -196,11 +226,13 @@ class _MainControllerState extends State<MainController> {
 
       if (!mounted) return;
       setState(() {
+        _isLoading = false; // 👈 إيقاف التحميل
         _currentScreen = const MainNavigationScreen();
       });
     } else if (validation['reason'] == 'EXPIRED' || validation['reason'] == 'LIMIT_REACHED') {
       if (!mounted) return;
       setState(() {
+        _isLoading = false; // 👈 إيقاف التحميل
         _currentScreen = LicenseLockScreen(
           lockReason: validation['reason'] ?? 'EXPIRED',
           onUnlocked: _checkAppLicenseStatus,
@@ -210,13 +242,26 @@ class _MainControllerState extends State<MainController> {
       // الجهاز غير مسجل إطلاقاً على الفايربيس
       if (!mounted) return;
       setState(() {
+        _isLoading = false; // 👈 إيقاف التحميل
         _currentScreen = RegistrationScreen(
           onRegistrationComplete: _checkAppLicenseStatus,
         );
       });
     }
   }
-  /*Future<void> _checkAppLicenseStatus() async {
+  
+
+  Future<bool> _hasInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
+/*Future<void> _checkAppLicenseStatus() async {
     bool hasNetwork = await _hasInternetConnection();
 
     // 🌐 إذا لم يوجد إنترنت -> التوجه فوراً لشاشة التسجيل
@@ -267,13 +312,3 @@ class _MainControllerState extends State<MainController> {
       });
     }
   }*/
-
-  Future<bool> _hasInternetConnection() async {
-    try {
-      final result = await InternetAddress.lookup('google.com');
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
-  }
-}

@@ -46,7 +46,8 @@ class LicenseKeyManager {
 
       // أ) التحقق من مطابقة معرّف الجهاز
       if (codeDeviceId != currentDeviceId) {
-        return {'success': false, 'message': 'هذا الكود مخصص لجهاز آخر!'};
+        //return {'success': false, 'message': 'هذا الكود مخصص لجهاز آخر!'};
+        return {'success': false, 'message': '$codeDeviceId:$currentDeviceId:'};
       }
 
       // ب) التحقق من تاريخ الانتهاء

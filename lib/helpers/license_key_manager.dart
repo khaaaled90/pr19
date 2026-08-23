@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'device_utils.dart';
 import 'secure_storage_helper.dart';
+import 'dart:typed_data';
 
 class LicenseKeyManager {
   // 🔑 المفتاح السري الخاص بك فقط (يجب أن يكون من 32 حرفاً بالضبط)
@@ -14,7 +15,8 @@ class LicenseKeyManager {
       final currentDeviceId = await DeviceUtils.getDeviceId();
 
       final key = encrypt.Key.fromUtf8(_secretKey);
-      final iv = encrypt.IV.fromLength(16);
+      //final iv = encrypt.IV.fromLength(16);
+      final iv = encrypt.IV(Uint8List(16));
       final encrypter = encrypt.Encrypter(
         encrypt.AES(
           key,
@@ -96,7 +98,8 @@ class LicenseKeyManager {
     required String planType, // 'monthly', 'semi_annual', 'annual', 'lifetime'
   }) {
     final key = encrypt.Key.fromUtf8(_secretKey);
-    final iv = encrypt.IV.fromLength(16);
+    //final iv = encrypt.IV.fromLength(16);
+    final iv = encrypt.IV(Uint8List(16));
     final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
     String dateStr = expiryDate.toIso8601String().split('T')[0]; // صيغة: "2027-08-05"

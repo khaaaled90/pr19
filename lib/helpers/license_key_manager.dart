@@ -48,8 +48,8 @@ class LicenseKeyManager {
 
       // أ) التحقق من مطابقة معرّف الجهاز
       if (codeDeviceId != currentDeviceId) {
-        //return {'success': false, 'message': 'هذا الكود مخصص لجهاز آخر!'};
-        return {'success': false, 'message': '$codeDeviceId:$currentDeviceId:'};
+        return {'success': false, 'message': 'هذا الكود مخصص لجهاز آخر!'};
+        //return {'success': false, 'message': '$codeDeviceId:$currentDeviceId:'};
       }
 
       // ب) التحقق من تاريخ الانتهاء
@@ -75,10 +75,10 @@ class LicenseKeyManager {
         'planType': planType,
         'expiryDate': expiryDate,
       };
-    /*} catch (e) {
+    } catch (e) {
       return {'success': false, 'message': 'كود التفعيل غير صحيح أو تالف'};
-    }*/
-    } catch (e, stackTrace) {
+    }
+    /*} catch (e, stackTrace) {
       print('================ LICENSE ERROR ================');
       print('ERROR: $e');
       print('STACK: $stackTrace');
@@ -88,7 +88,7 @@ class LicenseKeyManager {
         'success': false,
         'message': 'خطأ: $e',
       };
-    }
+    }*/
   }
 
   /// 2. توليد كود الترخيص للعميل (تُنفّذ في برنامج الأدمن/المطور لديك)

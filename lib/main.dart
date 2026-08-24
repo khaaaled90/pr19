@@ -22,7 +22,7 @@ import 'package:firebase_messaging/firebase_messaging.dart'; // 👈 أضف ال
 
 const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/native_control');
 
-// 👈 أضف هذه الدالة فوق دالة main() مباشرة
+// 1. معالج خلفية الإشعارات
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -48,8 +48,9 @@ Future<void> _initializeServices() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    // 🔔 تسجيل معالج الخلفية بصيغة Static Direct Call
-    FirebaseMessaging.onBackgroundMessageHandler(_firebaseMessagingBackgroundHandler);
+
+    // 🔔 👈 التعديل هنا: استخدام onBackgroundMessage بدلاً من onBackgroundMessageHandler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
@@ -63,12 +64,13 @@ Future<void> _initializeServices() async {
     // الاشتراك في الـ Topic
     await messaging.subscribeToTopic('all_users');
 
-    // 👈 تعديل اسم الدالة إلى الاسم الحديث
+    // إعداد إظهار التنبيهات أثناء فتح التطبيق
     await messaging.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
     );
+    
     await DatabaseHelper.instance.database;
     await NotificationHelper.init();
     SmsReceiver.initializeSmsListener();

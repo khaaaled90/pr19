@@ -48,15 +48,27 @@ Future<void> _initializeServices() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    // 🔔 👈 إعدادات إشعارات Firebase Messaging (أضف من هنا)
+    // 🔔 تسجيل معالج الخلفية بصيغة Static Direct Call
     FirebaseMessaging.onBackgroundMessageHandler(_firebaseMessagingBackgroundHandler);
-    
+
     FirebaseMessaging messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission(alert: true, badge: true, sound: true);
+
+    // طلب الصلاحيات
+    await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // الاشتراك في الـ Topic
     await messaging.subscribeToTopic('all_users');
-    await messaging.setForegroundNotificationOptions(alert: true, badge: true, sound: true);
-    // 👈 (إلى هنا)
-    
+
+    // 👈 تعديل اسم الدالة إلى الاسم الحديث
+    await messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
     await DatabaseHelper.instance.database;
     await NotificationHelper.init();
     SmsReceiver.initializeSmsListener();

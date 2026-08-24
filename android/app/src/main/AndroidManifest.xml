@@ -123,6 +123,16 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
+        
+        <!-- 1. تحديد القناة الافتراضية للإشعارات بالصوت والتنبيه -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="high_importance_channel" />
+
+        <!-- 2. تحديد الأيقونة الافتراضية للإشعار (اختياري) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
 
     </application>
 

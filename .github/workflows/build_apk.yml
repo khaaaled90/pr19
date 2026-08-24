@@ -56,7 +56,12 @@ jobs:
       - name: Decode Keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/kha.jks
-
+      
+      # 📌 طباعة مفتاح الـ SHA-1 للـ Firebase
+      - name: Print SHA-1 Fingerprint
+        run: |
+          keytool -list -v -keystore android/app/kha.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }}
+      
       # 🛠️ بناء الـ APK المشفر بـ R8/ProGuard و C++
       - name: Build Release APK
         run: flutter build apk --release --build-number=${{ github.run_number }}

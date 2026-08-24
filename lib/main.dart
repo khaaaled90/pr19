@@ -18,8 +18,15 @@ import 'HomeScreen.dart';
 import 'NotificationHelper.dart';
 import 'NotificationListener.dart';
 import 'SmsReceiver.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'; // 👈 أضف الاستيراد
 
 const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/native_control');
+
+// 👈 أضف هذه الدالة فوق دالة main() مباشرة
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,7 +48,15 @@ Future<void> _initializeServices() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-
+    // 🔔 👈 إعدادات إشعارات Firebase Messaging (أضف من هنا)
+    FirebaseMessaging.onBackgroundMessageHandler(_firebaseMessagingBackgroundHandler);
+    
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    await messaging.requestPermission(alert: true, badge: true, sound: true);
+    await messaging.subscribeToTopic('all_users');
+    await messaging.setForegroundNotificationOptions(alert: true, badge: true, sound: true);
+    // 👈 (إلى هنا)
+    
     await DatabaseHelper.instance.database;
     await NotificationHelper.init();
     SmsReceiver.initializeSmsListener();

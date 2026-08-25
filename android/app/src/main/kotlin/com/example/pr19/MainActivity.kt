@@ -32,36 +32,38 @@ class MainActivity: FlutterActivity() {
         
         // تشغيل نظام الأمان النيتف
         SecurityHelper.secureInit(applicationContext)
-        // 🔒 فحص السلامة وتوقيع الـ APK
-        //checkAppSecurity()
+        handleNotificationIntent(intent)
     }
-    /*private fun checkAppSecurity() {
-        try {
-            if (SecurityHelper.isSecurityViolated(applicationContext)) {
-                Log.e("SECURITY_VIOLATION", "🚨 تم كشف تلاعب بالتوقيع (MT Manager) أو بيئة رووت!")
-                
-                // 1. إيقاف جميع خدمات الخلفية فوراً
-                LicenseManager.stopAllBackgroundWork(applicationContext)
-                
-                // 2. إنهاء العملية وقتل التطبيق في الذاكرة
-                android.os.Process.killProcess(android.os.Process.myPid())
-                System.exit(0)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        val extras = intent?.extras ?: return
+        
+        // استخراج البيانات المرفقة عند الضغط على الإشعار من الخلفية
+        val title = extras.getString("title") ?: extras.getString("gcm.notification.title")
+        val body = extras.getString("body") ?: extras.getString("gcm.notification.body")
+
+        if (!title.isNullOrEmpty() || !body.isNullOrEmpty()) {
+            try {
+                val dbHelper = AppSqliteHelper(applicationContext)
+                dbHelper.insertNotification(title ?: "إشعار جديد", body ?: "")
+                Log.d("FCM_NATIVE", "✅ تم الحفظ بنجاح من Intent الضغط")
+            } catch (e: Exception) {
+                Log.e("FCM_NATIVE", "❌ خطأ Intent: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.e("SECURITY_VIOLATION", "خطأ أثناء فحص الأمان: ${e.message}")
-            // في حال حدوث أي استثناء أثناء الفحص، نغلق التطبيق احتياطاً
-            android.os.Process.killProcess(android.os.Process.myPid())
         }
-    }*/
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-
+        
         // تشغيل نظام الأمان النيتف
         SecurityHelper.secureInit(applicationContext)
         
-        // إعادة الفحص هنا أيضاً للزيادة في التأكيد
-        //checkAppSecurity()
-
         // 🟢 2. تهيئة الكائن مرة واحدة فقط عند بدء تشغيل المحرك
         secureStorage = NativeSecureStorage(this)
 

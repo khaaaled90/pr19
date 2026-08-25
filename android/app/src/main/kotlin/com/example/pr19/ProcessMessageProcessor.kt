@@ -199,11 +199,16 @@ object ProcessMessageProcessor {
             }
 
             // 2. تجهيز الصيغتين (المجردة والمصحوبة بمفتاح الدولة)
-            val phoneWithPrefix = "+967$rawPhone"
+            /*val phoneWithPrefix = "+967$rawPhone"
             val phoneWithoutPrefix = rawPhone
 
             // 3. الفحص في قائمة الاستثناءات بالصيغتين
             if (dbHelper.isSenderIgnored(phoneWithPrefix) || dbHelper.isSenderIgnored(phoneWithoutPrefix)) {
+                Log.i("PROCESSOR", "تم إهمال الرسالة: العميل $targetCustomerPhone موجود في قائمة الاستثناءات.")
+                return
+            }*/
+            // التقديم المباشر للرقم بدلاً من التجهيز اليدوي
+            if (dbHelper.isSenderIgnored(rawPhone)) {
                 Log.i("PROCESSOR", "تم إهمال الرسالة: العميل $targetCustomerPhone موجود في قائمة الاستثناءات.")
                 return
             }

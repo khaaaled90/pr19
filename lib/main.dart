@@ -26,6 +26,13 @@ const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/native_cont
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  // 👈 إضافة الحفظ في قاعدة البيانات أثناء وجود التطبيق في الخلفية أو الإغلاق
+  if (message.notification != null) {
+    await DatabaseHelper.instance.insertNotification(
+      message.notification!.title ?? '',
+      message.notification!.body ?? '',
+    );
+  }
 }
 
 void main() async {
@@ -70,7 +77,16 @@ Future<void> _initializeServices() async {
       badge: true,
       sound: true,
     );
-    
+    // 👈 أضف هذا الجزء هنا: حفظ الإشعار فور وصوله والتطبيق مفتوح أمام المستخدم
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      if (message.notification != null) {
+        await DatabaseHelper.instance.insertNotification(
+          message.notification!.title ?? '',
+          message.notification!.body ?? '',
+        );
+      }
+    });
+
     await DatabaseHelper.instance.database;
     await NotificationHelper.init();
     SmsReceiver.initializeSmsListener();

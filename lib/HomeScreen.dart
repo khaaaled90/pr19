@@ -19,6 +19,7 @@ import 'service/native_service_controller.dart';
 import 'helpers/secure_storage_helper.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'notifications_screen.dart'; // تأكد من مطابقة اسم الملف
 
 
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
@@ -990,6 +991,21 @@ class _HomeScreenState extends State<HomeScreen> {
           tooltip: 'تحديث البيانات',
         ),
         actions: [
+          // أيقونة الإشعارات
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            tooltip: 'سجل الإشعارات',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              );
+              _loadStats(); // تحديث إحصائيات الصفحة الرئيسية بعد العودة
+            },
+          ),
+          // أيقونة الخروج
           IconButton(
             icon: const Icon(Icons.power_settings_new, color: Colors.white),
             onPressed: () => SystemNavigator.pop(),

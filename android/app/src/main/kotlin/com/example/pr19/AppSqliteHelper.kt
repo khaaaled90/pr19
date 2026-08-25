@@ -10,7 +10,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     companion object {
         private const val DATABASE_NAME = "smsqaiddb.db"
-        private const val DATABASE_VERSION = 15 // ✅ رفع الإصدار إلى 13 لإضافة price
+        private const val DATABASE_VERSION = 16 // ✅ رفع الإصدار إلى 16 لإضافة price
 
         @Volatile
         private var instance: AppSqliteHelper? = null
@@ -157,6 +157,16 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 created_at INTEGER NOT NULL
             )
         """)
+        
+        // 11. إنشاء جدول الإشعارات
+        db?.execSQL("""
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT,
+                body TEXT,
+                timestamp TEXT
+            )
+        """)
 
         // إنشاء الفهارس
         createIndexes(db)
@@ -293,6 +303,22 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     Log.e("SQLite", "Error upgrading DB to version 15: ${e.message}")
                 } finally {
                     db?.endTransaction() // إنهاء المعاملة وتطبيق التغييرات
+                }
+            }
+
+            // ✅ الترقية للنسخة 16: إنشاء جدول الإشعارات
+            if (oldVersion < 16) {
+                try {
+                    db?.execSQL("""
+                        CREATE TABLE IF NOT EXISTS notifications (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            title TEXT,
+                            body TEXT,
+                            timestamp TEXT
+                        )
+                    """)
+                } catch (e: Exception) {
+                    Log.e("SQLite", "Error creating notifications table: ${e.message}")
                 }
             }
 
@@ -772,6 +798,34 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 
     fun isSenderIgnored(phone: String): Boolean {
+        val cleanPhone = phone.trim()
+        if (cleanPhone.isEmpty()) return false
+
+        val db = readableDatabase
+        val cleanDigits = cleanPhone.replace(Regex("\\D"), "")
+
+        if (cleanDigits.length >= 9) {
+            val localPhone = cleanDigits.substring(cleanDigits.length - 9)
+            val internationalPhone = "+967$localPhone"
+
+            val cursor = db.rawQuery(
+                "SELECT 1 FROM excepted_customers WHERE phone = ? OR phone = ? OR phone = ? LIMIT 1",
+                arrayOf(internationalPhone, localPhone, cleanPhone)
+            )
+            val exists = cursor.count > 0
+            cursor.close()
+            return exists
+        }
+
+        val cursor = db.rawQuery(
+            "SELECT 1 FROM excepted_customers WHERE phone = ? LIMIT 1",
+            arrayOf(cleanPhone)
+        )
+        val exists = cursor.count > 0
+        cursor.close()
+        return exists
+    }
+    /*fun isSenderIgnored(phone: String): Boolean {
         val db = readableDatabase
         val cursor = db.rawQuery(
             "SELECT 1 FROM excepted_customers WHERE phone = ? LIMIT 1",
@@ -780,6 +834,48 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         val exists = cursor.count > 0
         cursor.close()
         return exists
+    }*/
+
+    fun insertNotification(title: String, body: String): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("title", title)
+            put("body", body)
+            put("timestamp", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date()))
+        }
+        return db.insert("notifications", null, values)
+    }
+
+    fun getNotifications(): List<Map<String, Any?>> {
+        val list = mutableListOf<Map<String, Any?>>()
+        val db = readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM notifications ORDER BY id DESC", null)
+        cursor.use { c ->
+            val idIdx = c.getColumnIndex("id")
+            val titleIdx = c.getColumnIndex("title")
+            val bodyIdx = c.getColumnIndex("body")
+            val timeIdx = c.getColumnIndex("timestamp")
+
+            while (c.moveToNext()) {
+                list.add(mapOf(
+                    "id" to if (idIdx != -1) c.getLong(idIdx) else null,
+                    "title" to if (titleIdx != -1) c.getString(titleIdx) else null,
+                    "body" to if (bodyIdx != -1) c.getString(bodyIdx) else null,
+                    "timestamp" to if (timeIdx != -1) c.getString(timeIdx) else null
+                ))
+            }
+        }
+        return list
+    }
+
+    fun deleteNotification(id: Int): Int {
+        val db = writableDatabase
+        return db.delete("notifications", "id = ?", arrayOf(id.toString()))
+    }
+
+    fun clearAllNotifications(): Int {
+        val db = writableDatabase
+        return db.delete("notifications", null, null)
     }
 }
 //******************************************************

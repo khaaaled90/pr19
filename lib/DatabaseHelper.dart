@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
-  static const int _databaseVersion = 15; // ✅ تم الرفع إلى 13 لدعم حقل price
+  static const int _databaseVersion = 16; // ✅ تم الرفع إلى 13 لدعم حقل price
   static const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/cache');
 
   static const String tableKeywords = "keywords";
@@ -19,6 +19,7 @@ class DatabaseHelper {
   static const String tableCustomers = "customers";
   static const String tableClientIdentifiers = "client_identifiers";
   static const String tableExceptedCustomers = 'excepted_customers';
+  static const String tableNotifications = "notifications";
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -185,6 +186,15 @@ class DatabaseHelper {
         created_at INTEGER NOT NULL
       )
     ''');
+  
+    await db.execute('''
+      CREATE TABLE $tableNotifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        body TEXT,
+        timestamp TEXT
+      )
+    ''');
 
     await _createIndexes(db);
     await _insertDefaultSettings(db);
@@ -294,6 +304,17 @@ class DatabaseHelper {
       await db.execute('''
         CREATE INDEX IF NOT EXISTS idx_reply_log_transaction_fingerprint
         ON $tableReplyLog(transaction_fingerprint)
+      ''');
+    }
+
+    if (oldVersion < 16) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $tableNotifications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT,
+          body TEXT,
+          timestamp TEXT
+        )
       ''');
     }
 
@@ -1076,6 +1097,36 @@ class DatabaseHelper {
       _database = null;
     }
   }
+
+  
+  // دالة إضافة إشعار
+  Future<int> insertNotification(String title, String body) async {
+    final db = await database;
+    return await db.insert(tableNotifications, {
+      'title': title,
+      'body': body,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  // دالة جلب كل الإشعارات
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    final db = await database;
+    return await db.query(tableNotifications, orderBy: 'id DESC');
+  }
+
+  // دالة حذف إشعار محدد
+  Future<int> deleteNotification(int id) async {
+    final db = await database;
+    return await db.delete(tableNotifications, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // دالة حذف جميع الإشعارات
+  Future<int> clearAllNotifications() async {
+    final db = await database;
+    return await db.delete(tableNotifications);
+  }
+
 }
 /*import 'dart:async';
 import 'package:flutter/services.dart';

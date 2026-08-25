@@ -23,7 +23,7 @@ import 'package:firebase_messaging/firebase_messaging.dart'; // 👈 أضف ال
 const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/native_control');
 
 // 1. معالج خلفية الإشعارات
-@pragma('vm:entry-point')
+/*@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   // 👈 إضافة الحفظ في قاعدة البيانات أثناء وجود التطبيق في الخلفية أو الإغلاق
@@ -32,6 +32,22 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       message.notification!.title ?? '',
       message.notification!.body ?? '',
     );
+  }
+}*/
+// 1. معالج خلفية الإشعارات
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  try {
+    String title = message.notification?.title ?? message.data['title'] ?? 'إشعار جديد';
+    String body = message.notification?.body ?? message.data['body'] ?? '';
+
+    if (title.isNotEmpty || body.isNotEmpty) {
+      await DatabaseHelper.instance.insertNotification(title, body);
+      debugPrint("✅ تم حفظ إشعار الخلفية بنجاح: $title");
+    }
+  } catch (e) {
+    debugPrint("❌ خطأ أثناء حفظ إشعار الخلفية: $e");
   }
 }
 
@@ -78,12 +94,37 @@ Future<void> _initializeServices() async {
       sound: true,
     );
     // 👈 أضف هذا الجزء هنا: حفظ الإشعار فور وصوله والتطبيق مفتوح أمام المستخدم
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+    /*FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       if (message.notification != null) {
         await DatabaseHelper.instance.insertNotification(
           message.notification!.title ?? '',
           message.notification!.body ?? '',
         );
+      }
+    });*/
+
+    // 2. داخل دالة _initializeServices()
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      try {
+        String title = message.notification?.title ?? message.data['title'] ?? 'إشعار جديد';
+        String body = message.notification?.body ?? message.data['body'] ?? '';
+
+        if (title.isNotEmpty || body.isNotEmpty) {
+          await DatabaseHelper.instance.insertNotification(title, body);
+          debugPrint("✅ تم حفظ إشعار الأمامية بنجاح: $title");
+        }
+      } catch (e) {
+        debugPrint("❌ خطأ أثناء حفظ إشعار الأمامية: $e");
+      }
+    });
+
+    // التعامل مع الإشعارات عند الضغط عليها وفتح التطبيق
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
+      String title = message.notification?.title ?? message.data['title'] ?? 'إشعار جديد';
+      String body = message.notification?.body ?? message.data['body'] ?? '';
+
+      if (title.isNotEmpty || body.isNotEmpty) {
+        await DatabaseHelper.instance.insertNotification(title, body);
       }
     });
 

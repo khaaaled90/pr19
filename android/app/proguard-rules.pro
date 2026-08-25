@@ -97,6 +97,9 @@
 # 1. تثبيت أسماء المستقبلات والخدمات لتبقى مطابقة لـ AndroidManifest.xml (ضروري جداً)
 -keep class com.example.pr19.SmsReceiver { *; }
 -keep class com.example.pr19.NativeNotificationListener { *; }
+-keep class com.google.firebase.messaging.** { *; }
+-keep class com.example.pr19.MyFirebaseMessagingService { *; }
+
 
 # 2. تمويه وتعتيم كلاسات التخزين والترخيص (آمن تماماً ولن يسبب كراش)
 -keep,allowobfuscation class com.example.pr19.NativeSecureStorage { *; }

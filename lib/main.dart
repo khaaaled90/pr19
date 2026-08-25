@@ -38,7 +38,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  try {
+  /*try {
     String title = message.notification?.title ?? message.data['title'] ?? 'إشعار جديد';
     String body = message.notification?.body ?? message.data['body'] ?? '';
 
@@ -48,7 +48,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     }
   } catch (e) {
     debugPrint("❌ خطأ أثناء حفظ إشعار الخلفية: $e");
-  }
+  }*/
 }
 
 void main() async {
@@ -104,7 +104,7 @@ Future<void> _initializeServices() async {
     });*/
 
     // 2. داخل دالة _initializeServices()
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+    /*FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       try {
         String title = message.notification?.title ?? message.data['title'] ?? 'إشعار جديد';
         String body = message.notification?.body ?? message.data['body'] ?? '';
@@ -126,7 +126,7 @@ Future<void> _initializeServices() async {
       if (title.isNotEmpty || body.isNotEmpty) {
         await DatabaseHelper.instance.insertNotification(title, body);
       }
-    });
+    });*/
 
     await DatabaseHelper.instance.database;
     await NotificationHelper.init();

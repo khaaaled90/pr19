@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart'; // استدعاء ملف الداتابيز لديك
+import 'DatabaseHelper.dart'; // استدعاء ملف الداتابيز لديك
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);

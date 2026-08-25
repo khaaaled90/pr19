@@ -30,6 +30,15 @@ class MainActivity: FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // 🟢 الاشتراك في موضوع الباكيج فور فتح التطبيق
+        FirebaseMessaging.getInstance().subscribeToTopic("com.example.pr19")
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("FCM_TOPIC", "✅ تم الاشتراك بنجاح في com.example.pr19")
+                } else {
+                    Log.e("FCM_TOPIC", "❌ فشل الاشتراك: ${task.exception?.message}")
+                }
+            }
         // تشغيل نظام الأمان النيتف
         SecurityHelper.secureInit(applicationContext)
         handleNotificationIntent(intent)
@@ -73,7 +82,7 @@ class MainActivity: FlutterActivity() {
             }
         }
     }
-    
+
     /*private fun handleNotificationIntent(intent: Intent?) {
         val extras = intent?.extras ?: return
         

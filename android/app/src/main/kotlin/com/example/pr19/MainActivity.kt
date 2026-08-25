@@ -37,10 +37,44 @@ class MainActivity: FlutterActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent) // 🟢 ضروري جداً لتحديث intent النشاط الحالي
         handleNotificationIntent(intent)
     }
 
     private fun handleNotificationIntent(intent: Intent?) {
+        if (intent == null) return
+
+        // 🟢 استخراج البيانات سواء جاءت من FCM المباشر أو من Extras عادية
+        val extras = intent.extras
+        if (extras == null || extras.isEmpty) return
+
+        val title = extras.getString("title") 
+            ?: extras.getString("gcm.notification.title")
+            ?: extras.getString("google.c.a.c_l")
+
+        val body = extras.getString("body") 
+            ?: extras.getString("gcm.notification.body")
+
+        if (!title.isNullOrEmpty() || !body.isNullOrEmpty()) {
+            kotlin.concurrent.thread {
+                try {
+                    val dbHelper = AppSqliteHelper.getInstance(applicationContext)
+                    dbHelper.insertNotification(title ?: "إشعار جديد", body ?: "")
+                    Log.d("FCM_NATIVE", "✅ تم الحفظ من الخلفية/الضغط: $title")
+
+                    // 🟢 تنظيف الـ Intent بعد المعالجة لمنع تكرار الحفظ عند إعادة تدوير الشاشة
+                    intent.removeExtra("title")
+                    intent.removeExtra("body")
+                    intent.removeExtra("gcm.notification.title")
+                    intent.removeExtra("gcm.notification.body")
+                } catch (e: Exception) {
+                    Log.e("FCM_NATIVE", "❌ خطأ حفظ الإشعار من الخلفية: ${e.message}")
+                }
+            }
+        }
+    }
+    
+    /*private fun handleNotificationIntent(intent: Intent?) {
         val extras = intent?.extras ?: return
         
         // استخراج البيانات المرفقة عند الضغط على الإشعار من الخلفية
@@ -56,7 +90,7 @@ class MainActivity: FlutterActivity() {
                 Log.e("FCM_NATIVE", "❌ خطأ Intent: ${e.message}")
             }
         }
-    }
+    }*/
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

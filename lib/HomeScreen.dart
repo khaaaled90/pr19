@@ -770,11 +770,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 20),
 
                     // 📈 الرسوم البيانية
-                    _buildPieChartSection('القسائم المتاحة', availableCategoriesData,
-                        totalAvailable, cardBg, textColor),
+                    //_buildPieChartSection('القسائم المتاحة', availableCategoriesData,
+                      //  totalAvailable, cardBg, textColor),
+                    //const SizedBox(height: 16),
+                    //_buildPieChartSection('القسائم المستخدمة', usedCategoriesData,
+                      //  totalUsed, cardBg, textColor),
+                    _buildModernStatsSection('القسائم المتاحة', 
+                        availableCategoriesData, totalAvailable, cardBg, textColor),
                     const SizedBox(height: 16),
-                    _buildPieChartSection('القسائم المستخدمة', usedCategoriesData,
-                        totalUsed, cardBg, textColor),
+                    _buildModernStatsSection('القسائم المستخدمة', 
+                        usedCategoriesData, totalUsed, cardBg, textColor),  
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -988,7 +993,196 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  Widget _buildPieChartSection(
+
+  Widget _buildModernStatsSection(
+  String title,
+  List<_CategoryStatData> data,
+  int total,
+  Color cardBg,
+  Color textColor,
+) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+
+  return Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: cardBg,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(
+        color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // الهيدر الرئيسي
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'الإجمالي: $total',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        if (data.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20.0),
+            child: Center(
+              child: Text(
+                'لا توجد بيانات متاحة حالياً',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: data.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 14),
+            itemBuilder: (context, index) {
+              final item = data[index];
+              final double percentage = total > 0 ? (item.count / total) : 0.0;
+              final String percentText = (percentage * 100).toStringAsFixed(1);
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: item.color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            item.categoryName,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '${item.count} ',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                            TextSpan(
+                              text: '($percentText%)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: textColor.withOpacity(0.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // شريط التقدم العصري
+                  Stack(
+                    children: [
+                      Container(
+                        height: 8,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.06)
+                              : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      FractionallySizedBox(
+                        widthFactor: percentage > 1.0 ? 1.0 : percentage,
+                        child: Container(
+                          height: 8,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                item.color,
+                                item.color.withOpacity(0.7),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: item.color.withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+      ],
+    );
+  }
+  /*Widget _buildPieChartSection(
     String title,
     List<_CategoryStatData> data,
     int total,
@@ -1202,7 +1396,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-  }
+  }*/
   /*Widget _buildPieChartSection(String title, List<_CategoryStatData> data,
       int total, Color cardBg, Color textColor) {
     return Container(

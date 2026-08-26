@@ -54,7 +54,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           _homeRefreshKey++;
           break;
         case 1:
-          _servicesRefreshKey
+          _servicesRefreshKey++;
           //_vouchersRefreshKey++;
           break;
         case 2:

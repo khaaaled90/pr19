@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // 🔑 استيراد الفايربيس وإعداداته
 import 'package:firebase_core/firebase_core.dart';
@@ -282,10 +283,9 @@ class _MainControllerState extends State<MainController> {
     await _checkAppLicenseStatus();
   }
   Future<bool> _checkIfPermissionsGranted() async {
-    // افحص الأذونات الخاصة بتطبيقك (إشعارات، SMS، إلخ)
-    // مثال باستخدام مكتبات الأذونات المعتمدة لديك:
-    bool isSmsGranted = await SmsReceiver.isPermissionGranted(); // أو الاستدعاء الخاص بك
-    return isSmsGranted;
+    var smsStatus = await Permission.sms.status;
+    var notificationStatus = await Permission.notification.status;
+    return smsStatus.isGranted && notificationStatus.isGranted;
   }
   Future<void> _checkAppLicenseStatus() async {
     setState(() {

@@ -42,13 +42,13 @@ class MainActivity: FlutterActivity() {
             }
         // تشغيل نظام الأمان النيتف
         SecurityHelper.secureInit(applicationContext)
-        handleNotificationIntent(intent)
+        //handleNotificationIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent) // 🟢 ضروري جداً لتحديث intent النشاط الحالي
-        handleNotificationIntent(intent)
+        //handleNotificationIntent(intent)
     }
 
     private fun handleNotificationIntent(intent: Intent?) {

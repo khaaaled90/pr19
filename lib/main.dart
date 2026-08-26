@@ -224,7 +224,8 @@ class _MainControllerState extends State<MainController> {
   @override
   void initState() {
     super.initState();
-    _checkAppLicenseStatus();
+    //_checkAppLicenseStatus();
+    _initAppFlow(); // 👈 الاستدعاء الجديد بدلاً من _checkAppLicenseStatus مباشرة
   }
 
   @override
@@ -250,13 +251,41 @@ class _MainControllerState extends State<MainController> {
             _hasAllPermissions = true;
           });
           // بعد أخذ الأذونات -> ابدأ فحص الترخيص والشبكة
-          _checkAppLicenseStatus();
+          //_checkAppLicenseStatus();
+          _initAppFlow();
         },
       );
     }
 
     // 2. بعد الأذونات -> عرض الشاشة الموجهة (التسجيل / الرئيسية / القفل)
     return _currentScreen;
+  }
+  Future<void> _initAppFlow() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // 1️⃣ فحص هل الأذونات ممنوحة بالفعل في النظام؟
+    bool granted = await _checkIfPermissionsGranted();
+
+    if (!granted) {
+      if (!mounted) return;
+      setState(() {
+        _hasAllPermissions = false;
+        _isLoading = false; // لإخفاء مؤشر التحميل وعرض شاشة الأذونات
+      });
+      return;
+    }
+
+    // 2️⃣ الأذونات ممنوحة مسبقاً -> تعيينها كـ true ومتابعة فحص الترخيص
+    _hasAllPermissions = true;
+    await _checkAppLicenseStatus();
+  }
+  Future<bool> _checkIfPermissionsGranted() async {
+    // افحص الأذونات الخاصة بتطبيقك (إشعارات، SMS، إلخ)
+    // مثال باستخدام مكتبات الأذونات المعتمدة لديك:
+    bool isSmsGranted = await SmsReceiver.isPermissionGranted(); // أو الاستدعاء الخاص بك
+    return isSmsGranted;
   }
   Future<void> _checkAppLicenseStatus() async {
     setState(() {

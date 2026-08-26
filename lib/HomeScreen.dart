@@ -8,6 +8,8 @@ import 'KeywordsScreen.dart';
 import 'PendingLogsScreen.dart';
 import 'SettingsScreen.dart';
 import 'vouchers_screen.dart';
+import 'services_screen.dart';
+import 'tasks_screen.dart';
 import 'allowed_senders_screen.dart';
 import 'sales_screen.dart';
 import 'support_screen.dart';
@@ -37,8 +39,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
   int _homeRefreshKey = 0;
-  int _vouchersRefreshKey = 0;
-  int _salesRefreshKey = 0;
+  //int _vouchersRefreshKey = 0;
+  int _servicesRefreshKey = 0;
+  int _tasksRefreshKey = 0;
+  //int _salesRefreshKey = 0;
   int _settingsRefreshKey = 0;
   int _contactRefreshKey = 0;
 
@@ -50,10 +54,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           _homeRefreshKey++;
           break;
         case 1:
-          _vouchersRefreshKey++;
+          _servicesRefreshKey
+          //_vouchersRefreshKey++;
           break;
         case 2:
-          _salesRefreshKey++;
+          _tasksRefreshKey++;
           break;
         case 3:
           _settingsRefreshKey++;
@@ -73,13 +78,50 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: _currentIndex,
         children: [
           HomeScreen(key: ValueKey('home_$_homeRefreshKey')),
-          VouchersScreen(key: ValueKey('vouchers_$_vouchersRefreshKey')),
-          SalesScreen(key: ValueKey('sales_$_salesRefreshKey')),
+          ServicesScreen(key: ValueKey('services_$_servicesRefreshKey')), // شاشة الخدمات الجديدة
+          TasksScreen(key: ValueKey('tasks_$_tasksRefreshKey')),       // شاشة المهام الجديدة
+          //VouchersScreen(key: ValueKey('vouchers_$_vouchersRefreshKey')),
+          //SalesScreen(key: ValueKey('sales_$_salesRefreshKey')),
           SettingsScreen(key: ValueKey('settings_$_settingsRefreshKey')),
           SupportScreen(key: ValueKey('contact_$_contactRefreshKey')),
         ],
       ),
-      bottomNavigationBar: SafeArea(
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F172A) : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.5 : 0.08),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+          border: Border(
+            top: BorderSide(
+              color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200,
+              width: 1,
+            ),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _build3DNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
+                _build3DNavItem(Icons.grid_view_rounded, 'الخدمات', 1),
+                _build3DNavItem(Icons.assignment_rounded, 'المهام', 2),
+                //_build3DNavItem(Icons.donut_small_rounded, 'التقارير', 3),
+                _build3DNavItem(Icons.tune_rounded, 'الإعدادات', 3),
+                _build3DNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
+              ],
+            ),
+          ),
+        ),
+      ),
+      /*bottomNavigationBar: SafeArea(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
@@ -97,11 +139,100 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ],
           ),
         ),
+      ),*/
+    );
+  }
+  Widget _build3DNavItem(IconData icon, String label, int index) {
+    final bool isActive = _currentIndex == index;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = theme.primaryColor;
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: GestureDetector(
+          onTap: () => _onTabTapped(index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: isActive
+                  ? LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        primaryColor,
+                        HSLColor.fromColor(primaryColor).withLightness(0.35).toColor(),
+                      ],
+                    )
+                  : LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: isDark
+                          ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                          : [Colors.white, Colors.grey.shade100],
+                    ),
+              border: Border.all(
+                color: isActive
+                    ? Colors.white.withOpacity(0.3)
+                    : (isDark ? Colors.white10 : Colors.grey.shade300),
+                width: 1.2,
+              ),
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.2),
+                        offset: const Offset(0, -2),
+                        blurRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.35),
+                        offset: const Offset(0, 4),
+                        blurRadius: 6,
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                        offset: const Offset(0, 3),
+                        blurRadius: 4,
+                      ),
+                    ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  color: isActive
+                      ? Colors.white
+                      : (isDark ? Colors.white60 : Colors.black54),
+                  size: isActive ? 22 : 20,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                    color: isActive
+                        ? Colors.white
+                        : (isDark ? Colors.white60 : Colors.black54),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
+  /*Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isActive = _currentIndex == index;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -168,7 +299,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ),
       ),
     );
-  }
+  }*/
   /*Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isActive = _currentIndex == index;
     final theme = Theme.of(context);

@@ -1007,6 +1007,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+// ─── 1. الدالة الرئيسية الموحدة للإحصائيات ───
   Widget _buildUnifiedStatsSection(
     String title,
     List<_CategoryStatData> availData,
@@ -1016,226 +1017,227 @@ class _HomeScreenState extends State<HomeScreen> {
     Color cardBg,
     Color textColor,
   ) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-  // دمج كافة أسماء الفئات الفريدة
-  final Set<String> allCategoryNames = {
-    ...availData.map((e) => e.categoryName),
-    ...usedData.map((e) => e.categoryName),
-  };
+    // دمج كافة أسماء الفئات الفريدة
+    final Set<String> allCategoryNames = {
+      ...availData.map((e) => e.categoryName),
+      ...usedData.map((e) => e.categoryName),
+    };
 
-  return Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: cardBg,
-      borderRadius: BorderRadius.circular(28),
-      border: Border.all(
-        color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
-        width: 1.5,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.35 : 0.05),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(isDark ? 0.35 : 0.05),
-          blurRadius: 24,
-          offset: const Offset(0, 8),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ─── 1. Header Section (رأس البطاقة الرئيسي) ───
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 5,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6366F1), Color(0xFF0EA5E9)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ─── 1. Header Section (رأس البطاقة الرئيسي) ───
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 5,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6366F1), Color(0xFF0EA5E9)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    borderRadius: BorderRadius.circular(6),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: textColor,
-                    letterSpacing: -0.3,
+                  const SizedBox(width: 10),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                      letterSpacing: -0.3,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                _buildModernHeaderBadge('متاح', '$totalAvail', const Color(0xFF0EA5E9), isDark),
-                const SizedBox(width: 6),
-                _buildModernHeaderBadge('مباع', '$totalUsed', const Color(0xFFF59E0B), isDark),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 22),
-
-        // ─── 2. Category List (قائمة الفئات بتصميم Card Tiles) ───
-        if (allCategoryNames.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0),
-            child: Center(
-              child: Text(
-                'لا توجد كروت مسجلة حالياً',
-                style: TextStyle(color: textColor.withOpacity(0.4), fontSize: 13),
+                ],
               ),
-            ),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: allCategoryNames.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 14),
-            itemBuilder: (context, index) {
-              final catName = allCategoryNames.elementAt(index);
+              Row(
+                children: [
+                  _buildModernHeaderBadge('متاح', '$totalAvail', const Color(0xFF0EA5E9), isDark),
+                  const SizedBox(width: 6),
+                  _buildModernHeaderBadge('مباع', '$totalUsed', const Color(0xFFF59E0B), isDark),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
 
-              final availItem = availData.firstWhere(
-                (e) => e.categoryName == catName,
-                orElse: () => _CategoryStatData(catName, 0, Colors.grey),
-              );
-              final usedItem = usedData.firstWhere(
-                (e) => e.categoryName == catName,
-                orElse: () => _CategoryStatData(catName, 0, Colors.grey),
-              );
-
-              final int catTotal = availItem.count + usedItem.count;
-              final double availPercent = catTotal > 0 ? (availItem.count / catTotal) : 0;
-              final double usedPercent = catTotal > 0 ? (usedItem.count / catTotal) : 0;
-
-              return Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.03) : Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                  ),
+          // ─── 2. Category List (قائمة الفئات بتصميم Card Tiles) ───
+          if (allCategoryNames.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24.0),
+              child: Center(
+                child: Text(
+                  'لا توجد كروت مسجلة حالياً',
+                  style: TextStyle(color: textColor.withOpacity(0.4), fontSize: 13),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // عنوان الفئة + الإجمالي
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.style_rounded,
-                              size: 16,
-                              color: Theme.of(context).primaryColor,
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: allCategoryNames.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 14),
+              itemBuilder: (context, index) {
+                final catName = allCategoryNames.elementAt(index);
+
+                final availItem = availData.firstWhere(
+                  (e) => e.categoryName == catName,
+                  orElse: () => _CategoryStatData(catName, 0, Colors.grey),
+                );
+                final usedItem = usedData.firstWhere(
+                  (e) => e.categoryName == catName,
+                  orElse: () => _CategoryStatData(catName, 0, Colors.grey),
+                );
+
+                final int catTotal = availItem.count + usedItem.count;
+                final double availPercent = catTotal > 0 ? (availItem.count / catTotal) : 0;
+                final double usedPercent = catTotal > 0 ? (usedItem.count / catTotal) : 0;
+
+                return Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.03) : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // عنوان الفئة + الإجمالي
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.style_rounded,
+                                size: 16,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                catName,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: textColor.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              catName,
+                            child: Text(
+                              'الإجمالي: $catTotal',
                               style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: textColor.withOpacity(0.7),
                               ),
                             ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: textColor.withOpacity(0.06),
-                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(
-                            'الإجمالي: $catTotal',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: textColor.withOpacity(0.7),
-                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // تفاصيل الأرقام المتاحة والمباعة
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildStatChip(
+                            'متاح: ${availItem.count}',
+                            '${(availPercent * 100).toStringAsFixed(1)}%',
+                            const Color(0xFF0EA5E9),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
+                          _buildStatChip(
+                            'مباع: ${usedItem.count}',
+                            '${(usedPercent * 100).toStringAsFixed(1)}%',
+                            const Color(0xFFF59E0B),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
 
-                    // تفاصيل الأرقام المتاحة والمباعة
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildStatChip(
-                          'متاح: ${availItem.count}',
-                          '${(availPercent * 100).toStringAsFixed(1)}%',
-                          const Color(0xFF0EA5E9),
-                        ),
-                        _buildStatChip(
-                          'مباع: ${usedItem.count}',
-                          '${(usedPercent * 100).toStringAsFixed(1)}%',
-                          const Color(0xFFF59E0B),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // ─── 3. Glowing Split Progress Bar (شريط التوهج المقسم) ───
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        height: 9,
-                        width: double.infinity,
-                        color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade200,
-                        child: Row(
-                          children: [
-                            if (availItem.count > 0)
-                              Expanded(
-                                flex: availItem.count,
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
+                      // ─── 3. Glowing Split Progress Bar (شريط التوهج المقسم) ───
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          height: 9,
+                          width: double.infinity,
+                          color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade200,
+                          child: Row(
+                            children: [
+                              if (availItem.count > 0)
+                                Expanded(
+                                  flex: availItem.count,
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            if (availItem.count > 0 && usedItem.count > 0)
-                              const SizedBox(width: 2), // فاصل صغير وأنيق بين الشريطين
-                            if (usedItem.count > 0)
-                              Expanded(
-                                flex: usedItem.count,
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [Color(0xFFFBBF24), Color(0xFFD97706)],
+                              if (availItem.count > 0 && usedItem.count > 0)
+                                const SizedBox(width: 2), // فاصل صغير وأنيق بين الشريطين
+                              if (usedItem.count > 0)
+                                Expanded(
+                                  flex: usedItem.count,
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Color(0xFFFBBF24), Color(0xFFD97706)],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-      ],
-    );
-  }
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    ); // إغلاق الـ Container الخاص بالدالة الرئيسية
+  } // إغلاق الدالة _buildUnifiedStatsSection
 
-  // ─── ودجت المساعد للشارات العلوية (Header Badges) ───
+  // ─── 2. ودجت المساعد للشارات العلوية (Header Badges) ───
   Widget _buildModernHeaderBadge(String label, String count, Color color, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -1265,7 +1267,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─── ودجت المساعد لأرقام الفئة (Stat Chips) ───
+  // ─── 3. ودجت المساعد لأرقام الفئة (Stat Chips) ───
   Widget _buildStatChip(String title, String percent, Color color) {
     return Row(
       children: [
@@ -1290,7 +1292,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildModernStatsSection(
+  /*Widget _buildModernStatsSection(
     String title,
     List<_CategoryStatData> data,
     int total,
@@ -1477,7 +1479,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
       ],
     );
-  }
+  }*/
   /*Widget _buildPieChartSection(
     String title,
     List<_CategoryStatData> data,

@@ -71,9 +71,9 @@ class ServicesScreen extends StatelessWidget {
               context: context,
               title: 'تقارير المبيعات',
               subtitle: 'عرض المبيعات اليومية والاسبوعية والشهرية ',
-              icon: Icons.confirmation_number_rounded,
-              gradientColors: const [Color(0xFFF59E0B), Color(0xFFD97706)],
-              onTap: () {
+              icon: Icons.bar_chart_rounded, // استبدال أيقونة الكروت بأيقونة الرسم البياني
+                gradientColors: const [Color(0xFFEC4899), Color(0xFFBE185D)], // تدرج ورودي/بنفسجي مميز للمبيعات
+                onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const SalesScreen()),

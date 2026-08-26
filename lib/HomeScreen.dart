@@ -1105,7 +1105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 '$total',
                                 style: TextStyle(
                                   fontSize: 18,
-                                  fontWeight: FontWeight.extrabold,
+                                  fontWeight: FontWeight.w800,
                                   color: textColor,
                                 ),
                               ),

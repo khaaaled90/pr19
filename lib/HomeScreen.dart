@@ -72,6 +72,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
       extendBody: true,
       body: IndexedStack(

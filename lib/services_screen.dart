@@ -56,7 +56,7 @@ class ServicesScreen extends StatelessWidget {
             _build3DServiceCard(
               context: context,
               title: 'إدارة الكروت والمخزون',
-              subtitle: 'عرض وتصدير الكروت المتاحة والمستخدمة',
+              subtitle: 'استيراد وعرض الكروت المتاحة والمستخدمة',
               icon: Icons.confirmation_number_rounded,
               gradientColors: const [Color(0xFFF59E0B), Color(0xFFD97706)],
               onTap: () {
@@ -69,8 +69,8 @@ class ServicesScreen extends StatelessWidget {
             const SizedBox(height: 14),
             _build3DServiceCard(
               context: context,
-              title: 'إدارة الكروت والمخزون',
-              subtitle: 'عرض وتصدير الكروت المتاحة والمستخدمة',
+              title: 'تقارير المبيعات',
+              subtitle: 'عرض المبيعات اليومية والاسبوعية والشهرية ',
               icon: Icons.confirmation_number_rounded,
               gradientColors: const [Color(0xFFF59E0B), Color(0xFFD97706)],
               onTap: () {
@@ -84,7 +84,7 @@ class ServicesScreen extends StatelessWidget {
             _build3DServiceCard(
               context: context,
               title: 'المحافظ والجهات المسموحة',
-              subtitle: 'إدارة أرقام المندوبين والمستفيدين المعتمدين',
+              subtitle: 'عرض الحافظ والبنوك المعتمدين',
               icon: Icons.account_balance_wallet_rounded,
               gradientColors: const [Color(0xFF10B981), Color(0xFF059669)],
               onTap: () {
@@ -98,7 +98,7 @@ class ServicesScreen extends StatelessWidget {
             _build3DServiceCard(
               context: context,
               title: 'النسخ الاحتياطي والاستعادة',
-              subtitle: 'حفظ واسترجاع بيانات التطبيق والأكواد بأمان',
+              subtitle: 'حفظ واسترجاع بيانات التطبيق والقسائم بأمان',
               icon: Icons.cloud_sync_rounded,
               gradientColors: const [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
               onTap: () {

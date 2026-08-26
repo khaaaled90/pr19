@@ -126,25 +126,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ),
       ),
-      /*bottomNavigationBar: SafeArea(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-          decoration: BoxDecoration(
-            color: Colors.transparent, // شفاف لإبراز الأزرار المستقلة
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
-              _buildNavItem(Icons.confirmation_number_rounded, 'الكروت', 1),
-              _buildNavItem(Icons.donut_small_rounded, 'التقارير', 2),
-              _buildNavItem(Icons.tune_rounded, 'الإعدادات', 3),
-              _buildNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
-            ],
-          ),
-        ),
-      ),*/
     );
   }
   Widget _build3DNavItem(IconData icon, String label, int index) {
@@ -237,633 +218,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     );
   }
-  /*Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isActive = _currentIndex == index;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final primaryColor = theme.primaryColor;
-    final cardBg = theme.cardColor;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => _onTabTapped(index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            // 1. ألوان مصمتة وواضحة بدون الشفافية المنخفضة
-            color: isActive
-                ? (isDark ? primaryColor : primaryColor)
-                : cardBg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              // 2. إطار واضح
-              color: isActive
-                  ? Colors.transparent
-                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade300),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              )
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                // 3. ألوان أيقونات مصمتة (Solid Colors)
-                color: isActive
-                    ? Colors.white
-                    : (isDark ? Colors.white70 : Colors.black87),
-                size: isActive ? 22 : 20,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                  // 4. ألوان نصوص مصمتة وواضحة
-                  color: isActive
-                      ? Colors.white
-                      : (isDark ? Colors.white70 : Colors.black87),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }*/
-  /*Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isActive = _currentIndex == index;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final primaryColor = theme.primaryColor;
-    final cardBg = theme.cardColor;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => _onTabTapped(index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isActive
-                ? (isDark ? primaryColor.withOpacity(0.25) : primaryColor)
-                : cardBg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: isActive
-                  ? primaryColor.withOpacity(0.5)
-                  : (isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
-              width: 1.2,
-            ),
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: primaryColor.withOpacity(0.35),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    )
-                  ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                color: isActive
-                    ? (isDark ? const Color(0xFF38BDF8) : Colors.white)
-                    : (isDark ? Colors.white54 : Colors.black54),
-                size: isActive ? 22 : 20,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                  color: isActive
-                      ? (isDark ? const Color(0xFF38BDF8) : Colors.white)
-                      : (isDark ? Colors.white54 : Colors.black54),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }*/
 }
 
-//**************************** */
-/*class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({Key? key}) : super(key: key);
-
-  @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
-}
-
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
-
-  // 1. عدادات موحدة لجميع الشاشات لإجبارها على التحديث عند النقر
-  int _homeRefreshKey = 0;
-  int _vouchersRefreshKey = 0;
-  int _salesRefreshKey = 0;
-  int _settingsRefreshKey = 0;
-  int _contactRefreshKey = 0;
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-
-      // 2. تحديث العداد الخاص بالتبويب المحدد فور التنقل
-      switch (index) {
-        case 0:
-          _homeRefreshKey++;
-          break;
-        case 1:
-          _vouchersRefreshKey++;
-          break;
-        case 2:
-          _salesRefreshKey++;
-          break;
-        case 3:
-          _settingsRefreshKey++;
-          break;
-        case 4:
-          _contactRefreshKey++;
-          break;
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardBg = theme.cardColor;
-
-    return Scaffold(
-      // 🟢 تجعل محتوى الشاشة يتمتد لخلف الـ BottomNavigationBar
-      extendBody: true, 
-
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          // 3. ربط جميع الشاشات بـ ValueKey لتعيد التحديث تلقائياً
-          HomeScreen(key: ValueKey('home_$_homeRefreshKey')),
-          VouchersScreen(key: ValueKey('vouchers_$_vouchersRefreshKey')),
-          SalesScreen(key: ValueKey('sales_$_salesRefreshKey')),
-          SettingsScreen(key: ValueKey('settings_$_settingsRefreshKey')),
-          ContactTabScreen(key: ValueKey('contact_$_contactRefreshKey')),
-        ],
-      ),
-
-      // 🟢 مغلف بـ SafeArea للتحكم بالهوامش في الشاشات العادية والحديثة
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: cardBg.withOpacity(isDark ? 0.92 : 0.98), // شفافة خفيفة لمظهر عائم عصري
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.4 : 0.12),
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 6),
-              )
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
-                _buildNavItem(Icons.confirmation_number_rounded, 'الكروت', 1),
-                _buildNavItem(Icons.donut_small_rounded, 'التقارير', 2),
-                _buildNavItem(Icons.tune_rounded, 'الإعدادات', 3),
-                _buildNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isActive = _currentIndex == index;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final activeColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A);
-    final inactiveColor = isDark ? Colors.white38 : Colors.black38;
-
-    return InkWell(
-      onTap: () => _onTabTapped(index),
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: isActive
-            ? BoxDecoration(
-                color: activeColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(16),
-              )
-            : null,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: isActive ? activeColor : inactiveColor, size: 22),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                color: isActive ? activeColor : inactiveColor,
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}*/
-/*class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({Key? key}) : super(key: key);
-
-  @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
-}
-
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
-
-  // 1. عدادات موحدة لجميع الشاشات لإجبارها على التحديث عند النقر
-  int _homeRefreshKey = 0;
-  int _vouchersRefreshKey = 0;
-  int _salesRefreshKey = 0;
-  int _settingsRefreshKey = 0;
-  int _contactRefreshKey = 0;
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-
-      // 2. تحديث العداد الخاص بالتبويب المحدد فور التنقل
-      switch (index) {
-        case 0:
-          _homeRefreshKey++;
-          break;
-        case 1:
-          _vouchersRefreshKey++;
-          break;
-        case 2:
-          _salesRefreshKey++;
-          break;
-        case 3:
-          _settingsRefreshKey++;
-          break;
-        case 4:
-          _contactRefreshKey++;
-          break;
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardBg = theme.cardColor;
-
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          // 3. ربط جميع الشاشات بـ ValueKey لتعيد التحديث تلقائياً
-          HomeScreen(key: ValueKey('home_$_homeRefreshKey')),
-          VouchersScreen(key: ValueKey('vouchers_$_vouchersRefreshKey')),
-          SalesScreen(key: ValueKey('sales_$_salesRefreshKey')),
-          SettingsScreen(key: ValueKey('settings_$_settingsRefreshKey')),
-          ContactTabScreen(key: ValueKey('contact_$_contactRefreshKey')),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
-              _buildNavItem(Icons.confirmation_number_rounded, 'الكروت', 1),
-              _buildNavItem(Icons.donut_small_rounded, 'التقارير', 2),
-              _buildNavItem(Icons.tune_rounded, 'الإعدادات', 3),
-              _buildNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isActive = _currentIndex == index;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final activeColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A);
-    final inactiveColor = isDark ? Colors.white38 : Colors.black38;
-
-    return InkWell(
-      onTap: () => _onTabTapped(index),
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: isActive
-            ? BoxDecoration(
-                color: activeColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(16),
-              )
-            : null,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: isActive ? activeColor : inactiveColor, size: 22),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                color: isActive ? activeColor : inactiveColor,
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}*/
-/*class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({Key? key}) : super(key: key);
-
-  @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
-}
-
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
-
-  // عدادات لإجبار الشاشات على التحديث عند النقر على التبويب
-  int _vouchersRefreshKey = 0;
-  int _salesRefreshKey = 0;
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-
-      // عند الانتقال لتبويب الكروت (1)، نغير المفتاح لإعادة تشغيل initState داخل الشاشة وتحديث البيانات
-      if (index == 1) {
-        _vouchersRefreshKey++;
-      }
-      // عند الانتقال لتبويب التقارير/المبيعات (2)، نغير المفتاح لنفس الغرض
-      else if (index == 2) {
-        _salesRefreshKey++;
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardBg = theme.cardColor;
-
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          const HomeScreen(),
-          // استخدام ValueKey يربط المفتاح بالعداد، مما يحفز التحديث التلقائي فور التنقل
-          VouchersScreen(key: ValueKey('vouchers_$_vouchersRefreshKey')),
-          SalesScreen(key: ValueKey('sales_$_salesRefreshKey')),
-          const SettingsScreen(),
-          const ContactTabScreen(),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
-              _buildNavItem(Icons.confirmation_number_rounded, 'الكروت', 1),
-              _buildNavItem(Icons.donut_small_rounded, 'التقارير', 2),
-              _buildNavItem(Icons.tune_rounded, 'الإعدادات', 3),
-              _buildNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isActive = _currentIndex == index;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final activeColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A);
-    final inactiveColor = isDark ? Colors.white38 : Colors.black38;
-
-    return InkWell(
-      // استدعاء دالة التنقل والتحديث عند الضغط
-      onTap: () => _onTabTapped(index),
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: isActive
-            ? BoxDecoration(
-                color: activeColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(16),
-              )
-            : null,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: isActive ? activeColor : inactiveColor, size: 22),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                color: isActive ? activeColor : inactiveColor,
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}*/
-/*class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({Key? key}) : super(key: key);
-
-  @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
-}
-
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    //const VouchersTabScreen(),
-    //const ReportsTabScreen(),
-    //const SettingsTabScreen(),
-    const VouchersScreen(),
-    const SalesScreen(),
-    const SettingsScreen(),
-    const ContactTabScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardBg = theme.cardColor;
-
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.dashboard_rounded, 'الرئيسية', 0),
-              _buildNavItem(Icons.confirmation_number_rounded, 'الكروت', 1),
-              _buildNavItem(Icons.donut_small_rounded, 'التقارير', 2),
-              _buildNavItem(Icons.tune_rounded, 'الإعدادات', 3),
-              _buildNavItem(Icons.headset_mic_rounded, 'الدعم', 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isActive = _currentIndex == index;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final activeColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A);
-    final inactiveColor = isDark ? Colors.white38 : Colors.black38;
-
-    return InkWell(
-      onTap: () => setState(() => _currentIndex = index),
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: isActive
-            ? BoxDecoration(
-                color: activeColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(16),
-              )
-            : null,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: isActive ? activeColor : inactiveColor, size: 22),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                color: isActive ? activeColor : inactiveColor,
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}*/
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -1025,22 +381,6 @@ class _HomeScreenState extends State<HomeScreen> {
       totalUsed = 0;
       isLoading = false; // 👈 مهم جداً لإيقاف مؤشر التحميل
     });
-    /*setState(() {
-      statReplies = 0;
-      availableCategoriesData = [
-        _CategoryStatData('باقة 100', 50, categoryColors[0]),
-        _CategoryStatData('باقة 200', 30, categoryColors[1]),
-        _CategoryStatData('باقة 500', 15, categoryColors[2]),
-      ];
-      usedCategoriesData = [
-        _CategoryStatData('باقة 100', 120, categoryColors[0]),
-        _CategoryStatData('باقة 200', 85, categoryColors[1]),
-      ];
-
-      totalAvailable = availableCategoriesData.fold(0, (s, i) => s + i.count);
-      totalUsed = usedCategoriesData.fold(0, (s, i) => s + i.count);
-      isLoading = false;
-    });*/
   }
 
   void _processChartData(
@@ -1215,15 +555,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                       }
                                     },
                                   ),
-                                  /*child: Switch(
-                                    value: _serviceEnabled,
-                                    activeColor: const Color(0xFF10B981),
-                                    onChanged: (val) async {
-                                      setState(() => _serviceEnabled = val);
-                                      await DatabaseHelper.instance.updateSetting(
-                                          'service_enabled', val ? 'true' : 'false');
-                                    },
-                                  ),*/
                                 ),
                               ],
                             ),
@@ -1276,19 +607,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                       }
                                     },
                                   ),
-                                  /*child: Switch(
-                                    value: _notificationEnabled,
-                                    activeColor: const Color(0xFF10B981),
-                                    onChanged: (val) async {
-                                      setState(() => _notificationEnabled = val);
-                                      await DatabaseHelper.instance.updateSetting(
-                                          'enable_notification', val ? 'true' : 'false');
-                                      if (val) {
-                                        await NativeServiceController
-                                            .requestNotificationListenerPermission();
-                                      }
-                                    },
-                                  ),*/
                                 ),
                               ],
                             ),
@@ -1458,85 +776,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildPieChartSection('القسائم المستخدمة', usedCategoriesData,
                         totalUsed, cardBg, textColor),
                     const SizedBox(height: 24),
-
-                    Text(
-                      'الخيارات والخدمات',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: textColor),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // 🔲 شبكة خيارات الخدمة (Grid UI)
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.35,
-                      children: [
-                        _buildMenuItem('الباقات', Icons.vpn_key_rounded,
-                            const Color(0xFF8B5CF6), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const KeywordsScreen()));
-                          _loadStats();
-                        }),
-                        /*_buildMenuItem('تغذية الكروت', Icons.add_card_rounded,
-                            const Color(0xFFF59E0B), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const VouchersScreen()));
-                          _loadStats();
-                        }),*/
-                        _buildMenuItem('الأرشيف', Icons.mark_email_read_rounded,
-                            const Color(0xFF06B6D4), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const ArchiveScreen()));
-                          _loadStats();
-                        }),
-                        /*_buildMenuItem('المبيعات', Icons.insights_rounded,
-                            const Color(0xFF6366F1), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const ExceptedCustomersScreen()));
-                          _loadStats();
-                        }), 
-                        */
-                        _buildMenuItem('العمليات', Icons.pending_actions_rounded,
-                            const Color(0xFFEC4899), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const PendingLogsScreen()));
-                          _loadStats();
-                        }),
-                        _buildMenuItem('الاستثنائات', Icons.person_off_rounded,
-                            const Color(0xFF6366F1), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const ExceptedCustomersScreen()));
-                          _loadStats();
-                        }),
-                        //_buildMenuItem('إرسال يدوي', Icons.send_rounded,
-                            //const Color(0xFFEF4444), cardBg, textColor, _openManualSendDialog),
-                        _buildMenuItem('المحافظ', Icons.account_balance_rounded,
-                            const Color(0xFF10B981), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const AllowedSendersScreen()));
-                          _loadStats();
-                        }),
-                        _buildMenuItem('تعديل العملاء', Icons.manage_accounts_rounded,
-                            const Color(0xFF64748B), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const CustomersManagementScreen()));
-                          _loadStats();
-                        }),
-                        _buildMenuItem('النسخ الاحتياطي', Icons.cloud_sync_rounded,
-                            const Color(0xFF3B82F6), cardBg, textColor, () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const BackupScreen()));
-                          _loadStats();
-                        }),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -1562,23 +801,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
     );
   }
-        // 🎯 إضافة الزر العائم المطفي/المعطل
-        /*floatingActionButton: FloatingActionButton.extended(
-          onPressed: _openManualSendDialog, // تمرير مباشر بدون () وبدون أقواس دالة
-          backgroundColor: Theme.of(context).primaryColor,
-          elevation: 4,
-          icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-          label: const Text(
-            'إرسال يدوي',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        )
-    );
-  }*/
 
   Widget _buildToggleControl({
     required String title,
@@ -1766,8 +988,222 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  Widget _buildPieChartSection(
+    String title,
+    List<_CategoryStatData> data,
+    int total,
+    Color cardBg,
+    Color textColor,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-  Widget _buildPieChartSection(String title, List<_CategoryStatData> data,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // الهيدر الرئيسي للمنطقة
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF6366F1),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: (isDark ? Colors.white : Colors.black).withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'المجموع: $total',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: textColor.withOpacity(0.8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          if (data.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24.0),
+              child: Center(
+                child: Text(
+                  'لا توجد بيانات متاحة حالياً',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ),
+            )
+          else
+            Column(
+              children: [
+                // رسم بياني عصري مع النسبة الإجمالية في المنتصف
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 120,
+                      width: 120,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          PieChart(
+                            PieChartData(
+                              sectionsSpace: 3,
+                              centerSpaceRadius: 38,
+                              startDegreeOffset: -90,
+                              sections: data.map((item) {
+                                return PieChartSectionData(
+                                  color: item.color,
+                                  value: item.count.toDouble(),
+                                  title: '',
+                                  radius: 14,
+                                  badgeWidget: null,
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$total',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.extrabold,
+                                  color: textColor,
+                                ),
+                              ),
+                              Text(
+                                'كروت',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: textColor.withOpacity(0.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    
+                    // قائمة الإحصائيات مع نسبة مئوية مخصصة
+                    Expanded(
+                      child: Column(
+                        children: data.take(4).map((item) {
+                          final percentage = total > 0
+                              ? ((item.count / total) * 100).toStringAsFixed(1)
+                              : '0';
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: item.color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    item.categoryName,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: textColor,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  '${item.count}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '($percentage%)',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: textColor.withOpacity(0.4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // شريط التوزيع الأفقي المودرن (Segmented Bar)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    height: 6,
+                    child: Row(
+                      children: data.map((item) {
+                        final flex = (total > 0) ? item.count : 1;
+                        return Expanded(
+                          flex: flex,
+                          child: Container(color: item.color),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+  /*Widget _buildPieChartSection(String title, List<_CategoryStatData> data,
       int total, Color cardBg, Color textColor) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1835,7 +1271,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-  }
+  }*/
 
   Widget _buildMenuItem(String title, IconData icon, Color color, Color cardBg, Color textColor, VoidCallback onTap) {
     return Material(
@@ -2036,17 +1472,6 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
       final dbHelper = DatabaseHelper.instance;
       var usedVoucher = await dbHelper.getAndUseVoucher(selectedKeywordId!, phone);
 
-      //if (usedVoucher != null) {
-        /*String cardCode = usedVoucher['number_code'];
-        await dbHelper.saveOrUpdateCustomer(phone);
-        String footerMsg = await dbHelper.getSetting('footer_message', '');
-        String defaultReply = await DatabaseHelper.instance
-          .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');
-        String fullMsg = cardCode + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
-        
-        String fullMessage = "$defaultReply $fullMsg";
-
-        bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);*/
       if (usedVoucher != null) {
         String cardCode = usedVoucher['number_code'] ?? '';
         // 🟢 1. تنظيف النص واستخراج الأرقام فقط
@@ -2114,74 +1539,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     if (mounted) setState(() => isSending = false);
   }  
   
-  /*Future<void> _sendCard() async {
-    
-    String phone = _phoneController.text.trim();
-    if (phone.isEmpty) {
-      _showMessage('⚠️ الرجاء إدخال رقم الجوال', isError: true);
-      return;
-    }
-
-    if (availableVoucher == null || selectedKeywordId == null) {
-      _showMessage('⚠️ لا يوجد كرت متاح للإرسال', isError: true);
-      return;
-    }
-
-    // فور نجاح السحب أو عند الفشل لعدم توفر كروت:
-    var matchedKw = keywords.firstWhere(
-      (k) => k['id'] == selectedKeywordId,
-      orElse: () => <String, dynamic>{},
-    );
-    String kwName = matchedKw['keyword'] ?? 'يدوي';
-    await triggerManagerAlertNative(selectedKeywordId!, kwName);
-    
-    setState(() => isSending = true);
-
-    try {
-      final dbHelper = DatabaseHelper.instance;
-      var usedVoucher =
-          await dbHelper.getAndUseVoucher(selectedKeywordId!, phone);
-
-      if (usedVoucher != null) {
-        String cardCode = usedVoucher['number_code'];
-        await dbHelper.saveOrUpdateCustomer(phone);
-        String footerMsg = await dbHelper.getSetting('footer_message', '');
-        String fullMessage =
-            cardCode + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
-
-        var matchedKw =
-            keywords.firstWhere((k) => k['id'] == selectedKeywordId);
-        String kwName = matchedKw['keyword'] ?? 'يدوي';
-
-        bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);
-
-        await dbHelper.addToArchive(
-          sender: 'إرسال يدوي',
-          senderName: phone,
-          receivedMessage: fullMessage,
-          matchedKeyword: kwName,
-          sentNumber: cardCode,
-          status: sentStatus ? 'sent' : 'failed',
-        );
-
-        if (sentStatus) {
-          _showMessage('✅ تم إرسال الكرت إلى $phone بنجاح');
-          widget.onSentSuccess();
-          if (mounted) Navigator.pop(context);
-        } else {
-          _showMessage('⚠️ تم استهلاك الكرت ولكن فشل إرسال الـ SMS',
-              isError: true);
-        }
-      } else {
-        _showMessage('❌ فشل تعيين الكرت', isError: true);
-      }
-    } catch (e) {
-      _showMessage('⚠️ خطأ في معالجة العملية: $e', isError: true);
-    }
-
-    if (mounted) setState(() => isSending = false);
-  }*/
-
+ 
   /// دالة تنبيه الـ Native لمتابعة مخزون الكروت
   Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {
     try {
@@ -2195,16 +1553,6 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
       debugPrint("⚠️ تعذر استدعاء دالة تنبيه المخزون في Kotlin: $e");
     }
   }
-  /*Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {
-    try {
-      await _nativeControlChannel.invokeMethod('native_control', {
-        'keywordId': keywordId,
-        'keywordText': keywordText,
-      });
-    } catch (e) {
-      debugPrint("⚠️ تعذر استدعاء دالة تنبيه المخزون في Kotlin: $e");
-    }
-  }*/
 
   void _showMessage(String msg, {bool isError = false}) {
     if (!mounted) return;
@@ -2348,15 +1696,3 @@ class SettingsTabScreen extends StatelessWidget {
     );
   }
 }
-
-/*class ContactTabScreen extends StatelessWidget {
-  const ContactTabScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('الدعم والتواصل')),
-      body: const Center(child: Text('شاشة التواصل والدعم الفني')),
-    );
-  }
-}*/

@@ -5,6 +5,7 @@ import 'PendingLogsScreen.dart';
 import 'ExceptedCustomersScreen.dart';
 import 'CustomersManagementScreen.dart';
 import 'archive_screen.dart';
+import 'global_search_screen.dart';
 
 class TasksScreen extends StatelessWidget {
   const TasksScreen({Key? key}) : super(key: key);
@@ -38,6 +39,23 @@ class TasksScreen extends StatelessWidget {
               style: TextStyle(fontSize: 13, color: Colors.grey),
             ),
             const SizedBox(height: 16),
+            
+            // 🟢 كرت البحث الشامل المضاف
+            _build3DTaskCard(
+                context: context,
+                title: 'البحث الشامل',
+                subtitle: 'البحث عن القسائم، أرقام العملاء، المعرفات والأرشيف',
+                icon: Icons.search_rounded,
+                badgeText: 'البحث',
+                gradientColors: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const GlobalSearchScreen()),
+                );
+                },
+            ),
+            const SizedBox(height: 14),
             _build3DTaskCard(
               context: context,
               title: 'سجل العمليات المعلقة',

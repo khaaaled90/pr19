@@ -796,6 +796,81 @@ class DatabaseHelper {
     return result;
   }
 
+  // دالة بحث شاملة في قاعدة البيانات
+  Future<List<Map<String, dynamic>>> searchGlobal(String query) async {
+    if (query.trim().isEmpty) return [];
+    
+    final db = await database;
+    final String searchTerm = '%${query.trim()}%';
+
+    final String sql = '''
+      -- 1. البحث في أكواد القسائم / الكروت
+      SELECT 
+        'voucher' AS result_type,
+        np.id AS primary_id,
+        np.number_code AS title,
+        COALESCE(k.keyword, 'غير معروف') AS subtitle,
+        'الحالة: ' || np.status || COALESCE(' | المخصص له: ' || np.assigned_to, '') AS extra_info
+      FROM $tableNumbersPool np
+      LEFT JOIN $tableKeywords k ON np.keyword_id = k.id
+      WHERE np.number_code LIKE ? OR np.assigned_to LIKE ?
+
+      UNION ALL
+
+      -- 2. البحث في العملاء
+      SELECT 
+        'customer' AS result_type,
+        c.id AS primary_id,
+        COALESCE(c.name, 'عميل بدون اسم') AS title,
+        'الهاتف: ' || c.phone AS subtitle,
+        'المحفظة: ' || COALESCE(c.wallet_number, 'لا يوجد') || ' | الرصيد: ' || COALESCE(c.last_balance, '0') AS extra_info
+      FROM $tableCustomers c
+      WHERE c.phone LIKE ? OR c.name LIKE ? OR c.wallet_number LIKE ?
+
+      UNION ALL
+
+      -- 3. البحث في المعرفات المرتبطة بالعملاء
+      SELECT 
+        'identifier' AS result_type,
+        ci.id AS primary_id,
+        ci.identifier AS title,
+        'معرّف للعميل: ' || COALESCE(c.name, c.phone) AS subtitle,
+        'هاتف العميل: ' || c.phone AS extra_info
+      FROM $tableClientIdentifiers ci
+      JOIN $tableCustomers c ON ci.client_id = c.id
+      WHERE ci.identifier LIKE ?
+
+      UNION ALL
+
+      -- 4. البحث في سجل الرسائل والأرشيف (أرقام المرجعية والعمليات)
+      SELECT 
+        'log' AS result_type,
+        rl.id AS primary_id,
+        COALESCE(rl.sent_number, rl.matched_keyword, 'رسالة') AS title,
+        'المرسل: ' || COALESCE(rl.sender_name, rl.sender) AS subtitle,
+        'الرسالة: ' || rl.received_message AS extra_info
+      FROM $tableReplyLog rl
+      WHERE rl.sent_number LIKE ? 
+        OR rl.sender LIKE ? 
+        OR rl.sender_name LIKE ? 
+        OR rl.received_message LIKE ? 
+        OR rl.transaction_fingerprint LIKE ?
+
+      LIMIT 50;
+    ''';
+
+    return await db.rawQuery(sql, [
+      // القسائم
+      searchTerm, searchTerm,
+      // العملاء
+      searchTerm, searchTerm, searchTerm,
+      // المعرفات
+      searchTerm,
+      // الأرشيف
+      searchTerm, searchTerm, searchTerm, searchTerm, searchTerm,
+    ]);
+  }
+
   /*Future<int> deletePendingLog(int id) async {
     final db = await instance.database;
     return await db.delete(

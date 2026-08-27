@@ -6,6 +6,7 @@ import 'allowed_senders_screen.dart';
 import 'backup_screen.dart';
 import 'vouchers_screen.dart';
 import 'sales_screen.dart';
+import 'sim_settings_screen.dart'; // أو حسب المسار الخاص بالملف لديلك
 
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({Key? key}) : super(key: key);

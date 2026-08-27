@@ -95,6 +95,21 @@ class ServicesScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 14),
+            // 🟢 البطاقة المُضافة: شاشة اختيار شريحة الإرسال
+            _build3DServiceCard(
+              context: context,
+              title: 'إعدادات شريحة الإرسال',
+              subtitle: 'تحديد الشريحة المعتمدة لإرسال كروت الرد الآلي',
+              icon: Icons.sim_card_rounded,
+              gradientColors: const [Color(0xFF6366F1), Color(0xFF4F46E5)],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SimSettingsScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 14),
             _build3DServiceCard(
               context: context,
               title: 'النسخ الاحتياطي والاستعادة',

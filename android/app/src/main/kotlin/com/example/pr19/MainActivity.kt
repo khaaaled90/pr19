@@ -14,6 +14,11 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessaging
+import android.telephony.SubscriptionInfo
+import android.telephony.SubscriptionManager
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
 
 class MainActivity: FlutterActivity() {
 
@@ -356,6 +361,27 @@ class MainActivity: FlutterActivity() {
                         }
                     }
 
+                    // 🎯 جلب الشرائح المتاحة لعرصها في Flutter
+                    "getAvailableSims" -> {
+                        val simList = getActiveSimCards(this)
+                        result.success(simList)
+                    }
+
+                    // 🎯 حفظ الشريحة المختارة من واجهة Flutter
+                    "setSelectedSim" -> {
+                        val subId = call.argument<Int>("subId") ?: -1
+                        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                        prefs.edit().putInt("selected_sms_sub_id", subId).apply()
+                        result.success(true)
+                    }
+
+                    // 🎯 جلب ID الشريحة المحفوظة
+                    "getSelectedSim" -> {
+                        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                        val subId = prefs.getInt("selected_sms_sub_id", -1)
+                        result.success(subId)
+                    }
+
                     "disableLicense" -> {
                         LicenseManager.stopAllBackgroundWork(applicationContext)
                         result.success(true)
@@ -456,7 +482,7 @@ class MainActivity: FlutterActivity() {
     }
 
     // دالة إرسال الـ SMS عبر نظام أندرويد
-    private fun sendNativeSms(phone: String, message: String): Boolean {
+    /*private fun sendNativeSms(phone: String, message: String): Boolean {
         return try {
             val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 this.getSystemService(SmsManager::class.java)
@@ -476,6 +502,43 @@ class MainActivity: FlutterActivity() {
             Log.e("SMS_SEND", "Failed to send SMS: ${e.message}", e)
             false
         }
+    }*/
+
+    private fun sendNativeSms(phone: String, message: String): Boolean {
+        // 1. قراءة رقم الشريحة المحفوظة من الإعدادات
+        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+        val savedSubId = prefs.getInt("selected_sms_sub_id", -1)
+
+        // 2. التمرير إلى كود الإرسال بالشريحة المحددة
+        return DualSimSmsSender.sendSms(
+            context = this,
+            phoneNumber = phone,
+            message = message,
+            preferredSubId = if (savedSubId != -1) savedSubId else null
+        )
+    }
+
+    private fun getActiveSimCards(context: Context): List<Map<String, Any>> {
+        val simList = mutableListOf<Map<String, Any>>()
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.READ_PHONE_STATE
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasPermission) return simList
+
+        val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
+        val activeList: List<SubscriptionInfo>? = subscriptionManager.activeSubscriptionInfoList
+
+        activeList?.forEach { info ->
+            val simMap = mapOf(
+                "subId" to info.subscriptionId,
+                "displayName" to (info.displayName?.toString() ?: "شريحة ${info.simSlotIndex + 1}"),
+                "slotIndex" to info.simSlotIndex,
+                "carrierName" to (info.carrierName?.toString() ?: "")
+            )
+            simList.add(simMap)
+        }
+        return simList
     }
 
     // التحقق الدقيق مما إذا كانت خدمة قراءة الإشعارات مفعلة للتطبيق
@@ -760,7 +823,8 @@ class MainActivity: FlutterActivity() {
         }
     }*/
 
-    private fun sendNativeSms(phone: String, message: String): Boolean {
+    
+    /*private fun sendNativeSms(phone: String, message: String): Boolean {
         return try {
             val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 this.getSystemService(SmsManager::class.java)
@@ -780,7 +844,7 @@ class MainActivity: FlutterActivity() {
             Log.e("SMS_SEND", "Failed to send SMS: ${e.message}", e)
             false
         }
-    }
+    }*/
 
     // التحقق الدقيق مما إذا كانت خدمة قراءة الإشعارات مفعلة للتطبيق
     private fun isNotificationServiceEnabled(): Boolean {

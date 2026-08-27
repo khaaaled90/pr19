@@ -1353,7 +1353,12 @@ class ManualSendBottomSheet extends StatefulWidget {
 class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
   List<Map<String, dynamic>> keywords = [];
   int? selectedKeywordId;
-  Map<String, dynamic>? availableVoucher;
+  
+  //Map<String, dynamic>? availableVoucher;
+  // 🟢 بدلاً من الكرت الواحد، استبدله بقائمة والقيمة المحددة للعدد
+  List<Map<String, dynamic>> availableVouchers = [];
+  int selectedCount = 1; // 👈 عدد القسائم المطلوب إرسالها (من 1 إلى 10)
+
   final TextEditingController _phoneController = TextEditingController();
   bool isLoadingKeywords = true;
   bool isSending = false;
@@ -1420,7 +1425,47 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     }
   }
 
-  Future<void> _onKeywordSelected(int? id) async {
+  // 🟢 دالة جلب الكروت المتاحة بناءً على العدد المحدد من القائمة المنسدلة
+  Future<void> _fetchAvailableVouchers() async {
+    if (selectedKeywordId == null) return;
+    
+    setState(() {
+      availableVouchers = [];
+      noCardsAvailable = false;
+    });
+
+    try {
+      final db = await DatabaseHelper.instance.database;
+      List<Map<String, dynamic>> results = await db.query(
+        DatabaseHelper.tableNumbersPool,
+        where: 'keyword_id = ? AND status = ?',
+        whereArgs: [selectedKeywordId, 'available'],
+        limit: selectedCount, // 👈 جلب الكروت بالعدد المحدد
+      );
+
+      if (mounted) {
+        setState(() {
+          if (results.isNotEmpty && results.length >= selectedCount) {
+            availableVouchers = results;
+            noCardsAvailable = false;
+          } else {
+            availableVouchers = results;
+            noCardsAvailable = true;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => noCardsAvailable = true);
+    }
+  }
+
+  void _onKeywordSelected(int? id) {
+    if (id == null) return;
+    selectedKeywordId = id;
+    _fetchAvailableVouchers();
+  }
+  
+  /*Future<void> _onKeywordSelected(int? id) async {
     if (id == null) return;
     setState(() {
       selectedKeywordId = id;
@@ -1449,7 +1494,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     } catch (e) {
       if (mounted) setState(() => noCardsAvailable = true);
     }
-  }
+  }*/
 
   Future<bool> _sendSmsNativeDirect(String phone, String message) async {
     try {
@@ -1463,8 +1508,121 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     }
   }
 
-  // 🟢 دالة قراءة بيانات الترخيص والقسائم المتبقية
   Future<void> _sendCard() async {
+    String phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      _showMessage('⚠️ الرجاء إدخال رقم الجوال', isError: true);
+      return;
+    }
+
+    // 🟢 التحقق من القائمة والعدد المتاح
+    if (availableVouchers.isEmpty || selectedKeywordId == null) {
+      _showMessage('⚠️ لا توجد كروت متاحة للإرسال', isError: true);
+      return;
+    }
+
+    if (availableVouchers.length < selectedCount) {
+      _showMessage('⚠️ عدد الكروت المتاحة غير كافٍ لطلبك (${availableVouchers.length} متوفر فقط)', isError: true);
+      return;
+    }
+
+    var matchedKw = keywords.firstWhere(
+      (k) => k['id'] == selectedKeywordId,
+      orElse: () => <String, dynamic>{},
+    );
+    String kwName = matchedKw['keyword'] ?? 'يدوي';
+    double singleCardPrice = (matchedKw['price'] as num?)?.toDouble() ?? 0.0;
+
+    await triggerManagerAlertNative(selectedKeywordId!, kwName);
+    setState(() => isSending = true);
+
+    try {
+      final dbHelper = DatabaseHelper.instance;
+
+      // 🟢 1️⃣ سحب واستئجار الكروت المحددة وحفظ الأكواد
+      List<String> usedCodes = [];
+      for (int i = 0; i < selectedCount; i++) {
+        var usedVoucher = await dbHelper.getAndUseVoucher(selectedKeywordId!, phone);
+        if (usedVoucher != null) {
+          usedCodes.add(usedVoucher['number_code'] ?? '');
+        }
+      }
+
+      if (usedCodes.length < selectedCount) {
+        _showMessage('❌ حدث خطأ أثناء تعيين الكروت', isError: true);
+        setState(() => isSending = false);
+        return;
+      }
+
+      // تنظيف رقم المستلم
+      String cleanDigits = phone.replaceAll(RegExp(r'\D'), '');
+      if (cleanDigits.length >= 9) {
+        phone = "+967${cleanDigits.substring(cleanDigits.length - 9)}";
+      }
+      await dbHelper.saveOrUpdateCustomer(phone);
+
+      // 🟢 2️⃣ بناء نص الرسالة النصية المجمعة لكافة القسائم
+      StringBuffer cardsFormattedText = StringBuffer();
+      for (int i = 0; i < usedCodes.length; i++) {
+        String code = usedCodes[i];
+        List<String> parts = code.split(RegExp(r'[,\-/]'));
+
+        if (usedCodes.length > 1) {
+          cardsFormattedText.write("\n--- كرت (${i + 1}) ---");
+        }
+
+        if (parts.length >= 2) {
+          cardsFormattedText.write("\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}");
+        } else {
+          cardsFormattedText.write("\nرمز الكرت: ${code.trim()}");
+        }
+      }
+
+      String footerMsg = await dbHelper.getSetting('footer_message', '');
+      String defaultReply = await dbHelper.getSetting('default_reply', 'شكراً لتواصلك. كروتك هي: ');
+
+      String fullMessage = "$defaultReply\n${cardsFormattedText.toString()}" + 
+          (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
+
+      // 🟢 3️⃣ إرسال الرسالة النصية المجمعة (رسالة واحدة فقط)
+      bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);
+
+      // 🟢 4️⃣ حفظ كل قسيمة في سجل مستقل في الأرشيف
+      for (String cardCode in usedCodes) {
+        await dbHelper.addToArchive(
+          sender: 'إرسال يدوي',
+          senderName: phone,
+          receivedMessage: fullMessage,
+          matchedKeyword: kwName,
+          sentNumber: cardCode,
+          price: singleCardPrice,
+          status: sentStatus ? 'sent_manual' : 'failed',
+        );
+      }
+
+      if (sentStatus) {
+        try {
+          await _nativeControlChannel.invokeMethod("showVoucherNotification", {
+            "categoryName": "$kwName ($selectedCount كروت)",
+            "phone": phone,
+          });
+        } catch (e) {
+          debugPrint("خطأ أثناء استدعاء إشعار القسيمة: $e");
+        }
+        _showMessage('✅ تم إرسال $selectedCount كروت إلى $phone بنجاح');
+        widget.onSentSuccess();
+        if (mounted) Navigator.pop(context);
+      } else {
+        _showMessage('⚠️ تم استهلاك الكروت ولكن فشل إرسال الـ SMS', isError: true);
+      }
+    } catch (e) {
+      _showMessage('⚠️ خطأ في معالجة العملية: $e', isError: true);
+    }
+
+    if (mounted) setState(() => isSending = false);
+  }
+  // 🟢 دالة قراءة بيانات الترخيص والقسائم المتبقية
+  /*Future<void> _sendCard() async {
     String phone = _phoneController.text.trim();
     if (phone.isEmpty) {
       _showMessage('⚠️ الرجاء إدخال رقم الجوال', isError: true);
@@ -1557,7 +1715,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     }
 
     if (mounted) setState(() => isSending = false);
-  }  
+  }*/  
   
  
   /// دالة تنبيه الـ Native لمتابعة مخزون الكروت
@@ -1620,7 +1778,57 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
             const SizedBox(height: 8),
             isLoadingKeywords
                 ? const Center(child: CircularProgressIndicator())
-                : DropdownButtonFormField<int>(
+                : Row(
+                    children: [
+                      // اختيار الباقة
+                      Expanded(
+                        flex: 3,
+                        child: DropdownButtonFormField<int>(
+                          value: selectedKeywordId,
+                          decoration: InputDecoration(
+                            labelText: 'اختر الباقة',
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          items: keywords.map((k) {
+                            return DropdownMenuItem<int>(
+                              value: k['id'] as int,
+                              child: Text('${k['keyword']}'),
+                            );
+                          }).toList(),
+                          onChanged: _onKeywordSelected,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // 🟢 قائمة اختيار العدد (من 1 إلى 10)
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<int>(
+                          value: selectedCount,
+                          decoration: InputDecoration(
+                            labelText: 'العدد',
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          items: List.generate(10, (index) => index + 1).map((count) {
+                            return DropdownMenuItem<int>(
+                              value: count,
+                              child: Text('$count قسيمة'),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                selectedCount = val;
+                              });
+                              _fetchAvailableVouchers();
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                /*DropdownButtonFormField<int>(
                     value: selectedKeywordId,
                     decoration: InputDecoration(
                       labelText: 'اختر الباقة',
@@ -1634,8 +1842,49 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
                       );
                     }).toList(),
                     onChanged: _onKeywordSelected,
+                  ),*/
+            // التنبيه في حالة النقص
+            if (noCardsAvailable && selectedKeywordId != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                '⚠️ العدد المتاح (${availableVouchers.length}) أقل من العدد المطلوب ($selectedCount).',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ],
+
+            // أداء إظهار إدخال الرقم وزر الإرسال عند توفر الكروت المطلوبة
+            if (availableVouchers.isNotEmpty && availableVouchers.length >= selectedCount) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                textDirection: TextDirection.ltr,
+                decoration: InputDecoration(
+                  labelText: 'رقم المستلم',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.contacts_rounded, color: Colors.blue),
+                    tooltip: 'اختيار من جهات الاتصال',
+                    onPressed: _pickContact,
                   ),
-            if (noCardsAvailable) ...[
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: isSending ? null : _sendCard,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.primaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: Text(
+                  isSending ? 'جاري الإرسال...' : 'تأكيد وإرسال ($selectedCount)',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+            /*if (noCardsAvailable) ...[
               const SizedBox(height: 12),
               const Text(
                 '⚠️ لا توجد كروت متاحة لهذه الباقة.',
@@ -1673,7 +1922,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
-            ],
+            ],*/
           ],
         ),
       ),

@@ -234,7 +234,7 @@ object ProcessMessageProcessor {
                 matchedKeyword = keywordText,
                 sentNumber = "",
                 status = "manual_approval_required",
-                price = keywordPrice // 🎯 تمرير السعر
+                price = keywordPrice, // 🎯 تمرير السعر
                 source = sourceType, // 👈 أضف حقل المصدر هنا
             )
             NotificationHelper.showManualApprovalNotification(
@@ -591,7 +591,7 @@ object ProcessMessageProcessor {
                                     matchedKeyword = rewardKwText, // 👈 تم التعديل: اسم باقة الهدية (مثلاً 002)
                                     sentNumber = rewardVoucherCode,
                                     status = "sent_reward",
-                                    price = rewardPrice // 👈 تم التعديل: سعر باقة الهدية الحقيقي
+                                    price = rewardPrice, // 👈 تم التعديل: سعر باقة الهدية الحقيقي
                                     source = sourceType, // 👈 أضف حقل المصدر هنا
                                 )
                                 // 🟢 إظهار الإشعار من الكلاس المستقل
@@ -649,7 +649,7 @@ object ProcessMessageProcessor {
                                     matchedKeyword = keywordText,
                                     sentNumber = rewardVoucherCode,
                                     status = "sent_reward",
-                                    price = 0.0 // 🎯 الهدايا مجانية (0.0)
+                                    price = 0.0, // 🎯 الهدايا مجانية (0.0)
                                     source = sourceType, // 👈 أضف حقل المصدر هنا
                                 )
                             }
@@ -693,7 +693,7 @@ object ProcessMessageProcessor {
                 matchedKeyword = keywordText,
                 sentNumber = "",
                 status = "voucher_approval_required",
-                price = keywordPrice // 🎯 تمرير السعر
+                price = keywordPrice, // 🎯 تمرير السعر
                 source = sourceType, // 👈 أضف حقل المصدر هنا
             )
         }

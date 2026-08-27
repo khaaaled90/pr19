@@ -453,8 +453,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
       dateStr = DateFormat('yyyy-MM-dd HH:mm').format(dt);
     }
 
-    /*final String source = r['source'] ?? 'Noti';
-    final bool isSms = source.toUpperCase() == 'SMS';*/
+    final String source = r['source'] ?? 'Noti';
+    final bool isSms = source.toUpperCase() == 'SMS';
 
     final String senderName =
         (r['sender_name'] != null && r['sender_name'].toString().isNotEmpty)

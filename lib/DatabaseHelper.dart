@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
-  static const int _databaseVersion = 16; // ✅ تم الرفع إلى 13 لدعم حقل price
+  static const int _databaseVersion = 17; // ✅ تم الرفع إلى 13 لدعم حقل price
   static const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/cache');
 
   static const String tableKeywords = "keywords";
@@ -111,6 +111,7 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender TEXT,
         sender_name TEXT,
+        allowed_sender TEXT, 
         received_message TEXT,
         matched_keyword TEXT,
         sent_number TEXT,
@@ -207,6 +208,7 @@ class DatabaseHelper {
     await db.execute("CREATE INDEX IF NOT EXISTS idx_allowed_senders ON $tableAllowedSenders(is_active, sender)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_identifier ON $tableClientIdentifiers(identifier)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_reply_log_transaction_fingerprint ON $tableReplyLog(transaction_fingerprint)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_reply_log_allowed_sender ON $tableReplyLog(allowed_sender)");
   }
 
   Future<void> _insertDefaultSettings(Database db) async {
@@ -316,6 +318,11 @@ class DatabaseHelper {
           timestamp TEXT
         )
       ''');
+    }
+    if (oldVersion < 17) {
+      await db.execute("ALTER TABLE $tableReplyLog ADD COLUMN allowed_sender TEXT;");
+      // 👈 إنشاء الفهرس عند ترقية التطبيق من إصدصارات سابقة
+      await db.execute("CREATE INDEX IF NOT EXISTS idx_reply_log_allowed_sender ON $tableReplyLog(allowed_sender)");
     }
 
     await _createIndexes(db);
@@ -643,6 +650,7 @@ class DatabaseHelper {
   Future<bool> addToArchive({
     required String sender,
     String? senderName,
+    String? allowedSender,
     required String receivedMessage,
     String? matchedKeyword,
     String? sentNumber,
@@ -655,6 +663,7 @@ class DatabaseHelper {
     int result = await db.insert(tableReplyLog, {
       'sender': sender,
       'sender_name': senderName ?? '',
+      'allowed_sender': allowedSender ?? '',
       'received_message': receivedMessage,
       'matched_keyword': matchedKeyword ?? '',
       'sent_number': sentNumber ?? '',

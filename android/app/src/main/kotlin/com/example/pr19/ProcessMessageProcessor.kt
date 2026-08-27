@@ -92,6 +92,10 @@ object ProcessMessageProcessor {
             return
         }
 
+        // 👈 🎯 أضف هذا السطر هنا لتحديد قيمة المرسل المسموح
+        val allowedSenderValue = if (dbHelper.isSenderAllowed(originPackage)) originPackage else rawSender
+        val sourceType = if (originPackage.contains(".")) originPackage else "SMS"
+
         // 3. مطابقة الكلمة المفتاحية عبر الكاش
         /*val keywords = AppCache.getKeywords(dbHelper)
         var matchedKwMap: Map<String, Any>? = null
@@ -225,11 +229,13 @@ object ProcessMessageProcessor {
             dbHelper.addToArchive(
                 sender = rawSender,
                 senderName = displayName,
+                allowedSender = allowedSenderValue,
                 receivedMessage = body,
                 matchedKeyword = keywordText,
                 sentNumber = "",
                 status = "manual_approval_required",
                 price = keywordPrice // 🎯 تمرير السعر
+                source = sourceType, // 👈 أضف حقل المصدر هنا
             )
             NotificationHelper.showManualApprovalNotification(
                 context = context,
@@ -495,11 +501,13 @@ object ProcessMessageProcessor {
                 dbHelper.addToArchive(
                     sender = destinationPhone,
                     senderName = null,
+                    allowedSender = allowedSenderValue,
                     receivedMessage = body,
                     matchedKeyword = keywordText,
                     sentNumber = mainVoucherCode,
                     status = "sent",
                     price = keywordPrice, // 🎯 تمرير السعر
+                    source = sourceType, // 👈 أضف حقل المصدر هنا
                     transactionFingerprint = transactionFingerprint
                 )
 
@@ -578,11 +586,13 @@ object ProcessMessageProcessor {
                                 dbHelper.addToArchive(
                                     sender = destinationPhone,
                                     senderName = null,
+                                    allowedSender = allowedSenderValue,
                                     receivedMessage = "هدية عرض للباقة: $keywordText",
                                     matchedKeyword = rewardKwText, // 👈 تم التعديل: اسم باقة الهدية (مثلاً 002)
                                     sentNumber = rewardVoucherCode,
                                     status = "sent_reward",
                                     price = rewardPrice // 👈 تم التعديل: سعر باقة الهدية الحقيقي
+                                    source = sourceType, // 👈 أضف حقل المصدر هنا
                                 )
                                 // 🟢 إظهار الإشعار من الكلاس المستقل
                                 NotificationHelper.showVoucherSentNotification(context, rewardKwText, destinationPhone)
@@ -634,11 +644,13 @@ object ProcessMessageProcessor {
                                 dbHelper.addToArchive(
                                     sender = destinationPhone,
                                     senderName = null,
+                                    allowedSender = allowedSenderValue,
                                     receivedMessage = "هدية عرض للكلمة: $keywordText",
                                     matchedKeyword = keywordText,
                                     sentNumber = rewardVoucherCode,
                                     status = "sent_reward",
                                     price = 0.0 // 🎯 الهدايا مجانية (0.0)
+                                    source = sourceType, // 👈 أضف حقل المصدر هنا
                                 )
                             }
                             checkAndSendManagerAlert(context, dbHelper, rewardKeywordId, "هدية: $keywordText")
@@ -654,11 +666,13 @@ object ProcessMessageProcessor {
                 dbHelper.addToArchive(
                     sender = destinationPhone,
                     senderName = extractNameFromBody(body) ?: destinationPhone,
+                    allowedSender = allowedSenderValue,
                     receivedMessage = body,
                     matchedKeyword = keywordText,
                     sentNumber = mainVoucherCode, // حفظ الكرت المحجوز لإعادة إرساله
                     status = "pending",           // حالة معلقة لعدم التغطية
                     price = keywordPrice,
+                    source = sourceType, // 👈 أضف حقل المصدر هنا
                     transactionFingerprint = transactionFingerprint
                 )
             }
@@ -674,11 +688,13 @@ object ProcessMessageProcessor {
             dbHelper.addToArchive(
                 sender = destinationPhone,
                 senderName = displayName,
+                allowedSender = allowedSenderValue,
                 receivedMessage = body,
                 matchedKeyword = keywordText,
                 sentNumber = "",
                 status = "voucher_approval_required",
                 price = keywordPrice // 🎯 تمرير السعر
+                source = sourceType, // 👈 أضف حقل المصدر هنا
             )
         }
     }
@@ -882,6 +898,7 @@ object ProcessMessageProcessor {
             dbHelper.addToArchive(
                 sender = rawSender,
                 senderName = displayName,
+                allowedSender = allowedSenderValue,
                 receivedMessage = body,
                 matchedKeyword = keywordText,
                 sentNumber = "",
@@ -950,6 +967,7 @@ object ProcessMessageProcessor {
                 dbHelper.addToArchive(
                     sender = destinationPhone,
                     senderName = null,
+                    allowedSender = allowedSenderValue,
                     receivedMessage = body,
                     matchedKeyword = keywordText,
                     sentNumber = mainVoucherCode,
@@ -994,6 +1012,7 @@ object ProcessMessageProcessor {
                                 dbHelper.addToArchive(
                                     sender = destinationPhone,
                                     senderName = null,
+                                    allowedSender = allowedSenderValue,
                                     receivedMessage = "هدية عرض للكلمة: $keywordText",
                                     matchedKeyword = keywordText,
                                     sentNumber = rewardVoucherCode,
@@ -1020,6 +1039,7 @@ object ProcessMessageProcessor {
             dbHelper.addToArchive(
                 sender = destinationPhone,
                 senderName = displayName,
+                allowedSender = allowedSenderValue,
                 receivedMessage = body,
                 matchedKeyword = keywordText,
                 sentNumber = "",
@@ -1053,6 +1073,7 @@ object ProcessMessageProcessor {
                 dbHelper.addToArchive(
                     sender = destinationPhone,
                     senderName = null,
+                    allowedSender = allowedSenderValue,
                     receivedMessage = body,
                     matchedKeyword = keywordText,
                     sentNumber = voucherCode,
@@ -1089,6 +1110,7 @@ object ProcessMessageProcessor {
             dbHelper.addToArchive(
                 sender = destinationPhone,
                 senderName = displayName,
+                allowedSender = allowedSenderValue,
                 receivedMessage = body,
                 matchedKeyword = keywordText,
                 sentNumber = "",
@@ -1217,6 +1239,7 @@ object ProcessMessageProcessor {
             dbHelper.addToArchive(
                 sender = rawSender,
                 senderName = displayName,
+                allowedSender = allowedSenderValue,
                 receivedMessage = body,
                 matchedKeyword = keywordText,
                 sentNumber = "",
@@ -1271,6 +1294,7 @@ object ProcessMessageProcessor {
                 dbHelper.addToArchive(
                     sender = destinationPhone,
                     senderName = null,
+                    allowedSender = allowedSenderValue,
                     receivedMessage = body,
                     matchedKeyword = keywordText,
                     sentNumber = voucherCode,

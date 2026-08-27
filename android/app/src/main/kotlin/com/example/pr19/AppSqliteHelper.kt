@@ -10,7 +10,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     companion object {
         private const val DATABASE_NAME = "smsqaiddb.db"
-        private const val DATABASE_VERSION = 16 // ✅ رفع الإصدار إلى 16 لإضافة price
+        private const val DATABASE_VERSION = 17 // ✅ رفع الإصدار إلى 16 لإضافة price
 
         @Volatile
         private var instance: AppSqliteHelper? = null
@@ -76,6 +76,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 sender TEXT,
                 sender_name TEXT,
+                allowed_sender TEXT,
                 received_message TEXT,
                 matched_keyword TEXT,
                 sent_number TEXT,
@@ -319,6 +320,15 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     """)
                 } catch (e: Exception) {
                     Log.e("SQLite", "Error creating notifications table: ${e.message}")
+                }
+            }
+
+            if (oldVersion < 17) {
+                try { 
+                    db?.execSQL("ALTER TABLE reply_log ADD COLUMN allowed_sender TEXT;") 
+                    db?.execSQL("CREATE INDEX IF NOT EXISTS idx_reply_log_allowed_sender ON reply_log(allowed_sender)")
+                } catch (e: Exception) {
+                    Log.e("SQLite", "Error adding allowed_sender column: ${e.message}")
                 }
             }
 
@@ -703,6 +713,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     fun addToArchive(
         sender: String,
         senderName: String?,
+        allowedSender: String? = null,
         receivedMessage: String,
         matchedKeyword: String?,
         sentNumber: String?,
@@ -716,6 +727,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         val values = ContentValues().apply {
             put("sender", sender)
             put("sender_name", senderName ?: "")
+            put("allowed_sender", allowedSender ?: "")
             put("received_message", receivedMessage)
             put("matched_keyword", matchedKeyword ?: "")
             put("sent_number", sentNumber ?: "")
@@ -947,6 +959,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             db?.execSQL("CREATE INDEX IF NOT EXISTS idx_keywords_active ON keywords(is_active)")
             db?.execSQL("CREATE INDEX IF NOT EXISTS idx_allowed_senders ON allowed_senders(is_active, sender)")
             db?.execSQL("CREATE INDEX IF NOT EXISTS idx_client_identifiers ON client_identifiers(identifier)")
+            db?.execSQL("CREATE INDEX IF NOT EXISTS idx_reply_log_allowed_sender ON reply_log(allowed_sender)")
         } catch (e: Exception) {
             Log.e("SQLite", "Error creating indexes: ${e.message}")
         }

@@ -363,7 +363,7 @@ class MainActivity: FlutterActivity() {
 
                     // 🎯 جلب الشرائح المتاحة لعرصها في Flutter
                     "getAvailableSims" -> {
-                        val simList = getActiveSimCards(this)
+                        val simList = getActiveSimCards(this@MainActivity)
                         result.success(simList)
                     }
 

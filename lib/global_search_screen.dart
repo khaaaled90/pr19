@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart'; // قم بتعديل مسار الملف حسب مشروعك
+import 'DatabaseHelper.dart'; // قم بتعديل مسار الملف حسب مشروعك
 
 class GlobalSearchScreen extends StatefulWidget {
   const GlobalSearchScreen({Key? key}) : super(key: key);

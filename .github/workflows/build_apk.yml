@@ -62,9 +62,20 @@ jobs:
         run: |
           keytool -list -v -keystore android/app/kha.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }}
       
+      # 1. بناء التطبيق واستخراج تقرير حجم المكونات
+      - name: Build APK with Size Analysis
+        run: |
+          flutter build apk --target-platform android-arm64 --analyze-size --code-size-directory=build/code-size-analysis
+
+      # 2. رفع تقرير الحجم إلى GitHub Artifacts لتنزيله لاحقاً
+      - name: Upload Size Analysis Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-analysis-report
+          path: build/code-size-analysis/*.json
       # 🛠️ بناء الـ APK المشفر بـ R8/ProGuard و C++
-      - name: Build Release APK
-        run: flutter build apk --release
+      #- name: Build Release APK
+      #  run: flutter build apk --release
         # run: flutter build apk --release --build-number=${{ github.run_number }}
         env:
           KEYSTORE_PATH: "kha.jks"

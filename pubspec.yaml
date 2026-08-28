@@ -2,7 +2,8 @@ name: pr19
 description: "CardPay - Automated Wallet & Voucher Distribution App"
 publish_to: 'none'
 
-version: 1.0.0+1
+#version: 1.0.0+1
+version: 1.0.0+382
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -55,6 +56,8 @@ dependencies:
   cloud_firestore: ^5.0.0
   connectivity_plus: ^6.0.0
   firebase_messaging: ^15.0.0  # 👈 أضف هذا السطر فقط
+  firebase_remote_config: ^5.4.0 # أو أحدث إصدار
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

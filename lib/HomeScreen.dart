@@ -22,6 +22,7 @@ import 'helpers/secure_storage_helper.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'notifications_screen.dart'; // تأكد من مطابقة اسم الملف
+import 'services/update_checker_service.dart'; // استيراد خدمة الفحص
 
 
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
@@ -264,6 +265,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _startCardPayForegroundService();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadStats());
+    // 🚀 تشغيل الفحص فور رسم الشاشة على الهاتف
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateCheckerService.checkAndForceUpdate(context);
+    });
   }
 
   Future<void> _startCardPayForegroundService() async {

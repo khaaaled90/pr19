@@ -11,7 +11,7 @@ class SimSettingsScreen extends StatefulWidget {
 
 class _SimSettingsScreenState extends State<SimSettingsScreen> {
   static const MethodChannel _nativeChannel =
-      MethodChannel('com.example.pr19/native_control');
+      MethodChannel('com.app.cardpay/native_control');
 
   List<Map<String, dynamic>> _simCards = [];
   int _selectedSubId = -1;

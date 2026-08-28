@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -65,7 +65,7 @@ class NativeNotificationListener : NotificationListenerService() {
         return if (phone.startsWith("7") && phone.length == 9) "+967$phone" else phone
     }
 }
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification

@@ -123,7 +123,7 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
-                <action android:name="com.example.pr19.ACTION_KEEP_ALIVE"/>
+                <action android:name="com.app.cardpay.ACTION_KEEP_ALIVE"/>
             </intent-filter>
         </receiver>
 

@@ -7,7 +7,7 @@ import 'secure_storage_helper.dart';
 class SyncManager {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const MethodChannel _controlChannel =
-      MethodChannel('com.example.pr19/native_control');
+      MethodChannel('com.app.cardpay/native_control');
 
   /// 1. التحقق الشامل من الترخيص (Firebase Online + Local Offline Failover)
   static Future<Map<String, dynamic>> checkAndSyncLicense() async {
@@ -186,7 +186,7 @@ import 'secure_storage_helper.dart';
 class SyncManager {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const MethodChannel _controlChannel =
-      MethodChannel('com.example.pr19/native_control');
+      MethodChannel('com.app.cardpay/native_control');
 
   /// 1. التحقق الشامل من الترخيص (Firebase Online + Local Offline Failover)
   static Future<Map<String, dynamic>> checkAndSyncLicense() async {

@@ -14,7 +14,7 @@ class PermissionsScreen extends StatefulWidget {
 
 class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindingObserver {
   // توحيد اسم القناة المخصصة مع Native Android (Kotlin)
-  static const MethodChannel _channel = MethodChannel('com.example.pr19/native_control');
+  static const MethodChannel _channel = MethodChannel('com.app.cardpay/native_control');
 
   bool _smsGranted = false;
   bool _notificationGranted = false;
@@ -218,7 +218,7 @@ class PermissionsScreen extends StatefulWidget {
 }
 
 class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindingObserver {
-  static const MethodChannel _channel = MethodChannel('com.example.pr19/native_control');
+  static const MethodChannel _channel = MethodChannel('com.app.cardpay/native_control');
 
   bool _smsGranted = false;
   bool _notificationGranted = false;

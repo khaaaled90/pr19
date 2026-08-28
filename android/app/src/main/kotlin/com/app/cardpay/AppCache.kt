@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.content.Context
 import android.util.Log
@@ -145,7 +145,7 @@ object AppCache {
         clientIdentifiers = null // ✅ تفريغ كاش المعرفات أيضاً
     }
 }
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.Context
 

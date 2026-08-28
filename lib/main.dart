@@ -21,7 +21,7 @@ import 'NotificationListener.dart';
 import 'SmsReceiver.dart';
 import 'package:firebase_messaging/firebase_messaging.dart'; // 👈 أضف الاستيراد
 
-const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/native_control');
+const MethodChannel _nativeChannel = MethodChannel('com.app.cardpay/native_control');
 
 // 1. معالج خلفية الإشعارات
 /*@pragma('vm:entry-point')

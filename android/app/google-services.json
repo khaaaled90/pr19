@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:188407086789:android:ea89089cc27d2bab71baac",
+        "android_client_info": {
+          "package_name": "com.app.cardpay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChyVy2dHNnbz_BR7JWL-Zm3801a9v51Ik"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:188407086789:android:fdd3c2cc8fa39c3771baac",
         "android_client_info": {
           "package_name": "com.example.pr19"

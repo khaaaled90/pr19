@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.pr19"
+    namespace = "com.app.cardpay"
 
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
@@ -22,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.pr19"
+        applicationId = "com.app.cardpay"
 
         minSdk = 21
         targetSdk = 36

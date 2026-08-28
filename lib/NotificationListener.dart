@@ -6,7 +6,7 @@ import 'package:flutter_notification_listener/flutter_notification_listener.dart
 const String _bgTag = 'BG_MONITOR';
 
 // قناة الاتصال المباشرة مع Kotlin Native
-const MethodChannel _notiChannel = MethodChannel('com.example.pr19/sms');
+const MethodChannel _notiChannel = MethodChannel('com.app.cardpay/sms');
 
 /// دالة المعالجة الخلفية للإشعارات
 @pragma('vm:entry-point')

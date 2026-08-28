@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -14,7 +14,7 @@ class BootReceiver : BroadcastReceiver() {
             action == Intent.ACTION_MY_PACKAGE_REPLACED ||
             action == "android.intent.action.QUICKBOOT_POWERON" ||
             action == "com.htc.intent.action.QUICKBOOT_POWERON" || 
-            action == "com.example.pr19.ACTION_KEEP_ALIVE") {
+            action == "com.app.cardpay.ACTION_KEEP_ALIVE") {
             
             try {
                 // 🛑 فحص الترخيص محلياً قبل البدء
@@ -33,7 +33,7 @@ class BootReceiver : BroadcastReceiver() {
     }
 }
 //***************************************/
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.BroadcastReceiver
 import android.content.Context

@@ -26,7 +26,7 @@ import 'service/update_checker_service.dart'; // استيراد خدمة الف�
 
 
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
-const MethodChannel _nativeControlChannel = MethodChannel('com.example.pr19/native_control');
+const MethodChannel _nativeControlChannel = MethodChannel('com.app.cardpay/native_control');
 
 
 class MainNavigationScreen extends StatefulWidget {

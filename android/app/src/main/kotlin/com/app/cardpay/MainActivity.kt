@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.os.Bundle
 import android.content.ComponentName
@@ -23,7 +23,7 @@ import android.content.pm.PackageManager
 class MainActivity: FlutterActivity() {
 
     companion object {
-        private const val CONTROL_CHANNEL = "com.example.pr19/native_control"
+        private const val CONTROL_CHANNEL = "com.app.cardpay/native_control"
         private const val SMS_CHANNEL = "com.example.app/sms" // قناة إرسال القسائم عبر SMS
     }
 
@@ -37,10 +37,10 @@ class MainActivity: FlutterActivity() {
         super.onCreate(savedInstanceState)
         
         // 🟢 الاشتراك في موضوع الباكيج فور فتح التطبيق
-        FirebaseMessaging.getInstance().subscribeToTopic("com.example.pr19")
+        FirebaseMessaging.getInstance().subscribeToTopic("com.app.cardpay")
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    Log.d("FCM_TOPIC", "✅ تم الاشتراك بنجاح في com.example.pr19")
+                    Log.d("FCM_TOPIC", "✅ تم الاشتراك بنجاح في com.app.cardpay")
                 } else {
                     Log.e("FCM_TOPIC", "❌ فشل الاشتراك: ${task.exception?.message}")
                 }
@@ -118,7 +118,7 @@ class MainActivity: FlutterActivity() {
 
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         
-        //controlChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.pr19/native_control")
+        //controlChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.app.cardpay/native_control")
         //smsChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.app/sms")
         
         // 1. قناة التحكم بالأذونات واستثناء البطارية وتفريغ الـ Cache والبدء التلقائي
@@ -583,7 +583,7 @@ class MainActivity: FlutterActivity() {
 }
 
 /************************/
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.ComponentName
 import android.content.Context
@@ -602,7 +602,7 @@ import android.util.Log
 class MainActivity: FlutterActivity() {
 
     companion object {
-        private const val CONTROL_CHANNEL = "com.example.pr19/native_control"
+        private const val CONTROL_CHANNEL = "com.app.cardpay/native_control"
         private const val SMS_CHANNEL = "com.example.app/sms" // قناة إرسال القسائم عبر SMS
     }
 

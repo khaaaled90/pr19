@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
   static const int _databaseVersion = 17; // ✅ تم الرفع إلى 13 لدعم حقل price
-  static const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/cache');
+  static const MethodChannel _nativeChannel = MethodChannel('com.app.cardpay/cache');
 
   static const String tableKeywords = "keywords";
   static const String tableNumbersPool = "numbers_pool";
@@ -1221,7 +1221,7 @@ import 'package:flutter/foundation.dart';
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
   static const int _databaseVersion = 12; // ✅ تم الرفع إلى 12 لتطبيق التحديثات
-  static const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/cache');
+  static const MethodChannel _nativeChannel = MethodChannel('com.app.cardpay/cache');
 
   static const String tableKeywords = "keywords";
   static const String tableNumbersPool = "numbers_pool";
@@ -2007,7 +2007,7 @@ import 'package:sqflite/sqflite.dart';
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
   static const int _databaseVersion = 11;
-  static const MethodChannel _nativeChannel = MethodChannel('com.example.pr19/cache');
+  static const MethodChannel _nativeChannel = MethodChannel('com.app.cardpay/cache');
 
   static const String tableKeywords = "keywords";
   static const String tableNumbersPool = "numbers_pool";

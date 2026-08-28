@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 class NativeServiceController {
   // قناة الاتصال المباشر مع ملف MainActivity.kt
-  static const MethodChannel _channel = MethodChannel('com.example.pr19/native_control');
+  static const MethodChannel _channel = MethodChannel('com.app.cardpay/native_control');
 
   /// 1. فتح صفحة إعدادات أندرويد لطلب إذن قراءة إشعارات المحافظ (Notification Listener)
   static Future<bool> requestNotificationListenerPermission() async {

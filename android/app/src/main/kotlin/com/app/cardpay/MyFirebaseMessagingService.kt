@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -99,7 +99,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 }
 /********************************/
-/*package com.example.pr19 // ⚠️ استبدل الباكيج باسم مشروعك
+/*package com.app.cardpay // ⚠️ استبدل الباكيج باسم مشروعك
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -185,7 +185,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 }*/
 /*********************************************/
-/*package com.example.pr19 // ⚠️ أصلح الباكيج إذا كان مختلفاً لديك
+/*package com.app.cardpay // ⚠️ أصلح الباكيج إذا كان مختلفاً لديك
 
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService

@@ -95,7 +95,7 @@ bool verifySelfSignatureNative(JNIEnv* env, jobject context) {
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_pr19_SecurityHelper_initSecurityNative(JNIEnv* env, jobject /* thiz */, jobject context) {
+Java_com_app_cardpay_SecurityHelper_initSecurityNative(JNIEnv* env, jobject /* thiz */, jobject context) {
     bool isValid = verifySelfSignatureNative(env, context);
 
     if (!isValid) {
@@ -114,7 +114,7 @@ Java_com_example_pr19_SecurityHelper_initSecurityNative(JNIEnv* env, jobject /* 
 //const char* EXPECTED_SHA256 = "94CB9C92B7692B8FB222C1DED9EB4B18F8992B036EB8FC1619B320204030AF7A";
 
 //extern "C" JNIEXPORT jboolean JNICALL
-//Java_com_example_pr19_SecurityHelper_verifySignatureNative(
+//Java_com_app_cardpay_SecurityHelper_verifySignatureNative(
 //        JNIEnv* env,
 //        jobject /* thiz */,
 /*        jstring currentSignature) {

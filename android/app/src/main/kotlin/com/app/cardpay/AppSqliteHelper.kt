@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.content.ContentValues
 import android.content.Context
@@ -891,7 +891,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 }
 //******************************************************
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.ContentValues
 import android.content.Context
@@ -1552,7 +1552,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         return value
     }
 }*/
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.ContentValues
 import android.content.Context

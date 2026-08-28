@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -63,7 +63,7 @@ class SmsReceiver : BroadcastReceiver() {
         return if (phone.startsWith("7") && phone.length == 9) "+967$phone" else phone
     }
 }
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.BroadcastReceiver
 import android.content.Context

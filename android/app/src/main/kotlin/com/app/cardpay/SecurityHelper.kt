@@ -1,11 +1,11 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.content.Context
 
 object SecurityHelper {
 
     init {
-        System.loadLibrary("pr19security")
+        System.loadLibrary("cardpaysecurity")
     }
 
     // دالة Native تستقبل الـ Context وتتولى الفحص والقتل الذاتي إذا لزم الأمر
@@ -17,7 +17,7 @@ object SecurityHelper {
     }
 }
 
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.Context
 import android.content.pm.PackageManager
@@ -28,7 +28,7 @@ object SecurityHelper {
 
     init {
         // تحميل مكتبة C++ Native
-        System.loadLibrary("pr19security")
+        System.loadLibrary("cardpaysecurity")
     }
 
     // --- [تعديل 1]: تغيير نوع البرامتر إلى String بدلاً من Context ---
@@ -92,7 +92,7 @@ object SecurityHelper {
         return false
     }
 }*/
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.Context
 
@@ -100,7 +100,7 @@ object SecurityHelper {
 
     init {
         // تحميل مكتبة C++ Native
-        System.loadLibrary("pr19security")
+        System.loadLibrary("cardpaysecurity")
     }
 
     // استدعاء دالة فحص التوقيع المكتوبة بلغة C++

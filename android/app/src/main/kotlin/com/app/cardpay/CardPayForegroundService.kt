@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -14,7 +14,7 @@ import android.util.Log
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.os.SystemClock
-import com.example.pr19.R
+import com.app.cardpay.R
 
 class CardPayForegroundService : Service() {
 
@@ -92,7 +92,7 @@ class CardPayForegroundService : Service() {
         try {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
             val intent = Intent(applicationContext, BootReceiver::class.java).apply {
-                action = "com.example.pr19.ACTION_KEEP_ALIVE"
+                action = "com.app.cardpay.ACTION_KEEP_ALIVE"
             }
             
             val pendingIntent = PendingIntent.getBroadcast(
@@ -221,7 +221,7 @@ class CardPayForegroundService : Service() {
         }
     }
 }
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -232,7 +232,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.example.pr19.R
+import com.app.cardpay.R
 
 class CardPayForegroundService : Service() {
 

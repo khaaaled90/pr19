@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.content.ComponentName
 import android.content.Context

@@ -8,7 +8,7 @@ class SmsWorker {
   static const String _logTag = 'BG_MONITOR';
 
   // قناة الاتصال النيتيف لإرسال الرسائل عبر الشريحة (DualSimSmsSender.kt)
-  static const MethodChannel _smsChannel = MethodChannel('com.example.pr19/sms_sender');
+  static const MethodChannel _smsChannel = MethodChannel('com.app.cardpay/sms_sender');
 
   /// النقطة الأساسية للبدء في معالجة الإشعارات أو الرسائل الواصلة
   static Future<void> processIncomingMessage({

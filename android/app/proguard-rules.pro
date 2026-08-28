@@ -88,19 +88,19 @@
 # =====================================================================
 
 # منع R8 من تغيير اسم أو مسار كلاس SecurityHelper والدوال التابعة له
--keep class com.example.pr19.SecurityHelper {
+-keep class com.app.cardpay.SecurityHelper {
     public static *** isSecurityViolated(...);
     private static *** getAppSignatureSha256(...);
     public static *** verifySignatureNative(...);
     native <methods>;
 }
 # 1. تثبيت أسماء المستقبلات والخدمات لتبقى مطابقة لـ AndroidManifest.xml (ضروري جداً)
--keep class com.example.pr19.SmsReceiver { *; }
--keep class com.example.pr19.NativeNotificationListener { *; }
+-keep class com.app.cardpay.SmsReceiver { *; }
+-keep class com.app.cardpay.NativeNotificationListener { *; }
 -keep class com.google.firebase.messaging.** { *; }
--keep class com.example.pr19.MyFirebaseMessagingService { *; }
+-keep class com.app.cardpay.MyFirebaseMessagingService { *; }
 
 
 # 2. تمويه وتعتيم كلاسات التخزين والترخيص (آمن تماماً ولن يسبب كراش)
--keep,allowobfuscation class com.example.pr19.NativeSecureStorage { *; }
--keep,allowobfuscation class com.example.pr19.LicenseManager { *; }
+-keep,allowobfuscation class com.app.cardpay.NativeSecureStorage { *; }
+-keep,allowobfuscation class com.app.cardpay.LicenseManager { *; }

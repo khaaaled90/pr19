@@ -6,11 +6,11 @@ const String _smsTag = 'BG_MONITOR';
 class SmsReceiver {
   // القناة الخاصة باستقبال الأحداث (Events) من BroadcastReceiver في Kotlin
   static const EventChannel _smsEventChannel =
-      EventChannel('com.example.pr19/sms_receiver');
+      EventChannel('com.app.cardpay/sms_receiver');
 
   // قناة الميثود تشانل لتنفيذ العمليات المباشرة إذا لزم الأمر
   static const MethodChannel _smsMethodChannel =
-      MethodChannel('com.example.pr19/sms');
+      MethodChannel('com.app.cardpay/sms');
 
   /// تهيئة وتفعيل الاستماع للرسائل النصية القادمة من Kotlin Native Receiver
   static void initializeSmsListener() {

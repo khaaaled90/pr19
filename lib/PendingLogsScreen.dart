@@ -6,8 +6,8 @@ import 'package:permission_handler/permission_handler.dart';
 
 // قنوات الاتصال المباشرة مع Kotlin
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');
-const MethodChannel _nativeControlChannel = MethodChannel('com.example.pr19/native_control');
-//const MethodChannel _nativeControlChannel = MethodChannel('com.example.pr19/native_control');
+const MethodChannel _nativeControlChannel = MethodChannel('com.app.cardpay/native_control');
+//const MethodChannel _nativeControlChannel = MethodChannel('com.app.cardpay/native_control');
 
 class PendingLogsScreen extends StatefulWidget {
   const PendingLogsScreen({super.key});
@@ -1240,7 +1240,7 @@ class _PendingLogsScreenState extends State<PendingLogsScreen> {
                 if (phone.length >= 9) {
                   // 1. 🧠 [التعديل الرئيسي] تحديث قاعدة البيانات الأصيلة والكاش عبر Kotlin أولاً
                   try {
-                    const platform = MethodChannel("com.example.pr19/native_control"); // استبدلها باسي اسم قناتك
+                    const platform = MethodChannel("com.app.cardpay/native_control"); // استبدلها باسي اسم قناتك
                     await platform.invokeMethod("registerCustomer", {
                       "phone": phone,
                       "name": name,

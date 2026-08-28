@@ -1,4 +1,4 @@
-package com.example.pr19
+package com.app.cardpay
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -151,7 +151,7 @@ class NativeSecureStorage(context: Context) {
     }
 }
 
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -284,7 +284,7 @@ class NativeSecureStorage(context: Context) {
     }
     
 }*/
-/*package com.example.pr19
+/*package com.app.cardpay
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -373,7 +373,7 @@ class NativeSecureStorage(context: Context) {
     }
 }*/
 
-/*package com.example.pr19 // استبدل بـ package التطبيق لديك
+/*package com.app.cardpay // استبدل بـ package التطبيق لديك
 
 import android.content.Context
 import android.content.SharedPreferences

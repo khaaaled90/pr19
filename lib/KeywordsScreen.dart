@@ -11,7 +11,7 @@ class KeywordsScreen extends StatefulWidget {
 
 class _KeywordsScreenState extends State<KeywordsScreen> {
   static const MethodChannel _controlChannel =
-      MethodChannel('com.example.pr19/native_control');
+      MethodChannel('com.app.cardpay/native_control');
 
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
@@ -604,7 +604,7 @@ class KeywordsScreen extends StatefulWidget {
 
 class _KeywordsScreenState extends State<KeywordsScreen> {
   static const MethodChannel _controlChannel =
-      MethodChannel('com.example.pr19/native_control');
+      MethodChannel('com.app.cardpay/native_control');
 
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
@@ -1179,7 +1179,7 @@ class KeywordsScreen extends StatefulWidget {
 }
 
 class _KeywordsScreenState extends State<KeywordsScreen> {
-  static const MethodChannel _controlChannel = MethodChannel('com.example.pr19/native_control');
+  static const MethodChannel _controlChannel = MethodChannel('com.app.cardpay/native_control');
 
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 

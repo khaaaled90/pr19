@@ -1,4 +1,4 @@
-package com.example.pr19 // ✅ تم تعديل الحزمة لتطابق مشروعك
+package com.app.cardpay // ✅ تم تعديل الحزمة لتطابق مشروعك
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -6,7 +6,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log // ✅ تم إضافة استيراد Log
 import androidx.core.app.NotificationCompat
-import com.example.pr19.R // ✅ تم إضافة استيراد R لاستخدام آيقونة التطبيق
+import com.app.cardpay.R // ✅ تم إضافة استيراد R لاستخدام آيقونة التطبيق
 
 object NotificationHelper {
 

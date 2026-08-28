@@ -119,7 +119,7 @@ class SupportScreen extends StatelessWidget {
               subtitle: 'انضم لمتابعة جديد التحديثات والإصدارات',
               icon: Icons.groups_rounded,
               iconColor: const Color(0xFF25D366),
-              onTap: () => _launchUrl(context, 'https://whatsapp.com/channel/YOUR_CHANNEL_ID'),
+              onTap: () => _launchUrl(context, 'https://whatsapp.com/channel/0029Vb8nHPKL2AU056Q7Ly20'),
             ),
             const SizedBox(height: 10),
 
@@ -130,18 +130,18 @@ class SupportScreen extends StatelessWidget {
               subtitle: 'تغطية فورية وشروحات استخدام التطبيق',
               icon: Icons.telegram,
               iconColor: const Color(0xFF0088CC),
-              onTap: () => _launchUrl(context, 'https://t.me/YOUR_TELEGRAM_CHANNEL'),
+              onTap: () => _launchUrl(context, 'https://t.me/CardPayAuto'),
             ),
             const SizedBox(height: 10),
 
-            _buildSocialTile(
+            /*_buildSocialTile(
               context,
               theme: theme,
               title: 'صفحة الفيسبوك',
               subtitle: 'تواصل مجتمعي ومشاركات يومية',
               icon: Icons.facebook,
               iconColor: const Color(0xFF1877F2),
-              onTap: () => _launchUrl(context, 'https://facebook.com/YOUR_PAGE_URL'),
+              onTap: () => _launchUrl(context, 'https://facebook.com/YOUR_PAGE_URL'),*/
             ),
           ],
         ),

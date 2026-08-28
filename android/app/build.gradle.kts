@@ -67,16 +67,16 @@ android {
                 signingConfig = signingConfigs.getByName("debug")
             }
 
-            isMinifyEnabled = false
-            isShrinkResources = false
+            //isMinifyEnabled = false
+            //isShrinkResources = false
             // 🟢 تفعيل التمويه وتقليص الكود والموارد
-            //isMinifyEnabled = true
-            //isShrinkResources = true
+            isMinifyEnabled = true
+            isShrinkResources = true
 
-            //proguardFiles(
-            //    getDefaultProguardFile("proguard-android-optimize.txt"),
-            //    "proguard-rules.pro"
-            //)
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

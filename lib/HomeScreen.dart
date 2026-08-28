@@ -22,7 +22,7 @@ import 'helpers/secure_storage_helper.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'notifications_screen.dart'; // تأكد من مطابقة اسم الملف
-import 'services/update_checker_service.dart'; // استيراد خدمة الفحص
+import 'service/update_checker_service.dart'; // استيراد خدمة الفحص
 
 
 const MethodChannel _smsChannel = MethodChannel('com.example.app/sms');

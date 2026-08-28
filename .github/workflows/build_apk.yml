@@ -77,20 +77,11 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      # 2. طباعة ملخص التحليل داخل صفحة الـ Actions Summary مباشرة
-      - name: Display Size Summary in GitHub
-        run: |
-          JSON_FILE=$(ls build/code-size-analysis/*.json | head -n 1)
-          echo "### 📦 APK Size Breakdown" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          flutter pub global run devtools analyze-size $JSON_FILE >>$GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-      # 3. حفظ ملف الـ JSON كـ Artifact للحصول عليه لاحقاً
+      # 2. رفع تقرير الحجم إلى GitHub Artifacts لتنزيله لاحقاً
       - name: Upload Size Analysis Report
         uses: actions/upload-artifact@v4
         with:
-          name: release-size-analysis-report
+          name: size-analysis-report
           path: build/code-size-analysis/*.json
       
       # 📐 1. المحاذاة البرمجية الدقيقة (ZipAlign)

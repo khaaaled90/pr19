@@ -95,7 +95,37 @@ class _VouchersScreenState extends State<VouchersScreen> {
       _showSnackBar('❌ يرجى اختيار باقة أولاً قبل قراءة الملف', isError: true);
       return;
     }
+    // إظهار مربع التنبيه لتحديد نوع التنسيق
+    final bool? isPairMode = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('تحديد تنسيق الملف', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: const Text('اختر نوع التنسيق الموجود داخل الملف المراد استيراده:', style: TextStyle(fontSize: 13)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0EA5E9)),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('اسم مستخدم فقط', style: TextStyle(color: Colors.white, fontSize: 12)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('اسم مستخدم وكلمة مرور', style: TextStyle(color: Colors.white, fontSize: 12)),
+            ),
+          ],
+        ),
+      ),
+    );
 
+    if (isPairMode == null) return;
+    
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -109,12 +139,19 @@ class _VouchersScreenState extends State<VouchersScreen> {
         List<String> extractedCodes = [];
 
         if (extension == 'xlsx' || extension == 'xls') {
+          extractedCodes = await _parseExcelFile(filePath, isPair: isPairMode);
+        } else if (extension == 'pdf') {
+          extractedCodes = await _parsePdfFile(filePath, isPair: isPairMode);
+        } else {
+          extractedCodes = await _parseTxtFile(filePath, isPair: isPairMode);
+        }
+        /*if (extension == 'xlsx' || extension == 'xls') {
           extractedCodes = await _parseExcelFile(filePath, isPair: _isUserPassMode);
         } else if (extension == 'pdf') {
           extractedCodes = await _parsePdfFile(filePath, isPair: _isUserPassMode);
         } else {
           extractedCodes = await _parseTxtFile(filePath, isPair: _isUserPassMode);
-        }
+        }*/
         /*if (extension == 'xlsx' || extension == 'xls') {
           extractedCodes = await _parseExcelFile(filePath);
         } else if (extension == 'pdf') {
@@ -614,7 +651,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
             },
           ),
           if (_selectedKeywordId != 'all') ...[
-            const SizedBox(height: 8),
+            /*const SizedBox(height: 8),
             // --- مفتاح التبديل ON / OFF ---
             SwitchListTile(
               title: const Text(
@@ -635,7 +672,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
                   _isUserPassMode = val;
                 });
               },
-            ),
+            ),*/
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -655,61 +692,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
       ),
     );
   }
-  /*Widget _buildKeywordAndToolsRow(bool isDark, Color cardBg, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
-      ),
-      child: Column(
-        children: [
-          DropdownButtonFormField<String>(
-            value: _selectedKeywordId,
-            dropdownColor: cardBg,
-            decoration: InputDecoration(
-              labelText: 'الباقة المستهدفة',
-              prefixIcon: const Icon(Icons.vpn_key_rounded, size: 20),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            items: [
-              const DropdownMenuItem(value: 'all', child: Text('اختر باقة للبدء...')),
-              ..._keywords.map((k) {
-                return DropdownMenuItem(
-                  value: k['id'].toString(),
-                  child: Text('${k['keyword']}'),
-                );
-              }).toList(),
-            ],
-            onChanged: (val) {
-              if (val != null) {
-                setState(() => _selectedKeywordId = val);
-                _refreshEditorText();
-              }
-            },
-          ),
-          if (_selectedKeywordId != 'all') ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.note_add_rounded, size: 18),
-                label: const Text('استيراد أكواد من ملف (Excel / PDF / TXT)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                onPressed: _pickAndReadFile,
-              ),
-            ),
-          ]
-        ],
-      ),
-    );
-  }*/
-
+  
   Widget _buildEditorSection(bool isDark, Color cardBg, Color textColor) {
     bool isAllSelected = _selectedKeywordId == 'all';
 

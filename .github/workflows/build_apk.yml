@@ -69,7 +69,7 @@ jobs:
 
       # 🛠️ بناء الـ APK المشفر بـ R8/ProGuard و C++
       - name: Build Release APK
-         run: flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
+        run: flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
       #  run: flutter build apk --release
         # run: flutter build apk --release --build-number=${{ github.run_number }}
         env:

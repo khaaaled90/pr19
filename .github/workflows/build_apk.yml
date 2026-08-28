@@ -67,12 +67,6 @@ jobs:
         run: |
           flutter build apk --target-platform android-arm64 --analyze-size --code-size-directory=build/code-size-analysis
 
-      # 2. رفع تقرير الحجم إلى GitHub Artifacts لتنزيله لاحقاً
-      - name: Upload Size Analysis Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: size-analysis-report
-          path: build/code-size-analysis/*.json
       # 🛠️ بناء الـ APK المشفر بـ R8/ProGuard و C++
       #- name: Build Release APK
       #  run: flutter build apk --release
@@ -83,6 +77,13 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
+      # 2. رفع تقرير الحجم إلى GitHub Artifacts لتنزيله لاحقاً
+      - name: Upload Size Analysis Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-analysis-report
+          path: build/code-size-analysis/*.json
+      
       # 📐 1. المحاذاة البرمجية الدقيقة (ZipAlign)
       - name: Align Release APK
         run: |

@@ -65,7 +65,7 @@ jobs:
       # 1. بناء التطبيق واستخراج تقرير حجم المكونات
       - name: Build APK with Size Analysis
         run: |
-          flutter build apk --target-platform android-arm64 --analyze-size --code-size-directory=build/code-size-analysis
+          flutter build apk --release --analyze-size --code-size-directory=build/code-size-analysis
 
       # 🛠️ بناء الـ APK المشفر بـ R8/ProGuard و C++
       #- name: Build Release APK
@@ -77,11 +77,20 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      # 2. رفع تقرير الحجم إلى GitHub Artifacts لتنزيله لاحقاً
+      # 2. طباعة ملخص التحليل داخل صفحة الـ Actions Summary مباشرة
+      - name: Display Size Summary in GitHub
+        run: |
+          JSON_FILE=$(ls build/code-size-analysis/*.json | head -n 1)
+          echo "### 📦 APK Size Breakdown" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          flutter pub global run devtools analyze-size $JSON_FILE >>$GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # 3. حفظ ملف الـ JSON كـ Artifact للحصول عليه لاحقاً
       - name: Upload Size Analysis Report
         uses: actions/upload-artifact@v4
         with:
-          name: size-analysis-report
+          name: release-size-analysis-report
           path: build/code-size-analysis/*.json
       
       # 📐 1. المحاذاة البرمجية الدقيقة (ZipAlign)

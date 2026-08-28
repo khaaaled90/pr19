@@ -99,8 +99,13 @@
 -keep class com.app.cardpay.NativeNotificationListener { *; }
 -keep class com.google.firebase.messaging.** { *; }
 -keep class com.app.cardpay.MyFirebaseMessagingService { *; }
+-keep class com.app.cardpay.AppSqliteHelper { *; }
 
 
 # 2. تمويه وتعتيم كلاسات التخزين والترخيص (آمن تماماً ولن يسبب كراش)
 -keep,allowobfuscation class com.app.cardpay.NativeSecureStorage { *; }
 -keep,allowobfuscation class com.app.cardpay.LicenseManager { *; }
+-keep,allowobfuscation class com.app.cardpay.ProcessMessageProcessor { *; }
+-keep,allowobfuscation class com.app.cardpay.NotificationHelper { *; }
+-keep,allowobfuscation class com.app.cardpay.SecurityHelper { *; }
+

@@ -205,6 +205,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
             db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('com.one.onecustomer', 'ONECash إشعارات', 'name', 1)")
             db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('Jawali', 'Jawali', 'name', 1)")
             db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('com.ama.wecashmobileapp', 'Jawali إشعارات', 'name', 1)")
+            db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('MFloos', 'MFloos', 'name', 1)")
 
             db?.setTransactionSuccessful()
         } catch (e: Exception) {

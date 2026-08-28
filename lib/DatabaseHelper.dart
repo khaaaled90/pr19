@@ -223,6 +223,8 @@ class DatabaseHelper {
     batch.insert(tableAllowedSenders, {'sender': 'com.one.onecustomer', 'name': 'ONECash إشعارات', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
     batch.insert(tableAllowedSenders, {'sender': 'Jawali', 'name': 'Jawali', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
     batch.insert(tableAllowedSenders, {'sender': 'com.ama.wecashmobileapp', 'name': 'Jawali إشعارات', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert(tableAllowedSenders, {'sender': 'MFloos', 'name': 'MFloos', 'sender_type': 'name', 'is_active': 1}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    
 
 
 

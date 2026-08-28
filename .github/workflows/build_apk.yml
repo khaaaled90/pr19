@@ -108,3 +108,4 @@ jobs:
         with:
           name: app-release-protected
           path: workspace/app-final-protected.apk
+          

@@ -108,4 +108,69 @@ class LicenseKeyManager {
     final encrypted = encrypter.encrypt(rawData, iv: iv);
     return encrypted.base64; // هذا الكود النصي الذي ترسله للعميل عبر الواتساب/SMS
   }
+  
+  /// 3. جلب تفاصيل الترخيص الحالي لاستعراضها في الواجهة
+  static Future<Map<String, String>> getLicenseDetails() async {
+    try {
+      // 🟢 جلب بيانات الترخيص المخزنة مشفرة
+      final licenseData = await SecureStorageHelper.getLicenseData();
+
+      if (licenseData == null || licenseData.isEmpty) {
+        return {
+          'type': 'غير مفعل',
+          'expiry': 'لا يوجد ترخيص نشط',
+        };
+      }
+
+      String planType = licenseData['planType'] ?? 'نسخة تجريبية';
+      int expiryMs = licenseData['expiryDateMs'] ?? 0;
+
+      // 🟢 ترجمة نوع الخطة
+      String formattedType;
+      switch (planType) {
+        case 'monthly':
+          formattedType = 'اشتراك شهري';
+          break;
+        case 'semi_annual':
+          formattedType = 'اشتراك نصف سنوي';
+          break;
+        case 'annual':
+          formattedType = 'اشتراك سنوي';
+          break;
+        case 'lifetime':
+          formattedType = 'ترخيص مدى الحياة';
+          break;
+        case 'trial':
+          formattedType = 'نسخة تجريبية';
+          break;
+        default:
+          formattedType = planType;
+      }
+
+      // 🟢 تنسيق تاريخ الانتهاء
+      String formattedExpiry;
+      if (planType == 'lifetime' || expiryMs <= 0) {
+        formattedExpiry = 'غير محدود (صلاحية دائمة)';
+      } else {
+        DateTime expiryDate = DateTime.fromMillisecondsSinceEpoch(expiryMs);
+        String dateOnly = expiryDate.toIso8601String().split('T')[0];
+        
+        if (DateTime.now().isAfter(expiryDate)) {
+          formattedExpiry = 'منتهي بتاريخ: $dateOnly';
+        } else {
+          formattedExpiry = 'ينتهي بتاريخ: $dateOnly';
+        }
+      }
+
+      return {
+        'type': formattedType,
+        'expiry': formattedExpiry,
+      };
+    } catch (e) {
+      return {
+        'type': 'غير معروف',
+        'expiry': 'خطأ في قراءة بيانات الترخيص',
+      };
+    }
+  }
 }

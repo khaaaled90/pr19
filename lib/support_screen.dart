@@ -141,8 +141,8 @@ class SupportScreen extends StatelessWidget {
               subtitle: 'تواصل مجتمعي ومشاركات يومية',
               icon: Icons.facebook,
               iconColor: const Color(0xFF1877F2),
-              onTap: () => _launchUrl(context, 'https://facebook.com/YOUR_PAGE_URL'),*/
-            ),
+              onTap: () => _launchUrl(context, 'https://facebook.com/YOUR_PAGE_URL'),
+            ),*/
           ],
         ),
       ),

@@ -808,7 +808,7 @@ class _HomeScreenState extends State<HomeScreen> {
         // 🎯 إضافة الزر العائم فوق شريط التنقل بشكل متناسق ومستقل
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 10), // رفعه أعلى المنيو بار العائم
+          padding: const EdgeInsets.only(bottom: 8), // رفعه أعلى المنيو بار العائم
           child: FloatingActionButton.extended(
             onPressed: _openManualSendDialog,
             backgroundColor: Theme.of(context).primaryColor,

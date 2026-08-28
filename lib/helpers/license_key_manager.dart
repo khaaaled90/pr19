@@ -108,22 +108,14 @@ class LicenseKeyManager {
     final encrypted = encrypter.encrypt(rawData, iv: iv);
     return encrypted.base64; // هذا الكود النصي الذي ترسله للعميل عبر الواتساب/SMS
   }
-  
+
   /// 3. جلب تفاصيل الترخيص الحالي لاستعراضها في الواجهة
   static Future<Map<String, String>> getLicenseDetails() async {
     try {
-      // 🟢 جلب بيانات الترخيص المخزنة مشفرة
-      final licenseData = await SecureStorageHelper.getLicenseData();
+      final details = await SecureStorageHelper.getLicenseDetailsForUI();
 
-      if (licenseData == null || licenseData.isEmpty) {
-        return {
-          'type': 'غير مفعل',
-          'expiry': 'لا يوجد ترخيص نشط',
-        };
-      }
-
-      String planType = licenseData['planType'] ?? 'نسخة تجريبية';
-      int expiryMs = licenseData['expiryDateMs'] ?? 0;
+      String planType = details['planType'] ?? 'trial';
+      int remainingDays = details['remainingDays'] ?? 0;
 
       // 🟢 ترجمة نوع الخطة
       String formattedType;
@@ -147,19 +139,14 @@ class LicenseKeyManager {
           formattedType = planType;
       }
 
-      // 🟢 تنسيق تاريخ الانتهاء
+      // 🟢 تنسيق معلومات انتهاء الصلاحية
       String formattedExpiry;
-      if (planType == 'lifetime' || expiryMs <= 0) {
+      if (planType == 'lifetime') {
         formattedExpiry = 'غير محدود (صلاحية دائمة)';
+      } else if (remainingDays > 0) {
+        formattedExpiry = 'متبقي على الانتهاء: $remainingDays يوم';
       } else {
-        DateTime expiryDate = DateTime.fromMillisecondsSinceEpoch(expiryMs);
-        String dateOnly = expiryDate.toIso8601String().split('T')[0];
-        
-        if (DateTime.now().isAfter(expiryDate)) {
-          formattedExpiry = 'منتهي بتاريخ: $dateOnly';
-        } else {
-          formattedExpiry = 'ينتهي بتاريخ: $dateOnly';
-        }
+        formattedExpiry = 'الاشتراك منتهي';
       }
 
       return {
@@ -169,7 +156,7 @@ class LicenseKeyManager {
     } catch (e) {
       return {
         'type': 'غير معروف',
-        'expiry': 'خطأ في قراءة بيانات الترخيص',
+        'expiry': 'خطأ في قراءة الترخيص',
       };
     }
   }

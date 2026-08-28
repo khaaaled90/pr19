@@ -80,7 +80,7 @@ class ForceUpdateScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 22,
-                    fontWeight: FontWeight.extrabold,
+                    fontWeight: FontWeight.w800,
                     color: theme.textTheme.titleLarge?.color,
                   ),
                 ),

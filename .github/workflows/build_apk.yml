@@ -3,10 +3,10 @@ name: Build Android APK
 on:
   push:
     branches:
-      - maintest1
+      - maintest2
   pull_request:
     branches:
-      - maintest1
+      - maintest2
   workflow_dispatch:
 
 jobs:

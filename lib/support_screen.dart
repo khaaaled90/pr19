@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'license_settings_screen.dart'; // قم بتعديل المسار حسب المجلد لديك
 
 class SupportScreen extends StatelessWidget {
   const SupportScreen({Key? key}) : super(key: key);
@@ -81,6 +82,10 @@ class SupportScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 🟢 زر/كارت فتح شاشة التفعيل والترخيص
+            _buildLicenseCard(context, theme, isDark),
+            const SizedBox(height: 16),
+
             _buildHeaderCard(context, theme, isDark),
             const SizedBox(height: 24),
             
@@ -139,6 +144,59 @@ class SupportScreen extends StatelessWidget {
               onTap: () => _launchUrl(context, 'https://facebook.com/YOUR_PAGE_URL'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLicenseCard(BuildContext context, ThemeData theme, bool isDark) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.primaryColor.withOpacity(0.2),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const LicenseSettingsScreen(),
+            ),
+          );
+        },
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        leading: CircleAvatar(
+          radius: 22,
+          backgroundColor: theme.primaryColor.withOpacity(0.12),
+          child: Icon(Icons.verified_user_rounded, color: theme.primaryColor, size: 24),
+        ),
+        title: const Text(
+          'إدارة وتجديد الترخيص',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+        ),
+        subtitle: const Text(
+          'عرض حالة الاشتراك، معرف الجهاز، وإدخال كود التفعيل',
+          style: TextStyle(fontSize: 11.5),
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: theme.primaryColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: theme.primaryColor),
         ),
       ),
     );

@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {
   static const String _databaseName = "smsqaiddb.db";
-  static const int _databaseVersion = 17; // ✅ تم الرفع إلى 13 لدعم حقل price
+  static const int _databaseVersion = 18; // ✅ تم الرفع إلى 13 لدعم حقل price
   static const MethodChannel _nativeChannel = MethodChannel('com.app.cardpay/cache');
 
   static const String tableKeywords = "keywords";
@@ -325,6 +325,18 @@ class DatabaseHelper {
       await db.execute("ALTER TABLE $tableReplyLog ADD COLUMN allowed_sender TEXT;");
       // 👈 إنشاء الفهرس عند ترقية التطبيق من إصدصارات سابقة
       await db.execute("CREATE INDEX IF NOT EXISTS idx_reply_log_allowed_sender ON $tableReplyLog(allowed_sender)");
+    }
+    if (oldVersion < 18) {
+      await db.insert(
+        tableAllowedSenders,
+        {
+          'sender': 'MFloos',
+          'name': 'MFloos',
+          'sender_type': 'name',
+          'is_active': 1,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
     }
 
     await _createIndexes(db);

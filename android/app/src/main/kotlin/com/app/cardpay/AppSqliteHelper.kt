@@ -10,7 +10,7 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     companion object {
         private const val DATABASE_NAME = "smsqaiddb.db"
-        private const val DATABASE_VERSION = 17 // ✅ رفع الإصدار إلى 16 لإضافة price
+        private const val DATABASE_VERSION = 18 // ✅ رفع الإصدار إلى 16 لإضافة price
 
         @Volatile
         private var instance: AppSqliteHelper? = null
@@ -330,6 +330,13 @@ class AppSqliteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                     db?.execSQL("CREATE INDEX IF NOT EXISTS idx_reply_log_allowed_sender ON reply_log(allowed_sender)")
                 } catch (e: Exception) {
                     Log.e("SQLite", "Error adding allowed_sender column: ${e.message}")
+                }
+            }
+            if (oldVersion < 18) {
+                try { 
+                    db?.execSQL("INSERT OR IGNORE INTO allowed_senders (sender, name, sender_type, is_active) VALUES ('MFloos', 'MFloos', 'name', 1)")
+                } catch (e: Exception) {
+                    Log.e("SQLite", "Error inserting MFloos into allowed_senders: ${e.message}")
                 }
             }
 

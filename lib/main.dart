@@ -16,6 +16,7 @@ import 'screens/license_lock_screen.dart';
 import 'PermissionGuardScreen.dart';
 import 'DatabaseHelper.dart';
 import 'HomeScreen.dart';
+import 'splash_screen.dart';
 import 'NotificationHelper.dart';
 import 'NotificationListener.dart';
 import 'SmsReceiver.dart';
@@ -300,7 +301,7 @@ class _MainControllerState extends State<MainController> {
       if (!mounted) return;
       setState(() {
         _isLoading = false; // 👈 إيقاف التحميل
-        _currentScreen = const MainNavigationScreen();
+        _currentScreen = const SplashScreen();
       });
 
       // إجراء مزامنة خلفية هادئة إن توفر إنترنت لاحقاً
@@ -342,7 +343,7 @@ class _MainControllerState extends State<MainController> {
       if (!mounted) return;
       setState(() {
         _isLoading = false; // 👈 إيقاف التحميل
-        _currentScreen = const MainNavigationScreen();
+        _currentScreen = const SplashScreen();
       });
     } else if (validation['reason'] == 'EXPIRED' || validation['reason'] == 'LIMIT_REACHED') {
       if (!mounted) return;

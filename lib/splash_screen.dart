@@ -42,8 +42,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // الانتقال للشاشة الرئيسية بعد انتهاء الأنيميشن (مثلاً بعد 2.5 ثانية)
+    // 🟢 الأسلوب الأفضل والأمن للانتقال بعد 2.5 ثانية:
     Future.delayed(const Duration(milliseconds: 2500), () {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+    });
+    // الانتقال للشاشة الرئيسية بعد انتهاء الأنيميشن (مثلاً بعد 2.5 ثانية)
+    /*Timer(const Duration(milliseconds: 2500), () {
         if (mounted) {
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -51,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             ),
         );
         }
-    });
+    });*/
   }
 
   @override

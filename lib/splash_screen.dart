@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'HomeScreen.dart';
+import 'dart5:async'; // 👈 أضف هذا السطر في أعلى الملف
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
 
@@ -25,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _cardAnim = CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.45, curve: Curves.backOut),
+        curve: const Interval(0.0, 0.45, curve: Curves.easeOutBack),
     );
 
     _wifiAnim = CurvedAnimation(
@@ -41,7 +43,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _controller.forward();
 
     // الانتقال للشاشة الرئيسية بعد انتهاء الأنيميشن (مثلاً بعد 2.5 ثانية)
-    Timer(const Duration(milliseconds: 2500), () {
+    Future.delayed(const Duration(milliseconds: 2500), () {
         if (mounted) {
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'HomeScreen.dart';
-import 'dart5:async'; // 👈 أضف هذا السطر في أعلى الملف
+import 'dart:async'; // 👈 أضف هذا السطر في أعلى الملف
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);

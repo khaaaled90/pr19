@@ -46,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     Future.delayed(const Duration(milliseconds: 2500), () {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
         );
     });
     // الانتقال للشاشة الرئيسية بعد انتهاء الأنيميشن (مثلاً بعد 2.5 ثانية)

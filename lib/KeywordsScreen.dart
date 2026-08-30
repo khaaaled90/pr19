@@ -203,6 +203,7 @@ class _KeywordsScreenState extends State<KeywordsScreen> {
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                           color: Color(0xFF27AE60),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),

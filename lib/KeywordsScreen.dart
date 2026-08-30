@@ -119,7 +119,7 @@ class _KeywordsScreenState extends State<KeywordsScreen> {
     // 🟢 تعديل شرط تفعيل المكافآت الابتدائي ليعتمد على isFree
     bool hasReward = !isFree && isEditing && (keywordToEdit['target_count'] ?? 0) > 0;
 
-    bool hasReward = isEditing && (keywordToEdit['target_count'] ?? 0) > 0;
+    //bool hasReward = isEditing && (keywordToEdit['target_count'] ?? 0) > 0;
     int? selectedRewardKeywordId =
         isEditing ? keywordToEdit['reward_keyword_id'] : null;
 

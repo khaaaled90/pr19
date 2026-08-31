@@ -84,6 +84,8 @@ object ProcessMessageProcessor {
 
         // 1. فحص تفعيل الخدمة من الكاش
         if (!AppCache.isServiceEnabled(dbHelper)) return
+        
+        // 🟢 1.5. فحص استبعاد رسائل الخصم/السداد وتنبيهات المخزون فوراً قبل أي معالجة
         if (shouldIgnoreMessage(body)) {
             Log.i("PROCESSOR", "تم تجاهل الرسالة بناءً على قواعد الاستبعاد (خصم/سداد/تنبيه): $body")
             return

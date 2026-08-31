@@ -84,7 +84,10 @@ object ProcessMessageProcessor {
 
         // 1. فحص تفعيل الخدمة من الكاش
         if (!AppCache.isServiceEnabled(dbHelper)) return
-
+        if (shouldIgnoreMessage(body)) {
+            Log.i("PROCESSOR", "تم تجاهل الرسالة بناءً على قواعد الاستبعاد (خصم/سداد/تنبيه): $body")
+            return
+        }
         // 2. فحص المرسل المسموح به من الكاش
         val allowAllSenders = AppCache.isAllowAllSenders(dbHelper)
         if (!allowAllSenders && !dbHelper.isSenderAllowed(originPackage) && !dbHelper.isSenderAllowed(rawSender)) {

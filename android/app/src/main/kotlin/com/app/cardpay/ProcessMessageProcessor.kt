@@ -544,14 +544,21 @@ object ProcessMessageProcessor {
                         if (rewardVoucherCode != null) {
 
                             // ➕ أضف هذين السطرين هنا:
-                            val rewardParts = rewardVoucherCode.split(Regex("[,\\-/]"))
+                            /*val rewardParts = rewardVoucherCode.split(Regex("[,\\-/]"))
                             //val formattedReward = if (rewardParts.size >= 2) "${rewardParts[0].trim()}, ${rewardParts[1].trim()}" else rewardVoucherCode
-                            val formattedReward = if (parts.size >= 2) {
+                            /*val formattedReward = if (parts.size >= 2) {
                                     "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}"
                                 } else {
                                     "\nرمز الكرت: ${mainVoucherCode.trim()}"
-                                }
+                                }*/
                             
+                            // ✅ تفكيك وتنسيق كرت الهدية باستخدام المتغيرات الصحيحة
+                            val rewardParts = rewardVoucherCode.split(Regex("[,\\-/]"))
+                            val formattedReward = if (rewardParts.size >= 2) {
+                                "\nاسم المستخدم: ${rewardParts[0].trim()}\nكلمة المرور: ${rewardParts[1].trim()}"
+                                } else {
+                                    "\nرمز الكرت: ${rewardVoucherCode.trim()}"
+                                }
                             // تصفير العداد عند نجاح سحب كرت العرض
                             dbHelper.resetCustomerCounter(destinationPhone, keywordId)
 
@@ -564,7 +571,7 @@ object ProcessMessageProcessor {
 
                             //val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $rewardVoucherCode"
                             // ✏️ عَدِّل هذا السطر فقط (استبدل rewardVoucherCode بـ formattedReward):
-                            val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $formattedReward"
+                            val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني (فئة: $rewardKwText) بمناسبة العرض: $formattedReward"
                             val isRewardSent = DualSimSmsSender.sendSms(
                                 context = context,
                                 phoneNumber = destinationPhone,
@@ -738,7 +745,13 @@ object ProcessMessageProcessor {
             text.contains("لقد قمت بعملية سداد", ignoreCase = true) ||
             text.contains("سداد فواتير", ignoreCase = true) ||
             text.contains("تم إرسال مبلغ", ignoreCase = true) ||
-            text.contains("تحويل محفظة", ignoreCase = true)
+            text.contains("تحويل محفظة", ignoreCase = true) ||
+            text.contains("مشتريات", ignoreCase = true) ||
+            text.contains("ر.س", ignoreCase = true) ||
+            text.contains("SAR", ignoreCase = true) ||
+            text.contains("USD", ignoreCase = true) ||
+            text.contains("دولار", ignoreCase = true)
+            
 
         if (isOutgoingTransferOrPayment) {
             Log.i(
@@ -756,7 +769,8 @@ object ProcessMessageProcessor {
             text.contains("تنبيه اقتراب نفاذ المخزون", ignoreCase = true) ||
             text.contains("تنبيه نفاذ المخزون", ignoreCase = true) ||
             text.contains("اقتراب نفاذ المخزون", ignoreCase = true) ||
-            text.contains("نفاذ المخزون", ignoreCase = true)
+            text.contains("نفاذ المخزون", ignoreCase = true) ||
+            text.contains("مشتريات", ignoreCase = true) 
 
         if (isStockAlert) {
             Log.i(

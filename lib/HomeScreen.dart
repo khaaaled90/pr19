@@ -1469,37 +1469,6 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     selectedKeywordId = id;
     _fetchAvailableVouchers();
   }
-  
-  /*Future<void> _onKeywordSelected(int? id) async {
-    if (id == null) return;
-    setState(() {
-      selectedKeywordId = id;
-      availableVoucher = null;
-      noCardsAvailable = false;
-    });
-
-    try {
-      final db = await DatabaseHelper.instance.database;
-      List<Map<String, dynamic>> results = await db.query(
-        DatabaseHelper.tableNumbersPool,
-        where: 'keyword_id = ? AND status = ?',
-        whereArgs: [id, 'available'],
-        limit: 1,
-      );
-
-      if (mounted) {
-        setState(() {
-          if (results.isNotEmpty) {
-            availableVoucher = results.first;
-          } else {
-            noCardsAvailable = true;
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => noCardsAvailable = true);
-    }
-  }*/
 
   Future<bool> _sendSmsNativeDirect(String phone, String message) async {
     try {
@@ -1626,103 +1595,7 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
 
     if (mounted) setState(() => isSending = false);
   }
-  // 🟢 دالة قراءة بيانات الترخيص والقسائم المتبقية
-  /*Future<void> _sendCard() async {
-    String phone = _phoneController.text.trim();
-    if (phone.isEmpty) {
-      _showMessage('⚠️ الرجاء إدخال رقم الجوال', isError: true);
-      return;
-    }
-
-    if (availableVoucher == null || selectedKeywordId == null) {
-      _showMessage('⚠️ لا يوجد كرت متاح للإرسال', isError: true);
-      return;
-    }
-
-    var matchedKw = keywords.firstWhere(
-      (k) => k['id'] == selectedKeywordId,
-      orElse: () => <String, dynamic>{},
-    );
-    String kwName = matchedKw['keyword'] ?? 'يدوي';
-    
-    // استخراج سعر الباقة/الكلمة المفتاحية
-    double cardPrice = (matchedKw['price'] as num?)?.toDouble() ?? 0.0;
-
-    await triggerManagerAlertNative(selectedKeywordId!, kwName);
-    setState(() => isSending = true);
-
-    try {
-      final dbHelper = DatabaseHelper.instance;
-      var usedVoucher = await dbHelper.getAndUseVoucher(selectedKeywordId!, phone);
-
-      if (usedVoucher != null) {
-        String cardCode = usedVoucher['number_code'] ?? '';
-        // 🟢 1. تنظيف النص واستخراج الأرقام فقط
-        String cleanDigits = phone.replaceAll(RegExp(r'\D'), '');
-
-        // 🟢 2. تحويل الرقم إلى الصيغة الدولية إذا كان يتكون من 9 أرقام أو أكثر
-        if (cleanDigits.length >= 9) {
-          phone = "+967${cleanDigits.substring(cleanDigits.length - 9)}";
-        }
-        await dbHelper.saveOrUpdateCustomer(phone);
-
-        // 🛡️ تقسيم الكرت إذا كان يحتوي على (فاصلة أو شرطة أو سلاش)
-        List<String> parts = cardCode.split(RegExp(r'[,\-/]'));
-        
-        String formattedCardCode;
-        if (parts.length >= 2) {
-          formattedCardCode = "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}";
-        } else {
-          formattedCardCode = "\nرمز الكرت: ${cardCode.trim()}";
-        } 
-        String footerMsg = await dbHelper.getSetting('footer_message', '');
-        String defaultReply = await DatabaseHelper.instance
-          .getSetting('default_reply', 'شكراً لتواصلك. رقمك الخاص هو: ');
-        
-        // ✏️ استخدام الكرت المنسق داخل الرسالة
-        String fullMsg = formattedCardCode + (footerMsg.isNotEmpty ? '\n$footerMsg' : '');
-        String fullMessage = "$defaultReply $fullMsg";
-        bool sentStatus = await _sendSmsNativeDirect(phone, fullMessage);
-        
-        // حفظ العملية محلياً مع السعر وتغيير الحالة إلى sent_manual
-        bool isArchived = await dbHelper.addToArchive(
-          sender: 'إرسال يدوي',
-          senderName: phone,
-          receivedMessage: fullMessage,
-          matchedKeyword: kwName,
-          sentNumber: cardCode,
-          price: cardPrice,
-          status: sentStatus ? 'sent_manual' : 'failed',
-        );
-
-        if (sentStatus) {
-          // رفع السجل إلى الفايربيس (قم بفك التعليق وتعديل اسم الدالة إذا لزم الأمر)
-          // await FirebaseService.uploadReplyLog(logId);
-          try {
-            await _nativeControlChannel.invokeMethod("showVoucherNotification", {
-              "categoryName": kwName, // اسم الكلمة المفتاحية أو فئة الكرت
-              "phone": phone,                 // رقم هاتف المستلم
-            });
-          } catch (e) {
-            debugPrint("خطأ أثناء استدعاء إشعار القسيمة: $e");
-          }          
-          _showMessage('✅ تم إرسال الكرت إلى $phone بنجاح');
-          widget.onSentSuccess();
-          if (mounted) Navigator.pop(context);
-        } else {
-          _showMessage('⚠️ تم استهلاك الكرت ولكن فشل إرسال الـ SMS', isError: true);
-        }
-      } else {
-        _showMessage('❌ فشل تعيين الكرت', isError: true);
-      }
-    } catch (e) {
-      _showMessage('⚠️ خطأ في معالجة العملية: $e', isError: true);
-    }
-
-    if (mounted) setState(() => isSending = false);
-  }*/  
   
- 
   /// دالة تنبيه الـ Native لمتابعة مخزون الكروت
   Future<void> triggerManagerAlertNative(int keywordId, String keywordText) async {
     try {
@@ -1833,21 +1706,6 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
                       ),
                     ],
                   ),
-                /*DropdownButtonFormField<int>(
-                    value: selectedKeywordId,
-                    decoration: InputDecoration(
-                      labelText: 'اختر الباقة',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    items: keywords.map((k) {
-                      return DropdownMenuItem<int>(
-                        value: k['id'] as int,
-                        child: Text('${k['keyword']}'),
-                      );
-                    }).toList(),
-                    onChanged: _onKeywordSelected,
-                  ),*/
             // التنبيه في حالة النقص
             if (noCardsAvailable && selectedKeywordId != null) ...[
               const SizedBox(height: 12),
@@ -1889,45 +1747,6 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
                 ),
               ),
             ],
-            /*if (noCardsAvailable) ...[
-              const SizedBox(height: 12),
-              const Text(
-                '⚠️ لا توجد كروت متاحة لهذه الباقة.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-              ),
-            ],
-            if (availableVoucher != null) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                textDirection: TextDirection.ltr,
-                decoration: InputDecoration(
-                  labelText: 'رقم المستلم',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.contacts_rounded, color: Colors.blue),
-                    tooltip: 'اختيار من جهات الاتصال',
-                    onPressed: _pickContact,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: isSending ? null : _sendCard,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: Text(
-                  isSending ? 'جاري الإرسال...' : 'تأكيد وإرسال',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],*/
           ],
         ),
       ),

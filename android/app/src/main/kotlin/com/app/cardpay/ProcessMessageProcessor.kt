@@ -544,7 +544,7 @@ object ProcessMessageProcessor {
                         if (rewardVoucherCode != null) {
 
                             // ➕ أضف هذين السطرين هنا:
-                            /*val rewardParts = rewardVoucherCode.split(Regex("[,\\-/]"))
+                            //val rewardParts = rewardVoucherCode.split(Regex("[,\\-/]"))
                             //val formattedReward = if (rewardParts.size >= 2) "${rewardParts[0].trim()}, ${rewardParts[1].trim()}" else rewardVoucherCode
                             /*val formattedReward = if (parts.size >= 2) {
                                     "\nاسم المستخدم: ${parts[0].trim()}\nكلمة المرور: ${parts[1].trim()}"

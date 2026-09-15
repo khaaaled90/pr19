@@ -1507,6 +1507,10 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     String kwName = matchedKw['keyword'] ?? 'يدوي';
     double singleCardPrice = (matchedKw['price'] as num?)?.toDouble() ?? 0.0;
 
+    // 🎯 استخراج بيانات العرض من الكلمة المفتاحية المحددة
+    int targetCount = (matchedKw['target_count'] as num?)?.toInt() ?? 0;
+    int? rewardKeywordId = (matchedKw['reward_keyword_id'] as num?)?.toInt();
+
     await triggerManagerAlertNative(selectedKeywordId!, kwName);
     setState(() => isSending = true);
 
@@ -1583,6 +1587,66 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
         } catch (e) {
           debugPrint("خطأ أثناء استدعاء إشعار القسيمة: $e");
         }
+        // 🎯 ⭐ 5️⃣ فحص شرط العرض وزيادة العداد وحساب كرت الهدية
+        if (targetCount > 0 && rewardKeywordId != null) {
+          int currentCount = 0;
+          
+          // زيادة العداد لكل كرت تم إرساله يدويًا
+          for (int i = 0; i < selectedCount; i++) {
+            currentCount = await dbHelper.incrementCustomerCounter(phone, selectedKeywordId!);
+          }
+
+          // إذا تحقق الشرط ومجموع العداد تجاوز أو تساوى مع الهدف
+          if (currentCount >= targetCount) {
+            var rewardVoucher = await dbHelper.getAndUseVoucher(rewardKeywordId, phone);
+
+            if (rewardVoucher != null) {
+              String rewardCode = rewardVoucher['number_code'] ?? '';
+
+              // تفكيك وتنسيق كرت الهدية
+              List<String> rParts = rewardCode.split(RegExp(r'[,\-/]'));
+              String formattedReward = rParts.length >= 2
+                  ? "\nاسم المستخدم: ${rParts[0].trim()}\nكلمة المرور: ${rParts[1].trim()}"
+                  : "\nرمز الكرت: ${rewardCode.trim()}";
+
+              // تصفير عداد العميل بعد الحصول على الهدية
+              await dbHelper.resetCustomerCounter(phone, selectedKeywordId!);
+
+              // جلب اسم وسعر باقة الهدية
+              var rewardKwList = keywords.where((k) => k['id'] == rewardKeywordId).toList();
+              String rewardKwText = rewardKwList.isNotEmpty ? rewardKwList.first['keyword'] : 'عرض مجاني';
+              double rewardPrice = rewardKwList.isNotEmpty ? ((rewardKwList.first['price'] as num?)?.toDouble() ?? 0.0) : 0.0;
+
+              // إرسال رسالة الهدية عبر SMS
+              String rewardMsg = "🎉 تهانينا! لقد حصلت على كرت مجاني (فئة: $rewardKwText) بمناسبة العرض: $formattedReward";
+              bool isRewardSent = await _sendSmsNativeDirect(phone, rewardMsg);
+
+              if (isRewardSent) {
+                // أرشفة كرت الهدية
+                await dbHelper.addToArchive(
+                  sender: 'إرسال يدوي (هدية)',
+                  senderName: phone,
+                  receivedMessage: "هدية عرض للباقة: $kwName",
+                  matchedKeyword: rewardKwText,
+                  sentNumber: rewardCode,
+                  price: rewardPrice,
+                  status: 'sent_reward',
+                );
+
+                // إظهار إشعار بالهدية
+                try {
+                  await _nativeControlChannel.invokeMethod("showVoucherNotification", {
+                    "categoryName": "هدية: $rewardKwText",
+                    "phone": phone,
+                  });
+                } catch (e) {
+                  debugPrint("خطأ في إشعار الهدية: $e");
+                }
+              }
+            }
+          }
+        }
+        
         _showMessage('✅ تم إرسال $selectedCount كروت إلى $phone بنجاح');
         widget.onSentSuccess();
         if (mounted) Navigator.pop(context);

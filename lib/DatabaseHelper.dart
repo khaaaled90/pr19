@@ -481,7 +481,13 @@ class DatabaseHelper {
       whereArgs: [customerPhone, keywordId],
     );
 
-    return result.first['received_count'] as int;
+    //return result.first['received_count'] as int;
+    // 🎯 إضافة فحص الأمان مثل كوتلن
+    if (result.isNotEmpty) {
+      return result.first['received_count'] as int;
+    }
+    return 1;
+  
   }
 
   Future<void> resetCustomerCounter(String customerPhone, int keywordId) async {

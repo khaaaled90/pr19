@@ -1587,6 +1587,8 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
         } catch (e) {
           debugPrint("خطأ أثناء استدعاء إشعار القسيمة: $e");
         }
+        // 🎯 فحص مخزون الباقة الأساسية بعد الخصم
+        await checkAndSendManagerAlert(selectedKeywordId!, kwName);
         // 🎯 ⭐ 5️⃣ فحص شرط العرض وزيادة العداد وحساب كرت الهدية
         if (targetCount > 0 && rewardKeywordId != null) {
           int currentCount = 0;
@@ -1643,10 +1645,16 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
                   debugPrint("خطأ في إشعار الهدية: $e");
                 }
               }
+              // 🟢 فحص المخزون وتنبيه المدير عند النجاح
+              await checkAndSendManagerAlert(rewardKeywordId, "هدية: $rewardKwText");
+            } else {
+              // 🔴 تنبيه المدير بنفاذ كروت الهدية عند فشل السحب
+              debugPrint("⚠️ تحقق شرط العرض لكن كروت الهدية غير متوفرة!");
+              await checkAndSendManagerAlert(rewardKeywordId, "نفاد هدايا العرض للرمز: $selectedKeywordId");
             }
           }
         }
-        
+
         _showMessage('✅ تم إرسال $selectedCount كروت إلى $phone بنجاح');
         widget.onSentSuccess();
         if (mounted) Navigator.pop(context);
@@ -1658,6 +1666,37 @@ class _ManualSendBottomSheetState extends State<ManualSendBottomSheet> {
     }
 
     if (mounted) setState(() => isSending = false);
+  }
+
+  Future<void> checkAndSendManagerAlert(int keywordId, String keywordText) async {
+    try {
+      final dbHelper = DatabaseHelper.instance;
+
+      // 1. قراءة الإعدادات
+      String isAlertEnabledStr = await dbHelper.getSetting('stock_alert_enabled', 'true');
+      if (isAlertEnabledStr != 'true') return;
+
+      String ownerPhone = (await dbHelper.getSetting('owner_phone', '')).trim();
+      if (ownerPhone.isEmpty) return;
+
+      String thresholdStr = await dbHelper.getSetting('warning_threshold', '5');
+      int warningThreshold = int.tryParse(thresholdStr) ?? 5;
+
+      // 2. حساب الكروت المتبقية للباقة
+      int availableCount = await dbHelper.getAvailableNumbersCountByKeywordId(keywordId);
+
+      // 3. إذا وصل المتبقي للحد الأدنى أو نفذ تماماً
+      if (availableCount <= warningThreshold) {
+        String alertMessage = availableCount == 0
+            ? "🚨 تنبيه نفاذ المخزون!\nنفذت أرقام الباقة ($keywordText) بالكامل!"
+            : "⚠️ تنبيه اقتراب نفاذ المخزون!\nالباقة ($keywordText) المتبقي منها: $availableCount فقط (الحد الأدنى: $warningThreshold).";
+
+        // 4. إرسال SMS للمدير
+        await _sendSmsNativeDirect(ownerPhone, alertMessage);
+      }
+    } catch (e) {
+      debugPrint("خطأ أثناء فحص تنبيه المخزون: $e");
+    }
   }
   
   /// دالة تنبيه الـ Native لمتابعة مخزون الكروت

@@ -541,6 +541,12 @@ object ProcessMessageProcessor {
                     if (currentCount >= targetCount) {
                         val rewardVoucherCode = dbHelper.getAndUseVoucher(rewardKeywordId, destinationPhone)
 
+                        // 🎯 جلب اسم وسعر باقة الهدية من الكاش بدقة
+                        val rewardKwMap = AppCache.getKeywords(dbHelper).find { 
+                            (it["id"] as? Number)?.toInt() == rewardKeywordId 
+                        }
+                        val rewardKwText = rewardKwMap?.get("keyword") as? String ?: "عرض مجاني"
+                        val rewardPrice = (rewardKwMap?.get("price") as? Number)?.toDouble() ?: 0.0
                         if (rewardVoucherCode != null) {
 
                             // ➕ أضف هذين السطرين هنا:
@@ -561,13 +567,6 @@ object ProcessMessageProcessor {
                                 }
                             // تصفير العداد عند نجاح سحب كرت العرض
                             dbHelper.resetCustomerCounter(destinationPhone, keywordId)
-
-                            // 🎯 جلب اسم وسعر باقة الهدية من الكاش بدقة
-                            val rewardKwMap = AppCache.getKeywords(dbHelper).find { 
-                                (it["id"] as? Number)?.toInt() == rewardKeywordId 
-                            }
-                            val rewardKwText = rewardKwMap?.get("keyword") as? String ?: "عرض مجاني"
-                            val rewardPrice = (rewardKwMap?.get("price") as? Number)?.toDouble() ?: 0.0
 
                             //val rewardMessage = "🎉 تهانينا! لقد حصلت على كرت مجاني بمناسبة العرض: $rewardVoucherCode"
                             // ✏️ عَدِّل هذا السطر فقط (استبدل rewardVoucherCode بـ formattedReward):
